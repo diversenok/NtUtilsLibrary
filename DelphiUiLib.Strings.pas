@@ -70,6 +70,13 @@ function BooleanToString(
 
 function CheckboxToString(Value: LongBool): String;
 
+{ Other }
+
+// Convert the number of bytes to a string with bytes/KiB/MiB/GiB units
+function UiLibBytesToString(
+  const Bytes: UInt64
+): String;
+
 implementation
 
 uses
@@ -163,7 +170,7 @@ end;
 
 function UiLibUIntToDec;
 begin
-  Result := RtlxIntToDec(Value, isUInt64, isUnsigned, npSpace);
+  Result := RtlxIntToDec(Value, isUInt64, isUnsigned, 0, npSpace);
 end;
 
 function UiLibUIntToHex;
@@ -251,6 +258,114 @@ begin
     Result := '☑'
   else
     Result := '☐';
+end;
+
+{ Other }
+
+function UiLibFixedPointToString(Value: Double; Digits: Byte): String;
+var
+  Decimal: Int64;
+begin
+  // TBD: unsafe; cannot handle the entire float range
+  Decimal := Round(Power10(Value, Digits));
+  Result := RtlxIntToDec(UInt64(Decimal), isUInt64, isSigned, Digits + 1);
+
+  if (Decimal = 0) and (Value < 0) then
+    Insert('-', Result, 0);
+
+  if Digits > 0 then
+    Insert('.', Result, Length(Result) - Digits + 1);
+end;
+
+function UiLibBytesToString;
+const
+  BYTES_PER_KB = UInt64(1) shl 10;
+  BYTES_PER_MB = UInt64(1) shl 20;
+  BYTES_PER_GB = UInt64(1) shl 30;
+var
+  IntValue: UInt64;
+  FloatValue: Double;
+  Digits: Integer;
+  Units: String;
+begin
+  IntValue := 0;
+  FloatValue := 0.0;
+
+  if Bytes < BYTES_PER_KB then
+  begin
+    // %I64u bytes
+    IntValue := Bytes;
+    Digits := 0;
+    Units := ' bytes';
+  end
+  else if (Bytes < BYTES_PER_KB * 10) and (Bytes mod BYTES_PER_KB <> 0) then
+  begin
+    // %0.2f KiB
+    FloatValue := (Bytes * 100 / BYTES_PER_KB) / 100;
+    Digits := 2;
+    Units := ' KiB';
+  end
+  else if (Bytes < BYTES_PER_KB * 100) and (Bytes mod BYTES_PER_KB <> 0) then
+  begin
+    // %0.1f KiB
+    FloatValue := (Bytes * 10 / BYTES_PER_KB) / 10;
+    Digits := 1;
+    Units := ' KiB';
+  end
+  else if Bytes < BYTES_PER_MB then
+  begin
+    // %I64u KiB
+    IntValue := Bytes div BYTES_PER_KB;
+    Digits := 0;
+    Units := ' KiB';
+  end
+  else if (Bytes < BYTES_PER_MB * 10) and (Bytes mod BYTES_PER_MB <> 0) then
+  begin
+    // %0.2f MiB
+    FloatValue := (Bytes * 100 / BYTES_PER_MB) / 100;
+    Digits := 2;
+    Units := ' MiB';
+  end
+  else if (Bytes < BYTES_PER_MB * 100) and (Bytes mod BYTES_PER_MB <> 0) then
+  begin
+    // %0.1f MiB
+    FloatValue := (Bytes * 10 / BYTES_PER_MB) / 10;
+    Digits := 1;
+    Units := ' MiB';
+  end
+  else if Bytes < BYTES_PER_GB then
+  begin
+    // %I64u MiB
+    IntValue := Bytes div BYTES_PER_MB;
+    Digits := 0;
+    Units := ' MiB';
+  end
+  else if (Bytes < BYTES_PER_GB * 10) and (Bytes mod BYTES_PER_GB <> 0) then
+  begin
+    // %0.2f GiB
+    FloatValue := (Bytes * 100 / BYTES_PER_GB) / 100;
+    Digits := 2;
+    Units := ' GiB';
+  end
+  else if (Bytes < BYTES_PER_GB * 100) and (Bytes mod BYTES_PER_GB <> 0) then
+  begin
+    // %0.1f GiB
+    FloatValue := (Bytes * 10 / BYTES_PER_GB) / 10;
+    Digits := 1;
+    Units := ' GiB';
+  end
+  else
+  begin
+    // %I64u GiB
+    IntValue := Bytes div BYTES_PER_GB;
+    Digits := 0;
+    Units := ' GiB';
+  end;
+
+  if Digits = 0 then
+    Result := UiLibUIntToDec(IntValue) + Units
+  else
+    Result := UiLibFixedPointToString(FloatValue, Digits) + Units;
 end;
 
 end.

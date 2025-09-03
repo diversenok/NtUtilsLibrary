@@ -18,7 +18,6 @@ type
   end;
 
 // Misc.
-function BytesToString(Size: UInt64): String;
 function TimeIntervalToString(Seconds: UInt64): String;
 
 // Create a hint from a set of sections
@@ -50,20 +49,6 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-function BytesToString;
-begin
-  if Size = UInt64(-1) then
-    Result := 'Infinite'
-  else if Size > 1 shl 30 then
-    Result := Format('%.2f GiB', [Size / (1 shl 30)])
-  else if Size > 1 shl 20 then
-    Result := Format('%.1f MiB', [Size / (1 shl 20)])
-  else if Size > 1 shl 10 then
-    Result := IntToStr(Size shr 10) + ' KiB'
-  else
-    Result := IntToStr(Size) + ' B';
-end;
 
 function TimeIntervalToString;
 const

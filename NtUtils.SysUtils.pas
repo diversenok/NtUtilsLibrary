@@ -266,6 +266,7 @@ function RtlxIntToDec(
   const Value: UInt64;
   ValueSize: TIntegerSize = isUInt64;
   ValaueSign: TIntegerSign = isUnsigned;
+  Width: Byte = 0;
   SpaceDigits: TNumericSpaceChar = npNone
 ): String;
 
@@ -1226,7 +1227,7 @@ end;
 
 function RtlxIntToDec;
 begin
-  Result := RtlxIntToStr(Value, nsDecimal, 0, ValueSize, ValaueSign, [],
+  Result := RtlxIntToStr(Value, nsDecimal, Width, ValueSize, ValaueSign, [],
     SpaceDigits);
 end;
 

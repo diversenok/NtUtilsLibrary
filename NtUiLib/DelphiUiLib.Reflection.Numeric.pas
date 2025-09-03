@@ -469,7 +469,7 @@ begin
   else if Bytes then
   begin
     Reflection.Kind := nkBytes;
-    Reflection.Basic.Text := BytesToString(Reflection.Value);
+    Reflection.Basic.Text := UiLibBytesToString(Reflection.Value);
     Reflection.Basic.Hint := 'Bytes:'#$D#$A'  ' + UiLibUIntToDec(
       Reflection.Value);
   end
