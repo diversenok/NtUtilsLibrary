@@ -223,6 +223,12 @@ function RtlxUpperString(
   const Source: String
 ): String;
 
+// Concat a collection of strings with delimiters
+function RtlxJoinStrings(
+  const Strings: TArraY<String>;
+  const Separator: String
+): String;
+
 // Checks if a string matches a pattern with wildcards.
 // Note: the function supports strings up to 32k characters
 function RtlxIsNameInExpression(
@@ -1003,6 +1009,45 @@ begin
 
   for i := Low(Result) to High(Result) do
     Result[i] := RtlUpcaseUnicodeChar(Result[i]);
+end;
+
+function RtlxJoinStrings;
+var
+  i, Count: Integer;
+  Cursor: PWideChar;
+begin
+  if Length(Strings) <= 0 then
+    Exit('');
+
+  // Count required characters
+  Count := Length(Separator) * (Length(Strings) - 1);
+
+  for i := 0 to High(Strings) do
+    Inc(Count, Length(Strings[i]));
+
+  if Count <= 0 then
+    Exit('');
+
+  // Combine
+  SetLength(Result, Count);
+  Cursor := @Result[Low(String)];
+
+  for i := 0 to High(Strings) do
+  begin
+    if Length(Strings[i]) > 0 then
+    begin
+      Move(Strings[i][Low(String)], Cursor^, Length(Strings[i]) *
+        SizeOf(WideChar));
+      Inc(Cursor, Length(Strings[i]));
+    end;
+
+    if (Length(Separator) > 0) and (i < High(Strings)) then
+    begin
+      Move(Separator[Low(String)], Cursor^, Length(Separator) *
+        SizeOf(WideChar));
+      Inc(Cursor, Length(Separator));
+    end;
+  end;
 end;
 
 function RtlxIsNameInExpression;
