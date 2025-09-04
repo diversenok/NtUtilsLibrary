@@ -126,14 +126,14 @@ type
     function AllAttributes: TArray<PLiteRttiAttribute>;
   end;
 
-{ Known attribute parsing }
+{ Extended type information }
 
   TRttixTypeSubKind = (
     rtkOther,
     rtkEnumeration,
     rtkBoolean,
     rtkBitwise,
-    rtkNumeric
+    rtkDigits
   );
 
   // Base information for all type
@@ -200,24 +200,24 @@ type
     property FlagGroups: TArray<TRttixBitwiseFlag> read GetFlagGroups;
   end;
 
-  TRttixNumericKind = (
+  TRttixDigitsKind = (
     rokDecimal,
     rokHex,
     rokBytes,
     rokAscii
   );
 
-  // Extra information for rtkNumeric types
-  IRttixNumericType = interface (IRttixType)
+  // Extra information for rtkDigits types
+  IRttixDigitsType = interface (IRttixType)
     ['{591A0998-9ACF-47B5-9B36-7BD907409805}']
     function GetSize: NativeUInt;
     function GetSigned: Boolean;
-    function GetNumericKind: TRttixNumericKind;
+    function GetDigitsKind: TRttixDigitsKind;
     function GetMinHexDigits: Byte;
 
     property Size: NativeUInt read GetSize;
     property Signed: Boolean read GetSigned;
-    property NumericKind: TRttixNumericKind read GetNumericKind;
+    property DigitsKind: TRttixDigitsKind read GetDigitsKind;
     property MinHexDigits: Byte read GetMinHexDigits;
   end;
 
@@ -619,14 +619,14 @@ type
     );
   end;
 
-  TRttixNumericType = class (TRttixType, IRttixNumericType)
+  TRttixDigitsType = class (TRttixType, IRttixDigitsType)
     FSize: NativeUint;
     FSigned: Boolean;
-    FNumericKind: TRttixNumericKind;
+    FNumericKind: TRttixDigitsKind;
     FMinHexDigits: Byte;
     function GetSize: NativeUInt;
     function GetSigned: Boolean;
-    function GetNumericKind: TRttixNumericKind;
+    function GetDigitsKind: TRttixDigitsKind;
     function GetMinHexDigits: Byte;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
@@ -880,11 +880,11 @@ begin
   Result := FValidMask;
 end;
 
-constructor TRttixNumericType.Create;
+constructor TRttixDigitsType.Create;
 var
   Attribute: PLiteRttiAttribute;
 begin
-  inherited Create(TypeInfo, rtkNumeric, Attributes);
+  inherited Create(TypeInfo, rtkDigits, Attributes);
 
   // Determine the size
   if TypeInfo.IsOrdinal then
@@ -931,22 +931,22 @@ begin
   end;
 end;
 
-function TRttixNumericType.GetMinHexDigits;
-begin
-  Result := FMinHexDigits;
-end;
-
-function TRttixNumericType.GetNumericKind;
+function TRttixDigitsType.GetDigitsKind;
 begin
   Result := FNumericKind;
 end;
 
-function TRttixNumericType.GetSigned;
+function TRttixDigitsType.GetMinHexDigits;
+begin
+  Result := FMinHexDigits;
+end;
+
+function TRttixDigitsType.GetSigned;
 begin
   Result := FSigned;
 end;
 
-function TRttixNumericType.GetSize;
+function TRttixDigitsType.GetSize;
 begin
   Result := FSize;
 end;
@@ -972,7 +972,7 @@ begin
 
     tkInteger, tkInt64:
     begin
-      SubKind := rtkNumeric;
+      SubKind := rtkDigits;
 
       for Attribute in Attributes do
         if Attribute.IsFlagNameAttribute or Attribute.IsSubEnumAttribute then
@@ -992,8 +992,8 @@ begin
       Result := TRttixBoolType.Create(TypeInfo, Attributes);
     rtkBitwise:
       Result := TRttixBitwiseType.Create(TypeInfo, Attributes);
-    rtkNumeric:
-      Result := TRttixNumericType.Create(TypeInfo, Attributes);
+    rtkDigits:
+      Result := TRttixDigitsType.Create(TypeInfo, Attributes);
   else
     Result := TRttixType.Create(TypeInfo, SubKind, Attributes);
   end;
