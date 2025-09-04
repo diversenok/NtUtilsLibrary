@@ -155,11 +155,13 @@ type
   // Extra information for rtkEnumeration types
   IRttixEnumType = interface (IRttixType)
     ['{8D20A899-4CC6-4998-80CA-6378478A8659}']
+    function GetSize: NativeUInt;
     function GetValidValues: TValidValues;
     function GetNamingStyle: TNamingStyle;
     function GetPrefix: String;
     function GetSuffix: String;
 
+    property Size: NativeUInt read GetSize;
     property ValidValues: TValidValues read GetValidValues;
     property NamingStyle: TNamingStyle read GetNamingStyle;
     property Prefix: String read GetPrefix;
@@ -169,8 +171,10 @@ type
   // Extra information for rtkBoolean types
   IRttixBoolType = interface (IRttixType)
     ['{4437C3BC-D1CF-4BAC-9619-2E68BA3BD5FE}']
+    function GetSize: NativeUInt;
     function GetBooleanKind: TBooleanKind;
 
+    property Size: NativeUInt read GetSize;
     property BooleanKind: TBooleanKind read GetBooleanKind;
   end;
 
@@ -183,11 +187,13 @@ type
   // Extra information for rtkBitwise types
   IRttixBitwiseType = interface (IRttixType)
     ['{3FB64124-3035-496B-8ED7-D5D34D1F5BD5}']
+    function GetSize: NativeUInt;
     function GetMinDigits: Byte;
     function GetValidMask: UInt64;
     function GetFlags: TArray<TRttixBitwiseFlag>;
     function GetFlagGroups: TArray<TRttixBitwiseFlag>;
 
+    property Size: NativeUInt read GetSize;
     property MinDigits: Byte read GetMinDigits;
     property ValidMask: UInt64 read GetValidMask;
     property Flags: TArray<TRttixBitwiseFlag> read GetFlags;
@@ -204,9 +210,13 @@ type
   // Extra information for rtkNumeric types
   IRttixNumericType = interface (IRttixType)
     ['{591A0998-9ACF-47B5-9B36-7BD907409805}']
+    function GetSize: NativeUInt;
+    function GetSigned: Boolean;
     function GetNumericKind: TRttixNumericKind;
     function GetMinHexDigits: Byte;
 
+    property Size: NativeUInt read GetSize;
+    property Signed: Boolean read GetSigned;
     property NumericKind: TRttixNumericKind read GetNumericKind;
     property MinHexDigits: Byte read GetMinHexDigits;
   end;
@@ -565,10 +575,12 @@ type
   end;
 
   TRttixEnumType = class (TRttixType, IRttixEnumType)
+    FSize: NativeUint;
     FValidValues: TValidValues;
     FNamingStyle: TNamingStyle;
     FPrefix: String;
     FSuffix: String;
+    function GetSize: NativeUInt;
     function GetValidValues: TValidValues;
     function GetNamingStyle: TNamingStyle;
     function GetPrefix: String;
@@ -580,7 +592,9 @@ type
   end;
 
   TRttixBoolType = class (TRttixType, IRttixBoolType)
+    FSize: NativeUint;
     FBooleanKind: TBooleanKind;
+    function GetSize: NativeUInt;
     function GetBooleanKind: TBooleanKind;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
@@ -589,10 +603,12 @@ type
   end;
 
   TRttixBitwiseType = class (TRttixType, IRttixBitwiseType)
+    FSize: NativeUint;
     FMinDigits: Byte;
     FValidMask: UInt64;
     FFlags: TArray<TRttixBitwiseFlag>;
     FFlagGroups: TArray<TRttixBitwiseFlag>;
+    function GetSize: NativeUInt;
     function GetMinDigits: Byte;
     function GetValidMask: UInt64;
     function GetFlags: TArray<TRttixBitwiseFlag>;
@@ -604,8 +620,12 @@ type
   end;
 
   TRttixNumericType = class (TRttixType, IRttixNumericType)
+    FSize: NativeUint;
+    FSigned: Boolean;
     FNumericKind: TRttixNumericKind;
     FMinHexDigits: Byte;
+    function GetSize: NativeUInt;
+    function GetSigned: Boolean;
     function GetNumericKind: TRttixNumericKind;
     function GetMinHexDigits: Byte;
     constructor Create(
@@ -668,6 +688,18 @@ var
 begin
   inherited Create(TypeInfo, rtkEnumeration, Attributes);
 
+  if not TypeInfo.IsOrdinal then
+    Error(reAssertionFailed);
+
+  // Determine the size
+  case TypeInfo.OrdinalType of
+    otSByte, otUByte: FSize := SizeOf(Byte);
+    otSWord, otUWord: FSize := SizeOf(Word);
+    otSLong, otULong: FSize := SizeOf(Cardinal);
+  else
+    Error(reAssertionFailed);
+  end;
+
   // Assume the entire range as valid by default
   FValidValues := [TypeInfo.OrdinalMinValue .. TypeInfo.OrdinalMaxValue];
 
@@ -701,6 +733,11 @@ begin
   Result := FPrefix;
 end;
 
+function TRttixEnumType.GetSize;
+begin
+  Result := FSize;
+end;
+
 function TRttixEnumType.GetSuffix;
 begin
   Result := FSuffix;
@@ -717,6 +754,18 @@ var
 begin
   inherited Create(TypeInfo, rtkBoolean, Attributes);
 
+  if not TypeInfo.IsOrdinal then
+    Error(reAssertionFailed);
+
+  // Determine the size
+  case TypeInfo.OrdinalType of
+    otSByte, otUByte: FSize := SizeOf(Byte);
+    otSWord, otUWord: FSize := SizeOf(Word);
+    otSLong, otULong: FSize := SizeOf(Cardinal);
+  else
+    Error(reAssertionFailed);
+  end;
+
   // Apply [BooleanKind(...)]
   for Attribute in Attributes do
     if Attribute.ParseBooleanKindAttribute(FBooleanKind) then
@@ -728,6 +777,11 @@ begin
   Result := FBooleanKind;
 end;
 
+function TRttixBoolType.GetSize;
+begin
+  Result := FSize;
+end;
+
 constructor TRttixBitwiseType.Create;
 var
   Attribute: PLiteRttiAttribute;
@@ -735,7 +789,19 @@ var
 begin
   inherited Create(TypeInfo, rtkBitwise, Attributes);
 
-  FValidMask := UInt64(-1);
+  // Determine the size
+  if TypeInfo.IsOrdinal then
+    case TypeInfo.OrdinalType of
+      otSByte, otUByte: FSize := SizeOf(Byte);
+      otSWord, otUWord: FSize := SizeOf(Word);
+      otSLong, otULong: FSize := SizeOf(Cardinal);
+    else
+      Error(reAssertionFailed);
+    end
+  else if TypeInfo.Kind = tkInt64 then
+    FSize := SizeOf(Int64)
+  else
+    Error(reAssertionFailed);
 
   // Apply [Hex(...)]
   for Attribute in Attributes do
@@ -743,6 +809,7 @@ begin
       Break;
 
   // Apply [ValidMask(...)]
+  FValidMask := UInt64(-1);
   for Attribute in FAttributes do
     if Attribute.ParseValidMaskAttribute(FValidMask) then
       Break;
@@ -797,6 +864,11 @@ begin
   Result := FMinDigits;
 end;
 
+function TRttixBitwiseType.GetSize;
+begin
+  Result := FSize;
+end;
+
 function TRttixBitwiseType.GetValidMask;
 begin
   Result := FValidMask;
@@ -808,7 +880,34 @@ var
 begin
   inherited Create(TypeInfo, rtkNumeric, Attributes);
 
-  // Identify formatting NumericKind
+  // Determine the size
+  if TypeInfo.IsOrdinal then
+    case TypeInfo.OrdinalType of
+      otSByte, otUByte: FSize := SizeOf(Byte);
+      otSWord, otUWord: FSize := SizeOf(Word);
+      otSLong, otULong: FSize := SizeOf(Cardinal);
+    else
+      Error(reAssertionFailed);
+    end
+  else if TypeInfo.Kind = tkInt64 then
+    FSize := SizeOf(Int64)
+  else
+    Error(reAssertionFailed);
+
+  // Determine the sign
+  if TypeInfo.IsOrdinal then
+    case TypeInfo.OrdinalType of
+      otSByte, otSWord, otSLong: FSigned := True;
+      otUByte, otUWord, otULong: FSigned := False;
+    else
+      Error(reAssertionFailed);
+    end
+  else if TypeInfo.Kind = tkInt64 then
+    FSigned := Int64(TypeInfo.Int64MinValue) < 0
+  else
+    Error(reAssertionFailed);
+
+  // Identify formatting kind
   FNumericKind := rokDecimal;
 
   for Attribute in Attributes do
@@ -836,6 +935,16 @@ begin
   Result := FNumericKind;
 end;
 
+function TRttixNumericType.GetSigned;
+begin
+  Result := FSigned;
+end;
+
+function TRttixNumericType.GetSize;
+begin
+  Result := FSize;
+end;
+
 function RttixTypeInfo;
 var
   Attributes: TArray<PLiteRttiAttribute>;
@@ -847,7 +956,7 @@ begin
 
   Attributes := FieldAttributes + TypeInfo.AllAttributes;
 
-  // Determine custom type NumericKind
+  // Determine type sub-kind
   case TypeInfo.Kind of
     tkEnumeration:
       if TypeInfo.EnumerationIsBoolean then
