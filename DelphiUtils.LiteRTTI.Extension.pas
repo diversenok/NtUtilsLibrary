@@ -126,7 +126,9 @@ type
     function AllAttributes: TArray<PLiteRttiAttribute>;
   end;
 
-  TRttixTypeKind = (
+{ Known attribute parsing }
+
+  TRttixTypeSubKind = (
     rtkOther,
     rtkEnumeration,
     rtkBoolean,
@@ -134,26 +136,42 @@ type
     rtkNumeric
   );
 
-  TRttixType = record
-    TypeInfo: PLiteRttiTypeInfo;
-    Attributes: TArray<PLiteRttiAttribute>;
-    Kind: TRttixTypeKind;
-    SDKName: String;
-    FriendlyName: String;
+  // Base information for all type
+  IRttixType = interface
+    ['{A4D47FBD-7219-4009-9A50-D2315AED2B12}']
+    function GetTypeInfo: PLiteRttiTypeInfo;
+    function GetAttributes: TArray<PLiteRttiAttribute>;
+    function GetSubKind: TRttixTypeSubKind;
+    function GetSDKName: String;
+    function GetFriendlyName: String;
+
+    property TypeInfo: PLiteRttiTypeInfo read GetTypeInfo;
+    property Attributes: TArray<PLiteRttiAttribute> read GetAttributes;
+    property SubKind: TRttixTypeSubKind read GetSubKind;
+    property SDKName: String read GetSDKName;
+    property FriendlyName: String read GetFriendlyName;
   end;
 
-  // rtkEnumeration types
-  TRttixEnumType = record
-    Common: TRttixType;
-    ValidValues: TValidValues;
-    NamingStyle: TNamingStyle;
-    Prefix, Suffix: String;
+  // Extra information for rtkEnumeration types
+  IRttixEnumType = interface (IRttixType)
+    ['{8D20A899-4CC6-4998-80CA-6378478A8659}']
+    function GetValidValues: TValidValues;
+    function GetNamingStyle: TNamingStyle;
+    function GetPrefix: String;
+    function GetSuffix: String;
+
+    property ValidValues: TValidValues read GetValidValues;
+    property NamingStyle: TNamingStyle read GetNamingStyle;
+    property Prefix: String read GetPrefix;
+    property Suffix: String read GetSuffix;
   end;
 
-  // rtkBoolean types
-  TRttixBoolType = record
-    Common: TRttixType;
-    BooleanKind: TBooleanKind;
+  // Extra information for rtkBoolean types
+  IRttixBoolType = interface (IRttixType)
+    ['{4437C3BC-D1CF-4BAC-9619-2E68BA3BD5FE}']
+    function GetBooleanKind: TBooleanKind;
+
+    property BooleanKind: TBooleanKind read GetBooleanKind;
   end;
 
   TRttixBitwiseFlag = record
@@ -162,13 +180,18 @@ type
     Name: String;
   end;
 
-  // rtkBitwise types
-  TRttixBitwiseType = record
-    Common: TRttixType;
-    MinDigits: Byte;
-    ValidMask: UInt64;
-    Flags: TArray<TRttixBitwiseFlag>;
-    FlagGroups: TArray<TRttixBitwiseFlag>;
+  // Extra information for rtkBitwise types
+  IRttixBitwiseType = interface (IRttixType)
+    ['{3FB64124-3035-496B-8ED7-D5D34D1F5BD5}']
+    function GetMinDigits: Byte;
+    function GetValidMask: UInt64;
+    function GetFlags: TArray<TRttixBitwiseFlag>;
+    function GetFlagGroups: TArray<TRttixBitwiseFlag>;
+
+    property MinDigits: Byte read GetMinDigits;
+    property ValidMask: UInt64 read GetValidMask;
+    property Flags: TArray<TRttixBitwiseFlag> read GetFlags;
+    property FlagGroups: TArray<TRttixBitwiseFlag> read GetFlagGroups;
   end;
 
   TRttixNumericKind = (
@@ -178,43 +201,26 @@ type
     rokAscii
   );
 
-  // rtkNumeric
-  TRttixNumericType = record
-    Common: TRttixType;
-    Kind: TRttixNumericKind;
-    MinHexDigits: Byte;
+  // Extra information for rtkNumeric types
+  IRttixNumericType = interface (IRttixType)
+    ['{591A0998-9ACF-47B5-9B36-7BD907409805}']
+    function GetNumericKind: TRttixNumericKind;
+    function GetMinHexDigits: Byte;
+
+    property NumericKind: TRttixNumericKind read GetNumericKind;
+    property MinHexDigits: Byte read GetMinHexDigits;
   end;
 
-// Collect common attribute information for all types
+// Collect known attribute information for a type
 function RttixTypeInfo(
   TypeInfo: PLiteRttiTypeInfo;
-  const FieldAttributes: TArray<PLiteRttiAttribute>
-): TRttixType;
-
-// Collect attribute information for an enumeration type
-function RttixTypeInfoEnum(
-  const CommonTypeInfo: TRttixType
-): TRttixEnumType;
-
-// Collect attribute information for a boolean type
-function RttixTypeInfoBool(
-  const CommonTypeInfo: TRttixType
-): TRttixBoolType;
-
-// Collect attribute information for a bitwise type
-function RttixTypeInfoBitwise(
-  const CommonTypeInfo: TRttixType
-): TRttixBitwiseType;
-
-// Collect attribute information for a numeric type
-function RttixTypeInfoNumeric(
-  const CommonTypeInfo: TRttixType
-): TRttixNumericType;
+  const FieldAttributes: TArray<PLiteRttiAttribute> = nil
+): IRttixType;
 
 implementation
 
 uses
-  DelphiApi.TypInfo;
+  DelphiApi.TypInfo, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -537,189 +543,345 @@ begin
   Result := ExplicitAttributes + InheritedAttributes + ParentAttributes;
 end;
 
-{ Functions }
+{ Interfaces }
 
-function RttixTypeInfo;
+type
+  TRttixType = class (TAutoInterfacedObject, IRttixType)
+    FTypeInfo: PLiteRttiTypeInfo;
+    FAttributes: TArray<PLiteRttiAttribute>;
+    FSubKind: TRttixTypeSubKind;
+    FSDKName: String;
+    FFriendlyName: String;
+    function GetTypeInfo: PLiteRttiTypeInfo;
+    function GetAttributes: TArray<PLiteRttiAttribute>;
+    function GetSubKind: TRttixTypeSubKind;
+    function GetSDKName: String;
+    function GetFriendlyName: String;
+    constructor Create(
+      TypeInfo: PLiteRttiTypeInfo;
+      SubKind: TRttixTypeSubKind;
+      const Attributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
+  TRttixEnumType = class (TRttixType, IRttixEnumType)
+    FValidValues: TValidValues;
+    FNamingStyle: TNamingStyle;
+    FPrefix: String;
+    FSuffix: String;
+    function GetValidValues: TValidValues;
+    function GetNamingStyle: TNamingStyle;
+    function GetPrefix: String;
+    function GetSuffix: String;
+    constructor Create(
+      TypeInfo: PLiteRttiTypeInfo;
+      const Attributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
+  TRttixBoolType = class (TRttixType, IRttixBoolType)
+    FBooleanKind: TBooleanKind;
+    function GetBooleanKind: TBooleanKind;
+    constructor Create(
+      TypeInfo: PLiteRttiTypeInfo;
+      const Attributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
+  TRttixBitwiseType = class (TRttixType, IRttixBitwiseType)
+    FMinDigits: Byte;
+    FValidMask: UInt64;
+    FFlags: TArray<TRttixBitwiseFlag>;
+    FFlagGroups: TArray<TRttixBitwiseFlag>;
+    function GetMinDigits: Byte;
+    function GetValidMask: UInt64;
+    function GetFlags: TArray<TRttixBitwiseFlag>;
+    function GetFlagGroups: TArray<TRttixBitwiseFlag>;
+    constructor Create(
+      TypeInfo: PLiteRttiTypeInfo;
+      const Attributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
+  TRttixNumericType = class (TRttixType, IRttixNumericType)
+    FNumericKind: TRttixNumericKind;
+    FMinHexDigits: Byte;
+    function GetNumericKind: TRttixNumericKind;
+    function GetMinHexDigits: Byte;
+    constructor Create(
+      TypeInfo: PLiteRttiTypeInfo;
+      const Attributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
+constructor TRttixType.Create;
 var
   Attribute: PLiteRttiAttribute;
 begin
-  if not Assigned(TypeInfo) then
-    Error(reInvalidPtr);
+  inherited Create;
 
-  Result.TypeInfo := TypeInfo;
-  Result.Attributes := FieldAttributes + TypeInfo.AllAttributes;
+  FTypeInfo := TypeInfo;
+  FAttributes := Attributes;
+  FSubKind := SubKind;
 
-  // SDK name
-  for Attribute in Result.Attributes do
-    if Attribute.ParseSDKNameAttribute(Result.SDKName) then
+  // Apply [SDKNameAttribute(...)]
+  for Attribute in Attributes do
+    if Attribute.ParseSDKNameAttribute(FSDKName) then
       Break;
 
-  // Friendly name
-  for Attribute in Result.Attributes do
-    if Attribute.ParseFriendlyNameAttribute(Result.FriendlyName) then
+  // Apply [FriendlyName(...)]
+  for Attribute in Attributes do
+    if Attribute.ParseFriendlyNameAttribute(FFriendlyName) then
       Break;
-
-  // Determine custom type kind
-  case TypeInfo.Kind of
-    tkEnumeration:
-      if TypeInfo.EnumerationIsBoolean then
-        Result.Kind := rtkBoolean
-      else
-        Result.Kind := rtkEnumeration;
-
-    tkInteger, tkInt64:
-    begin
-      Result.Kind := rtkNumeric;
-
-      for Attribute in Result.Attributes do
-        if Attribute.IsFlagNameAttribute or Attribute.IsSubEnumAttribute then
-        begin
-          Result.Kind := rtkBitwise;
-          Break;
-        end;
-    end;
-  else
-    Result.Kind := rtkOther;
-  end;
 end;
 
-function RttixTypeInfoEnum;
+function TRttixType.GetAttributes;
+begin
+  Result := FAttributes;
+end;
+
+function TRttixType.GetFriendlyName;
+begin
+  Result := FFriendlyName;
+end;
+
+function TRttixType.GetSDKName;
+begin
+  Result := FSDKName;
+end;
+
+function TRttixType.GetSubKind;
+begin
+  Result := FSubKind;
+end;
+
+function TRttixType.GetTypeInfo;
+begin
+  Result := FTypeInfo;
+end;
+
+constructor TRttixEnumType.Create;
 var
   Attribute: PLiteRttiAttribute;
   MinValueOverride: Cardinal;
   ValidValuesOverride: TValidValues;
 begin
-  Result := Default(TRttixEnumType);
-  Result.Common := CommonTypeInfo;
-
-  if Result.Common.Kind <> rtkEnumeration then
-    Error(reAssertionFailed);
+  inherited Create(TypeInfo, rtkEnumeration, Attributes);
 
   // Assume the entire range as valid by default
-  Result.ValidValues := [Result.Common.TypeInfo.OrdinalMinValue ..
-    Result.Common.TypeInfo.OrdinalMaxValue];
+  FValidValues := [TypeInfo.OrdinalMinValue .. TypeInfo.OrdinalMaxValue];
 
   // Apply [MinValue(...)] overrides
-  for Attribute in Result.Common.Attributes do
+  for Attribute in Attributes do
     if Attribute.ParseMinValueAttribute(MinValueOverride) then
     begin
       if MinValueOverride > 0 then
-        Result.ValidValues := Result.ValidValues - [0 .. MinValueOverride - 1];
+        FValidValues := FValidValues - [0 .. MinValueOverride - 1];
       Break;
     end;
 
   // Apply [ValidValues(...)] overrides
-  for Attribute in Result.Common.Attributes do
+  for Attribute in Attributes do
     if Attribute.ParseValidValuesAttribute(ValidValuesOverride) then
-      Result.ValidValues := Result.ValidValues * ValidValuesOverride;
+      FValidValues := FValidValues * ValidValuesOverride;
 
   // Apply [NamingStyle(...)]
-  for Attribute in Result.Common.Attributes do
-    if Attribute.ParseNamingStyleAttribute(Result.NamingStyle, Result.Prefix,
-      Result.Suffix) then
+  for Attribute in Attributes do
+    if Attribute.ParseNamingStyleAttribute(FNamingStyle, FPrefix, FSuffix) then
       Break;
 end;
 
-function RttixTypeInfoBool;
+function TRttixEnumType.GetNamingStyle;
+begin
+  Result := FNamingStyle;
+end;
+
+function TRttixEnumType.GetPrefix;
+begin
+  Result := FPrefix;
+end;
+
+function TRttixEnumType.GetSuffix;
+begin
+  Result := FSuffix;
+end;
+
+function TRttixEnumType.GetValidValues;
+begin
+  Result := FValidValues;
+end;
+
+constructor TRttixBoolType.Create;
 var
   Attribute: PLiteRttiAttribute;
 begin
-  Result.Common := CommonTypeInfo;
-  Result.BooleanKind := bkTrueFalse;
+  inherited Create(TypeInfo, rtkBoolean, Attributes);
 
-  if Result.Common.Kind <> rtkBoolean then
-    Error(reAssertionFailed);
-
-  for Attribute in Result.Common.Attributes do
-    if Attribute.ParseBooleanKindAttribute(Result.BooleanKind) then
+  // Apply [BooleanKind(...)]
+  for Attribute in Attributes do
+    if Attribute.ParseBooleanKindAttribute(FBooleanKind) then
       Break;
 end;
 
-function RttixTypeInfoBitwise;
+function TRttixBoolType.GetBooleanKind;
+begin
+  Result := FBooleanKind;
+end;
+
+constructor TRttixBitwiseType.Create;
 var
   Attribute: PLiteRttiAttribute;
   Count, i: Integer;
 begin
-  Result := Default(TRttixBitwiseType);
-  Result.Common := CommonTypeInfo;
-  Result.ValidMask := UInt64(-1);
+  inherited Create(TypeInfo, rtkBitwise, Attributes);
 
-  if Result.Common.Kind <> rtkBitwise then
-    Error(reAssertionFailed);
+  FValidMask := UInt64(-1);
 
   // Apply [Hex(...)]
-  for Attribute in Result.Common.Attributes do
-    if Attribute.ParseHexAttribute(Result.MinDigits) then
+  for Attribute in Attributes do
+    if Attribute.ParseHexAttribute(FMinDigits) then
       Break;
 
   // Apply [ValidMask(...)]
-  for Attribute in Result.Common.Attributes do
-    if Attribute.ParseValidMaskAttribute(Result.ValidMask) then
+  for Attribute in FAttributes do
+    if Attribute.ParseValidMaskAttribute(FValidMask) then
       Break;
 
   // Apply [FlagName(...)] and [SubEnum(...)]
   Count := 0;
-  for Attribute in Result.Common.Attributes do
+  for Attribute in FAttributes do
     if Attribute.IsFlagNameAttribute or Attribute.IsSubEnumAttribute then
       Inc(Count);
 
-  SetLength(Result.Flags, Count);
+  SetLength(FFlags, Count);
   i := 0;
-  for Attribute in Result.Common.Attributes do
-    if Attribute.ParseFlagNameAttribute(Result.Flags[i].Value,
-      Result.Flags[i].Name) then
+  for Attribute in Attributes do
+    if Attribute.ParseFlagNameAttribute(FFlags[i].Value,
+      FFlags[i].Name) then
     begin
-      Result.Flags[i].Mask := Result.Flags[i].Value;
+      FFlags[i].Mask := FFlags[i].Value;
       Inc(i);
     end
-    else if Attribute.ParseSubEnumAttribute(Result.Flags[i].Mask,
-      Result.Flags[i].Value, Result.Flags[i].Name) then
+    else if Attribute.ParseSubEnumAttribute(FFlags[i].Mask, FFlags[i].Value,
+      FFlags[i].Name) then
       Inc(i);
 
   // Apply [FlagGroup(...)]
   Count := 0;
-  for Attribute in Result.Common.Attributes do
+  for Attribute in Attributes do
     if Attribute.IsFlagGroupAttribute then
       Inc(Count);
 
-  SetLength(Result.FlagGroups, Count);
+  SetLength(FFlagGroups, Count);
   i := 0;
-  for Attribute in Result.Common.Attributes do
-    if Attribute.ParseFlagGroupAttribute(Result.Flags[i].Mask,
-      Result.Flags[i].Name) then
+  for Attribute in Attributes do
+    if Attribute.ParseFlagGroupAttribute(FFlags[i].Mask, FFlags[i].Name) then
     begin
-      Result.Flags[i].Value := Result.Flags[i].Mask;
+      FFlags[i].Value := FFlags[i].Mask;
       Inc(i);
     end;
 end;
 
-function RttixTypeInfoNumeric;
+function TRttixBitwiseType.GetFlagGroups;
+begin
+  Result := FFlagGroups;
+end;
+
+function TRttixBitwiseType.GetFlags;
+begin
+  Result := FFlags;
+end;
+
+function TRttixBitwiseType.GetMinDigits;
+begin
+  Result := FMinDigits;
+end;
+
+function TRttixBitwiseType.GetValidMask;
+begin
+  Result := FValidMask;
+end;
+
+constructor TRttixNumericType.Create;
 var
   Attribute: PLiteRttiAttribute;
 begin
-  Result := Default(TRttixNumericType);
-  Result.Common := CommonTypeInfo;
+  inherited Create(TypeInfo, rtkNumeric, Attributes);
 
-  if Result.Common.Kind <> rtkNumeric then
-    Error(reAssertionFailed);
+  // Identify formatting NumericKind
+  FNumericKind := rokDecimal;
 
-  // Identify formatting kind
-  Result.Kind := rokDecimal;
-
-  for Attribute in Result.Common.Attributes do
+  for Attribute in Attributes do
   begin
     if Attribute.IsAsciiMagicAttribute then
-      Result.Kind := rokAscii
+      FNumericKind := rokAscii
     else if Attribute.IsBytesAttribute then
-      Result.Kind := rokBytes
-    else if Attribute.ParseHexAttribute(Result.MinHexDigits) then
-      Result.Kind := rokHex
+      FNumericKind := rokBytes
+    else if Attribute.ParseHexAttribute(FMinHexDigits) then
+      FNumericKind := rokHex
     else
       Continue;
 
     Break;
   end;
+end;
 
+function TRttixNumericType.GetMinHexDigits;
+begin
+  Result := FMinHexDigits;
+end;
+
+function TRttixNumericType.GetNumericKind;
+begin
+  Result := FNumericKind;
+end;
+
+function RttixTypeInfo;
+var
+  Attributes: TArray<PLiteRttiAttribute>;
+  Attribute: PLiteRttiAttribute;
+  SubKind: TRttixTypeSubKind;
+begin
+  if not Assigned(TypeInfo) then
+    Error(reInvalidPtr);
+
+  Attributes := FieldAttributes + TypeInfo.AllAttributes;
+
+  // Determine custom type NumericKind
+  case TypeInfo.Kind of
+    tkEnumeration:
+      if TypeInfo.EnumerationIsBoolean then
+        SubKind := rtkBoolean
+      else
+        SubKind := rtkEnumeration;
+
+    tkInteger, tkInt64:
+    begin
+      SubKind := rtkNumeric;
+
+      for Attribute in Attributes do
+        if Attribute.IsFlagNameAttribute or Attribute.IsSubEnumAttribute then
+        begin
+          SubKind := rtkBitwise;
+          Break;
+        end;
+    end;
+  else
+    SubKind := rtkOther;
+  end;
+
+  case SubKind of
+    rtkEnumeration:
+      Result := TRttixEnumType.Create(TypeInfo, Attributes);
+    rtkBoolean:
+      Result := TRttixBoolType.Create(TypeInfo, Attributes);
+    rtkBitwise:
+      Result := TRttixBitwiseType.Create(TypeInfo, Attributes);
+    rtkNumeric:
+      Result := TRttixNumericType.Create(TypeInfo, Attributes);
+  else
+    Result := TRttixType.Create(TypeInfo, SubKind, Attributes);
+  end;
 end;
 
 end.
