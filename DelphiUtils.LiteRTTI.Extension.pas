@@ -833,9 +833,13 @@ begin
       FFlags[i].Name := Name;
       Inc(i);
     end
-    else if Attribute.ParseSubEnumAttribute(FFlags[i].Mask, FFlags[i].Value,
-      FFlags[i].Name) then
+    else if Attribute.ParseSubEnumAttribute(Mask, Value, Name) then
+    begin
+      FFlags[i].Mask := Mask;
+      FFlags[i].Value := Value;
+      FFlags[i].Name := Name;
       Inc(i);
+    end;
 
   // Apply [FlagGroup(...)]
   Count := 0;
