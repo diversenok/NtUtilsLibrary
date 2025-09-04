@@ -91,8 +91,7 @@ type
 implementation
 
 uses
-  NtUtils.SysUtils, System.TypInfo, System.SysUtils, DelphiUiLib.Strings,
-  DelphiUiLib.Reflection.Strings;
+  NtUtils.SysUtils, System.TypInfo, System.SysUtils, DelphiUiLib.Strings;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}

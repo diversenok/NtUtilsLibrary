@@ -77,6 +77,20 @@ function UiLibBytesToString(
   const Bytes: UInt64
 ): String;
 
+{ Hints }
+
+type
+  THintSection = record
+    Title: String;
+    Content: String;
+    class function New(const Title, Content: String): THintSection; static;
+  end;
+
+// Create a hint from a set of sections
+function BuildHint(const Sections: TArray<THintSection>): String; overload;
+function BuildHint(const Title, Content: String): String; overload;
+function BuildHint(const Titles, Contents: TArray<String>): String; overload;
+
 implementation
 
 uses
@@ -366,6 +380,59 @@ begin
     Result := UiLibUIntToDec(IntValue) + Units
   else
     Result := UiLibFixedPointToString(FloatValue, Digits) + Units;
+end;
+
+{ Hints }
+
+class function THintSection.New;
+begin
+  Result.Title := Title;
+  Result.Content := Content;
+end;
+
+function BuildHint(const Sections: TArray<THintSection>): String;
+var
+  i, Count: Integer;
+  Items: TArray<String>;
+begin
+  SetLength(Items, Length(Sections));
+
+  // Combine, skipping sections with empty content
+  Count := 0;
+  for i := Low(Sections) to High(Sections) do
+    if Sections[i].Content <> '' then
+    begin
+      Items[Count] := Sections[i].Title + ':  '#$D#$A'  ' +
+        Sections[i].Content + '  ';
+      Inc(Count);
+    end;
+
+  SetLength(Items, Count);
+  Result := RtlxJoinStrings(Items, #$D#$A);
+end;
+
+function BuildHint(const Title, Content: String): String;
+begin
+  Result := BuildHint([THintSection.New(Title, Content)]);
+end;
+
+function BuildHint(const Titles, Contents: TArray<String>): String;
+var
+  Sections: TArray<THintSection>;
+  i: Integer;
+begin
+  if Length(Titles) <> Length(Contents) then
+  begin
+    Error(reAssertionFailed);
+    Exit('');
+  end;
+
+  SetLength(Sections, Length(Titles));
+
+  for i := 0 to High(Sections) do
+    Sections[i] := THintSection.New(Titles[i], Contents[i]);
+
+  Result := BuildHint(Sections);
 end;
 
 end.

@@ -302,7 +302,6 @@ Support unit                                                                    
 [DelphiUiLib.Reflection](./NtUiLib/DelphiUiLib.Reflection.pas)                                   | Base RTTI support
 [DelphiUiLib.Reflection.Numeric](./NtUiLib/DelphiUiLib.Reflection.Numeric.pas)                   | RTTI representation of numeric types
 [DelphiUiLib.Reflection.Records](./NtUiLib/DelphiUiLib.Reflection.Records.pas)                   | RTTI representation of record types
-[DelphiUiLib.Reflection.Strings](./NtUiLib/DelphiUiLib.Reflection.Strings.pas)                   | RTTI prettification of strings
 [NtUiLib.Reflection.Types](./NtUiLib/NtUiLib.Reflection.Types.pas)                               | RTTI representation for common types
 [NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console I/O helpers
 [NtUiLib.TaskDialog](./NtUiLib/NtUiLib.TaskDialog.pas)                                           | TaskDialog-based GUI

@@ -98,8 +98,7 @@ implementation
 
 uses
   System.Generics.Collections, Ntapi.Versions, DelphiUiLib.Strings,
-  System.SysUtils, DelphiUiLib.Reflection.Numeric,
-  DelphiUiLib.Reflection.Strings, DelphiUtils.Arrays;
+  System.SysUtils, DelphiUiLib.Reflection.Numeric, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}

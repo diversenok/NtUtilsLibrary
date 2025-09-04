@@ -36,10 +36,7 @@ function ShowNtxExceptionAlwaysInteractive(
 implementation
 
 uses
-  Ntapi.ntseapi, Ntapi.ntstatus, Ntapi.WinError, DelphiApi.Reflection,
-  NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog, NtUiLib.Exceptions,
-  DelphiUiLib.Reflection, DelphiUiLib.Reflection.Strings, System.SysUtils,
-  System.TypInfo, System.Rtti, NtUtils.DbgHelp;
+  NtUiLib.TaskDialog, NtUiLib.Exceptions, System.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
