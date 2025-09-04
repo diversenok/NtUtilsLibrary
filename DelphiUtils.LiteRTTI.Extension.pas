@@ -528,7 +528,7 @@ begin
     tkPointer:     BaseType := Self.PointerRefType;
   end;
 
-  if Assigned(BaseType) then
+  if Assigned(BaseType) and (BaseType <> @Self) then
     ParentAttributes := BaseType.AllAttributes
   else
     ParentAttributes := nil;
