@@ -126,6 +126,7 @@ type
   public
     class operator Implicit(const StrongRef: I): Weak<I>;
     function Upgrade(out StrongRef: I): Boolean;
+    property WeakReference: IWeak<I> read FReference;
   end;
 
   // An interface wrapper that holds a strong reference to another interface.

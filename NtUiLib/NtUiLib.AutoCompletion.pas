@@ -120,7 +120,10 @@ begin
   // object as an expected memor leak (to prevent ReportMemoryLeaksOnShutdown
   // from complaining).
   if RtlOsVersionAtLeast(OsWin11) then
+  begin
     SysRegisterExpectedMemoryLeak(Self);
+    SysRegisterExpectedMemoryLeak(FProvider.WeakReference as TObject);
+  end;
 end;
 
 function TACListProxy.Expand;
