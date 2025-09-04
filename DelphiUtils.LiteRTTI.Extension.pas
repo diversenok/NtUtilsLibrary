@@ -786,6 +786,8 @@ constructor TRttixBitwiseType.Create;
 var
   Attribute: PLiteRttiAttribute;
   Count, i: Integer;
+  Value, Mask: UInt64;
+  Name: String;
 begin
   inherited Create(TypeInfo, rtkBitwise, Attributes);
 
@@ -821,12 +823,14 @@ begin
       Inc(Count);
 
   SetLength(FFlags, Count);
+
   i := 0;
   for Attribute in Attributes do
-    if Attribute.ParseFlagNameAttribute(FFlags[i].Value,
-      FFlags[i].Name) then
+    if Attribute.ParseFlagNameAttribute(Value, Name) then
     begin
-      FFlags[i].Mask := FFlags[i].Value;
+      FFlags[i].Value := Value;
+      FFlags[i].Mask := Value;
+      FFlags[i].Name := Name;
       Inc(i);
     end
     else if Attribute.ParseSubEnumAttribute(FFlags[i].Mask, FFlags[i].Value,
@@ -842,9 +846,11 @@ begin
   SetLength(FFlagGroups, Count);
   i := 0;
   for Attribute in Attributes do
-    if Attribute.ParseFlagGroupAttribute(FFlags[i].Mask, FFlags[i].Name) then
+    if Attribute.ParseFlagGroupAttribute(Mask, Name) then
     begin
-      FFlags[i].Value := FFlags[i].Mask;
+      FFlagGroups[i].Value := Mask;
+      FFlagGroups[i].Mask := Mask;
+      FFlagGroups[i].Name := Name;
       Inc(i);
     end;
 end;
