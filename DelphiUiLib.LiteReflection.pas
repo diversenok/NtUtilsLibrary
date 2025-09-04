@@ -13,31 +13,31 @@ uses
 // Represent a Delphi enumeration type
 function RttixFormatEnum(
   const EnumType: IRttixEnumType;
-  var Instance
+  const [ref] Instance
 ): String;
 
 // Represent a boolean type
 function RttixFormatBool(
   const BoolType: IRttixBoolType;
-  var Instance
+  const [ref] Instance
 ): String;
 
 // Represent a bit mask type
 function RttixFormatBitwise(
   const BitwiseType: IRttixBitwiseType;
-  var Instance
+  const [ref] Instance
 ): String;
 
 // Represent a decimal/hexadecimal enumeration type
 function RttixFormatDigits(
   const DigitsType: IRttixDigitsType;
-  var Instance
+  const [ref] Instance
 ): String;
 
 // Represent a known type
 function RttixFormat(
   const AType: IRttixType;
-  var Instance
+  const [ref] Instance
 ): String;
 
 implementation
