@@ -65,7 +65,7 @@ begin
 
         Result := Result + #$D#$A'Desired ' +
           RtlxStringOrDefault(AType.FriendlyName, 'object') + ' access: ' +
-          RttixFormat(AType, Status.LastCall.AccessMask);
+          RttixFormatText(AType, Status.LastCall.AccessMask);
       end;
 
     // Information class: <name>
@@ -75,7 +75,7 @@ begin
         AType := RttixTypeInfo(Status.LastCall.InfoClassType,
           PLiteRttiTypeInfo(TypeInfo(PreserveCase)).Attributes);
 
-        Result := Result + #$D#$A'Information class: ' + RttixFormat(AType,
+        Result := Result + #$D#$A'Information class: ' + RttixFormatText(AType,
           Status.LastCall.InfoClass);
       end;
   end;
@@ -90,7 +90,7 @@ begin
 
         Result := Result + #$D#$A'Expected ' + RtlxStringOrDefault(
           AType.FriendlyName, 'object') + ' access: ' +
-          RttixFormat(AType, Status.LastCall.ExpectedAccess[i].AccessMask);
+          RttixFormatText(AType, Status.LastCall.ExpectedAccess[i].AccessMask);
       end;
 
   // Result: <STATUS_*/ERROR_*>
@@ -108,7 +108,7 @@ begin
       AType := RttixTypeInfo(TypeInfo(TSeWellKnownPrivilege));
       RtlxSuffixStripString('.', Result, True);
 
-      Result := Result + ': "' + RttixFormat(AType,
+      Result := Result + ': "' + RttixFormatText(AType,
         Status.LastCall.ExpectedPrivilege) + '"';
     end;
 

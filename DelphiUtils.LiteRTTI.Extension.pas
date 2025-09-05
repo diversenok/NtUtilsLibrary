@@ -160,6 +160,7 @@ type
     function GetNamingStyle: TNamingStyle;
     function GetPrefix: String;
     function GetSuffix: String;
+    function ReadInstance(const [ref] Instance): Cardinal;
 
     property Size: NativeUInt read GetSize;
     property ValidValues: TValidValues read GetValidValues;
@@ -173,6 +174,7 @@ type
     ['{4437C3BC-D1CF-4BAC-9619-2E68BA3BD5FE}']
     function GetSize: NativeUInt;
     function GetBooleanKind: TBooleanKind;
+    function ReadInstance(const [ref] Instance): Boolean;
 
     property Size: NativeUInt read GetSize;
     property BooleanKind: TBooleanKind read GetBooleanKind;
@@ -192,6 +194,7 @@ type
     function GetValidMask: UInt64;
     function GetFlags: TArray<TRttixBitwiseFlag>;
     function GetFlagGroups: TArray<TRttixBitwiseFlag>;
+    function ReadInstance(const [ref] Instance): UInt64;
 
     property Size: NativeUInt read GetSize;
     property MinDigits: Byte read GetMinDigits;
@@ -214,6 +217,7 @@ type
     function GetSigned: Boolean;
     function GetDigitsKind: TRttixDigitsKind;
     function GetMinHexDigits: Byte;
+    function ReadInstance(const [ref] Instance): UInt64;
 
     property Size: NativeUInt read GetSize;
     property Signed: Boolean read GetSigned;
@@ -585,6 +589,7 @@ type
     function GetNamingStyle: TNamingStyle;
     function GetPrefix: String;
     function GetSuffix: String;
+    function ReadInstance(const [ref] Instance): Cardinal;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
       const Attributes: TArray<PLiteRttiAttribute>
@@ -596,6 +601,7 @@ type
     FBooleanKind: TBooleanKind;
     function GetSize: NativeUInt;
     function GetBooleanKind: TBooleanKind;
+    function ReadInstance(const [ref] Instance): Boolean;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
       const Attributes: TArray<PLiteRttiAttribute>
@@ -613,6 +619,7 @@ type
     function GetValidMask: UInt64;
     function GetFlags: TArray<TRttixBitwiseFlag>;
     function GetFlagGroups: TArray<TRttixBitwiseFlag>;
+    function ReadInstance(const [ref] Instance): UInt64;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
       const Attributes: TArray<PLiteRttiAttribute>
@@ -628,6 +635,7 @@ type
     function GetSigned: Boolean;
     function GetDigitsKind: TRttixDigitsKind;
     function GetMinHexDigits: Byte;
+    function ReadInstance(const [ref] Instance): UInt64;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
       const Attributes: TArray<PLiteRttiAttribute>
@@ -748,6 +756,18 @@ begin
   Result := FValidValues;
 end;
 
+function TRttixEnumType.ReadInstance;
+begin
+  case FTypeInfo.OrdinalType of
+    otSByte, otUByte: Result := Byte(Instance);
+    otSWord, otUWord: Result := Word(Instance);
+    otSLong, otULong: Result := Cardinal(Instance);
+  else
+    Error(reAssertionFailed);
+    Result := 0;
+  end;
+end;
+
 constructor TRttixBoolType.Create;
 var
   Attribute: PLiteRttiAttribute;
@@ -780,6 +800,18 @@ end;
 function TRttixBoolType.GetSize;
 begin
   Result := FSize;
+end;
+
+function TRttixBoolType.ReadInstance;
+begin
+  case FSize of
+    SizeOf(ByteBool): Result := ByteBool(Instance);
+    SizeOf(WordBool): Result := WordBool(Instance);
+    SizeOf(LongBool): Result := LongBool(Instance);
+  else
+    Error(reAssertionFailed);
+    Result := False;
+  end;
 end;
 
 constructor TRttixBitwiseType.Create;
@@ -884,6 +916,19 @@ begin
   Result := FValidMask;
 end;
 
+function TRttixBitwiseType.ReadInstance;
+begin
+  case FSize of
+    SizeOf(Byte):     Result := Byte(Instance);
+    SizeOf(Word):     Result := Word(Instance);
+    SizeOf(Cardinal): Result := Cardinal(Instance);
+    SizeOf(UInt64):   Result := UInt64(Instance);
+  else
+    Error(reAssertionFailed);
+    Result := 0;
+  end;
+end;
+
 constructor TRttixDigitsType.Create;
 var
   Attribute: PLiteRttiAttribute;
@@ -953,6 +998,19 @@ end;
 function TRttixDigitsType.GetSize;
 begin
   Result := FSize;
+end;
+
+function TRttixDigitsType.ReadInstance;
+begin
+  case FSize of
+    SizeOf(Byte):     Result := Byte(Instance);
+    SizeOf(Word):     Result := Word(Instance);
+    SizeOf(Cardinal): Result := Cardinal(Instance);
+    SizeOf(UInt64):   Result := UInt64(Instance);
+  else
+    Error(reAssertionFailed);
+    Result := 0;
+  end;
 end;
 
 function RttixTypeInfo;

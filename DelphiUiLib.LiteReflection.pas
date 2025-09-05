@@ -16,6 +16,12 @@ function RttixFormatEnum(
   const [ref] Instance
 ): String;
 
+// Prepare a hint for a Delphi enumeration type representation
+function RttixFormatEnumHint(
+  const EnumType: IRttixEnumType;
+  const [ref] Instance
+): String;
+
 // Represent a boolean type
 function RttixFormatBool(
   const BoolType: IRttixBoolType;
@@ -28,17 +34,47 @@ function RttixFormatBitwise(
   const [ref] Instance
 ): String;
 
-// Represent a decimal/hexadecimal enumeration type
+// Prepare a hint for a bit mask type representation
+function RttixFormatBitwiseHint(
+  const BitwiseType: IRttixBitwiseType;
+  const [ref] Instance
+): String;
+
+// Represent a decimal/hexadecimal type
 function RttixFormatDigits(
   const DigitsType: IRttixDigitsType;
   const [ref] Instance
 ): String;
 
+// Prepare a hint for a decimal/hexadecimal type representation
+function RttixFormatDigitsHint(
+  const DigitsType: IRttixDigitsType;
+  const [ref] Instance
+): String;
+
 // Represent a known type
-function RttixFormat(
+function RttixFormatText(
   const AType: IRttixType;
   const [ref] Instance
 ): String;
+
+// Prepare a hint a known type representation
+function RttixFormatHint(
+  const AType: IRttixType;
+  const [ref] Instance
+): String;
+
+// Represent a known type from raw type info
+function RttixFormat(
+  ATypeInfo: Pointer;
+  const [ref] Instance
+): String;
+
+type
+  Rttix = record
+    // Represent a known type from a generic parameter
+    class function Format<T>(const Instance: T): String; static;
+  end;
 
 implementation
 
@@ -52,20 +88,13 @@ uses
 
 function RttixFormatEnum;
 var
-  Value: Integer;
+  Value: Cardinal;
 begin
-  case EnumType.TypeInfo.OrdinalType of
-    otSByte, otUByte: Value := Integer(Cardinal(Byte(Instance)));
-    otSWord, otUWord: Value := Integer(Cardinal(Word(Instance)));
-    otSLong, otULong: Value := Integer(Cardinal(Instance));
-  else
-    Value := 0;
-    Error(reAssertionFailed);
-  end;
+  Value := EnumType.ReadInstance(Instance);
 
   if Value in EnumType.ValidValues then
   begin
-    Result := EnumType.TypeInfo.EnumerationName(Value);
+    Result := EnumType.TypeInfo.EnumerationName(Integer(Value));
 
     case EnumType.NamingStyle of
       nsCamelCase:
@@ -78,20 +107,22 @@ begin
     Result := UiLibUIntToDec(Value) + ' (out of bound)';
 end;
 
-function RttixFormatBool;
+function RttixFormatEnumHint;
 var
-  Value: LongBool;
+  Value: Cardinal;
 begin
-  case BoolType.Size of
-    SizeOf(ByteBool): Value := ByteBool(Instance);
-    SizeOf(WordBool): Value := WordBool(Instance);
-    SizeOf(LongBool): Value := LongBool(Instance);
-  else
-    Error(reAssertionFailed);
-    Value := False;
-  end;
+  Value := EnumType.ReadInstance(Instance);
 
-  Result := BooleanToString(Value, BoolType.BooleanKind);
+  Result := BuildHint([
+    THintSection.New('Value (decimal)', UiLibUIntToDec(Value)),
+    THintSection.New('Value (hex)', UiLibUIntToHex(Value))
+  ]);
+end;
+
+function RttixFormatBool;
+begin
+  Result := BooleanToString(BoolType.ReadInstance(Instance),
+    BoolType.BooleanKind);
 end;
 
 function RttixFormatBitwise;
@@ -100,15 +131,7 @@ var
   Matched: TArray<String>;
   i, Count: Integer;
 begin
-  case BitwiseType.Size of
-    SizeOf(Byte):     Value := Byte(Instance);
-    SizeOf(Word):     Value := Word(Instance);
-    SizeOf(Cardinal): Value := Cardinal(Instance);
-    SizeOf(UInt64):   Value := UInt64(Instance);
-  else
-    Error(reAssertionFailed);
-    Value := 0;
-  end;
+  Value := BitwiseType.ReadInstance(Instance);
 
   // Record found bits
   SetLength(Matched, Length(BitwiseType.Flags) + 1);
@@ -143,6 +166,39 @@ begin
     Result := '(none)';
 end;
 
+function RttixFormatBitwiseHint;
+var
+  Value, ExcludedMask: UInt64;
+  Checkboxes: TArray<String>;
+  i: Integer;
+  Matched: Boolean;
+begin
+  Value := BitwiseType.ReadInstance(Instance);
+
+  SetLength(Checkboxes, Length(BitwiseType.Flags));
+  ExcludedMask := 0;
+
+  for i := 0 to High(BitwiseType.Flags) do
+  begin
+    if (BitwiseType.Flags[i].Mask and ExcludedMask = 0) and
+      (Value and BitwiseType.Flags[i].Mask = BitwiseType.Flags[i].Value) then
+    begin
+      Matched := True;
+      Value := Value and not BitwiseType.Flags[i].Mask;
+      ExcludedMask := ExcludedMask or BitwiseType.Flags[i].Mask;
+    end
+    else
+      Matched := False;
+
+    Checkboxes[i] := '  ' + CheckboxToString(Matched) + ' ' +
+      BitwiseType.Flags[i].Name + '  ';
+  end;
+
+  Result := 'Flags:  '#$D#$A + RtlxJoinStrings(Checkboxes, #$D#$A) +
+    #$D#$A'Value:  ' + UiLibUIntToHex(Value, BitwiseType.MinDigits or
+    NUMERIC_WIDTH_ROUND_TO_GROUP) + '  ';
+end;
+
 function RttixFormatDigits;
 var
   Size: TIntegerSize;
@@ -150,15 +206,7 @@ var
   Value: UInt64;
   AsciiStr: AnsiString;
 begin
-  case DigitsType.Size of
-    SizeOf(Byte):     Value := Byte(Instance);
-    SizeOf(Word):     Value := Word(Instance);
-    SizeOf(Cardinal): Value := Cardinal(Instance);
-    SizeOf(UInt64):   Value := UInt64(Instance);
-  else
-    Error(reAssertionFailed);
-    Value := 0;
-  end;
+  Value := DigitsType.ReadInstance(Instance);
 
   case DigitsType.Size of
     SizeOf(Byte):     Size := isByte;
@@ -195,7 +243,28 @@ begin
   end;
 end;
 
-function RttixFormat;
+function RttixFormatDigitsHint;
+var
+  Value: UInt64;
+begin
+  Value := DigitsType.ReadInstance(Instance);
+
+  case DigitsType.DigitsKind of
+    rokDecimal, rokAscii:
+      Result := BuildHint('Value (hex)', UiLibUIntToHex(Value));
+
+    rokHex:
+      Result := BuildHint('Value (decimal)', UiLibUIntToDec(Value));
+
+    rokBytes:
+      Result := BuildHint([
+        THintSection.New('Value (decimal)', UiLibUIntToDec(Value)),
+        THintSection.New('Value (hex)', UiLibUIntToHex(Value))
+      ]);
+  end;
+end;
+
+function RttixFormatText;
 begin
   case AType.SubKind of
     rtkEnumeration:
@@ -209,6 +278,35 @@ begin
   else
     Result := '(' + AType.TypeInfo.Name + ')';
   end;
+end;
+
+function RttixFormatHint;
+begin
+  case AType.SubKind of
+    rtkEnumeration:
+      Result := RttixFormatEnumHint(AType as IRttixEnumType, Instance);
+
+    rtkBitwise:
+      Result := RttixFormatBitwiseHint(AType as IRttixBitwiseType, Instance);
+
+    rtkDigits:
+      Result := RttixFormatDigitsHint(AType as IRttixDigitsType, Instance);
+  else
+    Result := '';
+  end;
+end;
+
+function RttixFormat;
+begin
+  if Assigned(ATypeInfo) then
+    Result := RttixFormatText(RttixTypeInfo(ATypeInfo), Instance)
+  else
+    Result := '(unknown type)';
+end;
+
+class function Rttix.Format<T>;
+begin
+  Result := RttixFormat(TypeInfo(T), Instance);
 end;
 
 end.
