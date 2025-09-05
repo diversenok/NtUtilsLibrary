@@ -300,7 +300,6 @@ Support unit                                                                    
 [NtUiLib.Exceptions](./NtUiLib.Exceptions.pas)                                                   | SysUtils exception integration
 [DelphiUiLib.Strings](./DelphiUiLib.Strings.pas)                                                 | String prettification
 [DelphiUiLib.Reflection](./NtUiLib/DelphiUiLib.Reflection.pas)                                   | Base RTTI support
-[DelphiUiLib.Reflection.Numeric](./NtUiLib/DelphiUiLib.Reflection.Numeric.pas)                   | RTTI representation of numeric types
 [DelphiUiLib.Reflection.Records](./NtUiLib/DelphiUiLib.Reflection.Records.pas)                   | RTTI representation of record types
 [NtUiLib.Reflection.Types](./NtUiLib/NtUiLib.Reflection.Types.pas)                               | RTTI representation for common types
 [NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console I/O helpers

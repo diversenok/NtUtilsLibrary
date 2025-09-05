@@ -98,7 +98,8 @@ implementation
 
 uses
   System.Generics.Collections, Ntapi.Versions, DelphiUiLib.Strings,
-  System.SysUtils, DelphiUiLib.Reflection.Numeric, DelphiUtils.Arrays;
+  System.SysUtils, DelphiUtils.Arrays, DelphiUtils.LiteRTTI.Extension,
+  DelphiUiLib.LiteReflection;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -279,6 +280,7 @@ end;
 function RepresentRttiType;
 var
   Value: TValue;
+  LiteType: IRttixType;
 begin
   Result.Hint := '';
 
@@ -291,7 +293,12 @@ begin
 
   // Use numeric reflection when appropriate
   else if (RttiType is TRttiOrdinalType) or (RttiType is TRttiInt64Type) then
-    Result := GetNumericReflection(RttiType.Handle, Instance, Attributes).Basic
+  begin
+    LiteType := RttixTypeInfo(Pointer(RttiType.Handle));
+    Result.TypeName := RttiType.Name;
+    Result.Text := RttixFormatText(LiteType, Instance);
+    Result.Hint := RttixFormatHint(LiteType, Instance);
+  end
 
   // Represent arrays of characters as strings
   else if TryRepresentCharArray(Result, RttiType, Instance) then
@@ -325,16 +332,33 @@ end;
 { TType }
 
 class function TType.Represent<T>;
+var
+  AsByte: Byte absolute Instance;
+  AsWord: Word absolute Instance;
+  AsCardinal: Cardinal absolute Instance;
+  AsUInt64: UInt64 absolute Instance;
+  Value: UInt64;
 begin
   if Assigned(TypeInfo(T)) then
-    Result := RepresentType(TypeInfo(T), Instance, Attributes)
-  else
+  begin
+    Result := RepresentType(TypeInfo(T), Instance, Attributes);
+    Exit;
+  end;
+
+  Result.TypeName := '';
+  Result.Hint := '';
+
   case SizeOf(T) of
-    SizeOf(Byte), SizeOf(Word), SizeOf(Cardinal), SizeOf(UInt64):
-      Result := TNumeric.Represent<T>(Instance, Attributes).Basic;
+    SizeOf(Byte):     Value := AsByte;
+    SizeOf(Word):     Value := AsWord;
+    SizeOf(Cardinal): Value := AsCardinal;
+    SizeOf(UInt64):   Value := AsUInt64;
   else
     Result.Text := '(unknown type)';
+    Exit;
   end;
+
+  Result.Text := UiLibUIntToHex(Value);
 end;
 
 initialization

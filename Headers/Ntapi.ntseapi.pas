@@ -181,15 +181,20 @@ type
     SE_DELEGATE_SESSION_USER_IMPERSONATE_PRIVILEGE = 36
   );
 
+  [FlagName(SE_PRIVILEGE_ENABLED_BY_DEFAULT, 'Enabled by Default')]
+  [FlagName(SE_PRIVILEGE_ENABLED, 'Enabled')]
   [FlagName(SE_PRIVILEGE_REMOVED, 'Removed')]
   [FlagName(SE_PRIVILEGE_USED_FOR_ACCESS, 'Used For Access')]
   [FlagGroup(SE_PRIVILEGE_STATE_MASK, 'State')]
   [FlagGroup(MAX_UINT and not SE_PRIVILEGE_STATE_MASK, 'Flags')]
+  TPrivilegeAttributes = type Cardinal;
+
+  [InheritsFrom(System.TypeInfo(TPrivilegeAttributes))]
   [SubEnum(SE_PRIVILEGE_STATE_MASK, SE_PRIVILEGE_DISABLED, 'Disabled')]
   [SubEnum(SE_PRIVILEGE_STATE_MASK, SE_PRIVILEGE_ENABLED_BY_DEFAULT, 'Disabled (modified)')]
   [SubEnum(SE_PRIVILEGE_STATE_MASK, SE_PRIVILEGE_ENABLED, 'Enabled (modified)')]
   [SubEnum(SE_PRIVILEGE_STATE_MASK, SE_PRIVILEGE_STATE_MASK, 'Enabled')]
-  TPrivilegeAttributes = type Cardinal;
+  TPrivilegeAttributesState = type TPrivilegeAttributes;
 
   TPrivilegeId = type TLuid;
 
@@ -227,13 +232,19 @@ type
   PPrivilege = PLuidAndAttributes;
 
   [FlagName(SE_GROUP_MANDATORY, 'Mandatory')]
+  [FlagName(SE_GROUP_ENABLED_BY_DEFAULT, 'Enabled by Default')]
+  [FlagName(SE_GROUP_ENABLED, 'Enabled')]
   [FlagName(SE_GROUP_OWNER, 'Owner')]
   [FlagName(SE_GROUP_USE_FOR_DENY_ONLY, 'Use For Deny Only')]
   [FlagName(SE_GROUP_INTEGRITY, 'Integrity')]
+  [FlagName(SE_GROUP_INTEGRITY_ENABLED, 'Integrity Enabled')]
   [FlagName(SE_GROUP_RESOURCE, 'Resource')]
   [FlagName(SE_GROUP_LOGON_ID, 'Logon ID')]
   [FlagGroup(SE_GROUP_STATE_MASK, 'State')]
   [FlagGroup(MAX_UINT and not SE_GROUP_STATE_MASK, 'Flags')]
+  TGroupAttributes = type Cardinal;
+
+  [InheritsFrom(System.TypeInfo(TGroupAttributes))]
   [SubEnum(SE_GROUP_STATE_MASK, 0, 'Disabled')]
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_ENABLED_BY_DEFAULT, 'Disabled (modified)')]
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_ENABLED, 'Enabled (modified)')]
@@ -242,7 +253,7 @@ type
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_INTEGRITY_ENABLED or SE_GROUP_ENABLED_BY_DEFAULT, 'Integrity Enabled, Group Disabled (modified)')]
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_INTEGRITY_ENABLED or SE_GROUP_ENABLED, 'Integrity Enabled, Group Enabled (modified)')]
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_STATE_MASK, 'Integrity Enabled, Group Enabled')]
-  TGroupAttributes = type Cardinal;
+  TGroupAttributesState = type TGroupAttributes;
 
   // SDK::winnt.h
   [SDKName('SID_AND_ATTRIBUTES')]

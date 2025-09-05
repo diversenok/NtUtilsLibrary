@@ -9,8 +9,7 @@ unit NtUiLib.Reflection.Types;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, DelphiUiLib.Reflection,
-  DelphiUiLib.Reflection.Numeric;
+  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, DelphiUiLib.Reflection;
 
 type
   // TNtUnicodeString
@@ -274,12 +273,11 @@ begin
   if AttributesPresent then
   begin
     HintSections[i] := THintSection.New('State', TType.Represent
-      <TGroupAttributes>(Attributes and SE_GROUP_STATE_MASK).Text);
+      <TGroupAttributesState>(Attributes and SE_GROUP_STATE_MASK).Text);
     Inc(i);
 
     HintSections[i] := THintSection.New('Flags', TType.Represent
-      <TGroupAttributes>(Attributes and not SE_GROUP_STATE_MASK,
-      [Auto.CaptureObject(IgnoreSubEnumsAttribute.Create).Self]).Text);
+      <TGroupAttributes>(Attributes and not SE_GROUP_STATE_MASK).Text);
     Inc(i);
   end;
 
