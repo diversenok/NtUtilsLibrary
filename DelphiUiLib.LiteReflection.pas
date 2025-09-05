@@ -10,6 +10,8 @@ interface
 uses
   DelphiUtils.LiteRTTI.Extension;
 
+{ Type-specific }
+
 // Represent a Delphi enumeration type
 function RttixFormatEnum(
   const EnumType: IRttixEnumType;
@@ -51,6 +53,14 @@ function RttixFormatDigitsHint(
   const DigitsType: IRttixDigitsType;
   const [ref] Instance
 ): String;
+
+// Represent a string type
+function RttixFormatString(
+  const StringType: IRttixStringType;
+  const [ref] Instance
+): String;
+
+{ Common }
 
 // Represent a known type
 function RttixFormatText(
@@ -264,6 +274,13 @@ begin
   end;
 end;
 
+function RttixFormatString;
+begin
+  Result := StringType.ReadInstance(Instance);
+end;
+
+{ Common }
+
 function RttixFormatText;
 begin
   case AType.SubKind of
@@ -275,6 +292,8 @@ begin
       Result := RttixFormatBitwise(AType as IRttixBitwiseType, Instance);
     rtkDigits:
       Result := RttixFormatDigits(AType as IRttixDigitsType, Instance);
+    rtkString:
+      Result := RttixFormatString(AType as IRttixStringType, Instance);
   else
     Result := '(' + AType.TypeInfo.Name + ')';
   end;

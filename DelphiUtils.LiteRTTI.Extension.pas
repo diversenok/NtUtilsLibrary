@@ -133,7 +133,8 @@ type
     rtkEnumeration,
     rtkBoolean,
     rtkBitwise,
-    rtkDigits
+    rtkDigits,
+    rtkString
   );
 
   // Base information for all type
@@ -223,6 +224,22 @@ type
     property Signed: Boolean read GetSigned;
     property DigitsKind: TRttixDigitsKind read GetDigitsKind;
     property MinHexDigits: Byte read GetMinHexDigits;
+  end;
+
+  TRttixStringKind = (
+    rskAnsi,
+    rskShort,
+    rskWide,
+    rskUnicode
+  );
+
+  // Extra information for rtkString types
+  IRttixStringType = interface (IRttixType)
+    ['{90CEFF12-88B2-459E-BF2B-B0FDA85F2166}']
+    function GetStringKind: TRttixStringKind;
+    function ReadInstance(const [ref] Instance): String;
+
+    property StringKind: TRttixStringKind read GetStringKind;
   end;
 
 // Collect known attribute information for a type
@@ -642,6 +659,16 @@ type
     );
   end;
 
+  TRttixStringType = class (TRttixType, IRttixStringType)
+    FStringKind: TRttixStringKind;
+    function GetStringKind: TRttixStringKind;
+    function ReadInstance(const [ref] Instance): String;
+    constructor Create(
+      TypeInfo: PLiteRttiTypeInfo;
+      const Attributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
 constructor TRttixType.Create;
 var
   Attribute: PLiteRttiAttribute;
@@ -1013,6 +1040,49 @@ begin
   end;
 end;
 
+constructor TRttixStringType.Create;
+begin
+  inherited Create(TypeInfo, rtkString, Attributes);
+
+  case TypeInfo.Kind of
+    tkString:  FStringKind := rskShort;
+    tkLString: FStringKind := rskAnsi;
+    tkWString: FStringKind := rskWide;
+    tkUString: FStringKind := rskUnicode;
+  else
+    Error(reAssertionFailed);
+  end;
+
+end;
+
+function TRttixStringType.GetStringKind;
+begin
+  Result := FStringKind;
+end;
+
+function TRttixStringType.ReadInstance;
+var
+  AsAnsi: AnsiString absolute Instance;
+begin
+  case FStringKind of
+    rskAnsi:
+      if Length(AsAnsi) > 0 then
+        Result := TMarshal.ReadStringAsAnsi(FTypeInfo.AnsiStringCodePage,
+          TPtrWrapper.Create(@AsAnsi[Low(AnsiString)]), Length(AsAnsi));
+
+    rskShort:
+      Result := String(ShortString(Instance));
+
+    rskWide:
+      Result := WideString(Instance);
+
+    rskUnicode:
+      Result := UnicodeString(Instance);
+  else
+    Error(reAssertionFailed);
+  end;
+end;
+
 function RttixTypeInfo;
 var
   Attributes: TArray<PLiteRttiAttribute>;
@@ -1043,6 +1113,9 @@ begin
           Break;
         end;
     end;
+
+    tkString, tkLString, tkWString, tkUString:
+      SubKind := rtkString;
   else
     SubKind := rtkOther;
   end;
@@ -1056,6 +1129,8 @@ begin
       Result := TRttixBitwiseType.Create(TypeInfo, Attributes);
     rtkDigits:
       Result := TRttixDigitsType.Create(TypeInfo, Attributes);
+    rtkString:
+      Result := TRttixStringType.Create(TypeInfo, Attributes);
   else
     Result := TRttixType.Create(TypeInfo, SubKind, Attributes);
   end;
