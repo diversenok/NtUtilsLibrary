@@ -232,7 +232,9 @@ type
     rskOle,
     rskUnicode,
     rskAnsiZero,
-    rskWideZero
+    rskWideZero,
+    rskAnsiArray,
+    rskWideArray
   );
 
   // Extra information for rtkString types
@@ -253,7 +255,7 @@ function RttixTypeInfo(
 implementation
 
 uses
-  DelphiApi.TypInfo, DelphiUtils.AutoObjects;
+  DelphiApi.TypInfo, DelphiUtils.AutoObjects, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -1058,6 +1060,13 @@ begin
       else
         Error(reAssertionFailed);
       end;
+    tkArray:
+      case TypeInfo.ArrayElementType.Kind of
+        tkChar:  FStringKind := rskAnsiArray;
+        tkWChar: FStringKind := rskWideArray;
+      else
+        Error(reAssertionFailed);
+      end;
   else
     Error(reAssertionFailed);
   end;
@@ -1092,6 +1101,14 @@ begin
 
     rskWideZero:
       Result := String(PWideChar(Instance));
+
+    rskAnsiArray:
+      Result := String(RtlxCaptureAnsiString(@Instance,
+        FTypeInfo.ArrayElementCount));
+
+    rskWideArray:
+      Result := String(RtlxCaptureString(@Instance,
+        FTypeInfo.ArrayElementCount));
   else
     Error(reAssertionFailed);
   end;
@@ -1102,6 +1119,7 @@ var
   Attributes: TArray<PLiteRttiAttribute>;
   Attribute: PLiteRttiAttribute;
   SubKind: TRttixTypeSubKind;
+  NestedType: PLiteRttiTypeInfo;
 begin
   if not Assigned(TypeInfo) then
     Error(reInvalidPtr);
@@ -1132,11 +1150,24 @@ begin
       SubKind := rtkString;
 
     tkPointer:
-      if Assigned(TypeInfo.PointerRefType()) and
-        (TypeInfo.PointerRefType.Kind in [tkChar, tkWChar]) then
+    begin
+      NestedType := TypeInfo.PointerRefType;
+
+      if Assigned(NestedType) and (NestedType.Kind in [tkChar, tkWChar]) then
         SubKind := rtkString
       else
         SubKind := rtkOther;
+    end;
+
+    tkArray:
+    begin
+      NestedType := TypeInfo.ArrayElementType;
+
+      if Assigned(NestedType) and (NestedType.Kind in [tkChar, tkWChar]) then
+        SubKind := rtkString
+      else
+        SubKind := rtkOther;
+    end;
   else
     SubKind := rtkOther;
   end;
