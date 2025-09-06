@@ -229,8 +229,10 @@ type
   TRttixStringKind = (
     rskAnsi,
     rskShort,
-    rskWide,
-    rskUnicode
+    rskOle,
+    rskUnicode,
+    rskAnsiZero,
+    rskWideZero
   );
 
   // Extra information for rtkString types
@@ -1047,8 +1049,15 @@ begin
   case TypeInfo.Kind of
     tkString:  FStringKind := rskShort;
     tkLString: FStringKind := rskAnsi;
-    tkWString: FStringKind := rskWide;
+    tkWString: FStringKind := rskOle;
     tkUString: FStringKind := rskUnicode;
+    tkPointer:
+      case TypeInfo.PointerRefType.Kind of
+        tkChar:  FStringKind := rskAnsiZero;
+        tkWChar: FStringKind := rskWideZero;
+      else
+        Error(reAssertionFailed);
+      end;
   else
     Error(reAssertionFailed);
   end;
@@ -1061,23 +1070,28 @@ begin
 end;
 
 function TRttixStringType.ReadInstance;
-var
-  AsAnsi: AnsiString absolute Instance;
 begin
   case FStringKind of
     rskAnsi:
-      if Length(AsAnsi) > 0 then
-        Result := TMarshal.ReadStringAsAnsi(FTypeInfo.AnsiStringCodePage,
-          TPtrWrapper.Create(@AsAnsi[Low(AnsiString)]), Length(AsAnsi));
+      Result := TMarshal.ReadStringAsAnsi(FTypeInfo.AnsiStringCodePage,
+        TPtrWrapper.Create(
+        @AnsiString(Instance){$R-}[Low(AnsiString)]){$IFDEF R+}{$R+}{$ENDIF},
+        Length(AnsiString(Instance)));
 
     rskShort:
       Result := String(ShortString(Instance));
 
-    rskWide:
+    rskOle:
       Result := WideString(Instance);
 
     rskUnicode:
       Result := UnicodeString(Instance);
+
+    rskAnsiZero:
+      Result := String(PAnsiChar(Instance));
+
+    rskWideZero:
+      Result := String(PWideChar(Instance));
   else
     Error(reAssertionFailed);
   end;
@@ -1116,6 +1130,13 @@ begin
 
     tkString, tkLString, tkWString, tkUString:
       SubKind := rtkString;
+
+    tkPointer:
+      if Assigned(TypeInfo.PointerRefType()) and
+        (TypeInfo.PointerRefType.Kind in [tkChar, tkWChar]) then
+        SubKind := rtkString
+      else
+        SubKind := rtkOther;
   else
     SubKind := rtkOther;
   end;
