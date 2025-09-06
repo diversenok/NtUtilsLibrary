@@ -30,24 +30,6 @@ type
   end;
   TRepresenterClass = class of TRepresenter;
 
-  // PWideChar representer
-  TWideCharRepresenter = class abstract (TRepresenter)
-    class function GetType: Pointer; override;
-    class function Represent(
-      const Instance;
-      [opt] const Attributes: TArray<TCustomAttribute>
-    ): TRepresentation; override;
-  end;
-
-  // PAnsiChar representer
-  TAnsiCharRepresenter = class abstract (TRepresenter)
-    class function GetType: Pointer; override;
-    class function Represent(
-      const Instance;
-      [opt] const Attributes: TArray<TCustomAttribute>
-    ): TRepresentation; override;
-  end;
-
   // TGuid representer
   TGuidRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
@@ -105,40 +87,6 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-{ TWideCharRepresenter }
-
-class function TWideCharRepresenter.GetType;
-begin
-  Result := TypeInfo(PWideChar)
-end;
-
-class function TWideCharRepresenter.Represent;
-var
-  Value: PWideChar absolute Instance;
-begin
-  if not Assigned(Value) then
-    Result.Text := ''
-  else
-    Result.Text := String(Value);
-end;
-
-{ TAnsiCharRepresenter }
-
-class function TAnsiCharRepresenter.GetType;
-begin
-  Result := TypeInfo(PAnsiChar);
-end;
-
-class function TAnsiCharRepresenter.Represent;
-var
-  Value: PAnsiChar absolute Instance;
-begin
-  if not Assigned(Value) then
-    Result.Text := ''
-  else
-    Result.Text := String(AnsiString(Value));
-end;
-
 { TGuidRepresenter }
 
 class function TGuidRepresenter.GetType;
@@ -154,38 +102,6 @@ begin
 end;
 
 { Representers }
-
-function TryRepresentCharArray(
-  var Representation: TRepresentation;
-  RttiType: TRttiType;
-  const Instance
-): Boolean;
-var
-  ArrayType: TRttiArrayType;
-begin
-  Result := False;
-
-  if not (RttiType is TRttiArrayType) then
-    Exit;
-
-  ArrayType := TRttiArrayType(RttiType);
-
-  if Assigned(ArrayType.ElementType) and (ArrayType.ElementType.Handle =
-    TypeInfo(WideChar)) and (ArrayType.DimensionCount = 1) then
-  begin
-    // Save type names
-    Representation.TypeName := ArrayType.Name;
-
-    // Copy into a string. We can't be sure that the array is zero-terminated
-    SetString(Representation.Text, PWideChar(@Instance),
-      ArrayType.TotalElementCount);
-
-    // Trim on the first zero termination
-    SetLength(Representation.Text, Length(PWideChar(Representation.Text)));
-
-    Result := True;
-  end;
-end;
 
 var
   // A mapping between PTypeInfo and a metaclass of a representer
@@ -282,6 +198,7 @@ var
   Value: TValue;
   LiteType: IRttixType;
 begin
+  Result.TypeName := RttiType.Name;
   Result.Hint := '';
 
   // Register all type representers
@@ -289,35 +206,30 @@ begin
 
   // Try to use a specific representer first
   if Representers.ContainsKey(RttiType.Handle) then
-    Result := Representers[RttiType.Handle].Represent(Instance, Attributes)
-
-  // Use numeric reflection when appropriate
-  else if (RttiType is TRttiOrdinalType) or (RttiType is TRttiInt64Type) then
   begin
-    LiteType := RttixTypeInfo(Pointer(RttiType.Handle));
+    Result := Representers[RttiType.Handle].Represent(Instance, Attributes);
+    Exit;
+  end;
+
+  LiteType := RttixTypeInfo(Pointer(RttiType.Handle));
+
+  // Represent types known to lite reflection
+  if LiteType.SubKind <> rtkOther then
+  begin
     Result.TypeName := RttiType.Name;
     Result.Text := RttixFormatText(LiteType, Instance);
     Result.Hint := RttixFormatHint(LiteType, Instance);
-  end
-
-  // Represent arrays of characters as strings
-  else if TryRepresentCharArray(Result, RttiType, Instance) then
-    { Nothing to do here }
-
-  // Fallback to default representation
-  else
-  begin
-    TValue.MakeWithoutCopy(@Instance, RttiType.Handle, Value);
-    Result.Text := Value.ToString;
-
-    // Explicitly obtain a reference to interface types. The epilogue will
-    // release it.
-    if (Value.Kind = tkInterface) and not Value.IsEmpty then
-      Value.AsType<IUnknown>._AddRef;
+    Exit;
   end;
 
-  // Save type names
-  Result.TypeName := RttiType.Name;
+  // Fallback to default representation
+  TValue.MakeWithoutCopy(@Instance, RttiType.Handle, Value);
+  Result.Text := Value.ToString;
+
+  // Explicitly obtain a reference to interface types. The epilogue will
+  // release it.
+  if (Value.Kind = tkInterface) and not Value.IsEmpty then
+    Value.AsType<IUnknown>._AddRef;
 end;
 
 function RepresentType;
@@ -362,8 +274,6 @@ begin
 end;
 
 initialization
-  CompileTimeInclude(TWideCharRepresenter);
-  CompileTimeInclude(TAnsiCharRepresenter);
   CompileTimeInclude(TGuidRepresenter);
 finalization
   if Assigned(Representers) then
