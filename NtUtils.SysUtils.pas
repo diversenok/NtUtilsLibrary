@@ -726,7 +726,7 @@ end;
 
 function RtlxGetStringComparer;
 begin
-  Result := function (const A, B: String): Integer
+  Result := function (const A, B: String): NativeInt
     begin
       Result := RtlxCompareStrings(A, B, CaseSensitive);
     end;
@@ -794,7 +794,7 @@ end;
 
 function RtlxGetAnsiStringComparer;
 begin
-  Result := function (const A, B: AnsiString): Integer
+  Result := function (const A, B: AnsiString): NativeInt
     begin
       Result := RtlxCompareAnsiStrings(A, B, CaseSensitive);
     end;

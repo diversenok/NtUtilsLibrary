@@ -629,7 +629,7 @@ begin
 
   // Check if we already have en entry for the DLL
   Index := TArray.BinarySearchEx<IRtlxComDll>(TRtlxComDll.Storage,
-    function (const Entry: IRtlxComDll): Integer
+    function (const Entry: IRtlxComDll): NativeInt
     begin
       Result := RtlxCompareStrings(Entry.LoadName, DllName);
     end

@@ -77,7 +77,7 @@ type
     IsChild: Boolean;
   end;
 
-function RtlxCompareAppContainers(const A, B: TAppContainerEntry): Integer;
+function RtlxCompareAppContainers(const A, B: TAppContainerEntry): NativeInt;
 begin
    Result := RtlxCompareSids(A.Sid, B.Sid);
 end;
@@ -97,7 +97,7 @@ function RtlxpFindCachedSidIndex(
 ): Integer;
 begin
   Result := TArray.BinarySearchEx<TAppContainerEntry>(AppContainerCache,
-    function (const Entry: TAppContainerEntry): Integer
+    function (const Entry: TAppContainerEntry): NativeInt
     begin
       Result := RtlxCompareSids(Entry.Sid, Sid);
     end
@@ -109,7 +109,7 @@ function RtlxpAlreadyCollectedChildrenOf(
 ): Boolean;
 begin
   Result := TArray.BinarySearchEx<ISid>(CollectedChildrenOf,
-    function (const Entry: ISid): Integer
+    function (const Entry: ISid): NativeInt
     begin
       Result := RtlxCompareSids(Entry, ParentSid);
     end
