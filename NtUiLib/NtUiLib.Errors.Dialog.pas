@@ -34,8 +34,7 @@ implementation
 uses
   Ntapi.ntdef, NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog,
   NtUtils.DbgHelp, DelphiApi.Reflection, DelphiUtils.LiteRTTI,
-  DelphiUtils.LiteRTTI.Extension, DelphiUiLib.LiteReflection, Ntapi.ntstatus,
-  Ntapi.WinError, Ntapi.ntseapi;
+  DelphiUiLib.LiteReflection, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntseapi;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -47,7 +46,7 @@ type
   PreserveCase = type Pointer;
 var
   i: Integer;
-  AType: IRttixType;
+  TypeFormatter: IRttixTypeFormatter;
 begin
   // LastCall: <function name>
   Result := 'Last call: ' + RtlxStringOrDefault(Status.Location, '<unknown>');
@@ -61,22 +60,22 @@ begin
     lcOpenCall:
       if Assigned(Status.LastCall.AccessMaskType) then
       begin
-        AType := RttixTypeInfo(Status.LastCall.AccessMaskType);
+        TypeFormatter := RttixMakeTypeFormatter(Status.LastCall.AccessMaskType);
 
         Result := Result + #$D#$A'Desired ' +
-          RtlxStringOrDefault(AType.FriendlyName, 'object') + ' access: ' +
-          RttixFormatText(AType, Status.LastCall.AccessMask);
+          RtlxStringOrDefault(TypeFormatter.RttixType.FriendlyName, 'object') +
+          ' access: ' + TypeFormatter.FormatAsText(Status.LastCall.AccessMask);
       end;
 
     // Information class: <name>
     lcQuerySetCall:
       if Assigned(Status.LastCall.InfoClassType) then
       begin
-        AType := RttixTypeInfo(Status.LastCall.InfoClassType,
+        TypeFormatter := RttixMakeTypeFormatter(Status.LastCall.InfoClassType,
           PLiteRttiTypeInfo(TypeInfo(PreserveCase)).Attributes);
 
-        Result := Result + #$D#$A'Information class: ' + RttixFormatText(AType,
-          Status.LastCall.InfoClass);
+        Result := Result + #$D#$A'Information class: ' +
+          TypeFormatter.FormatAsText(Status.LastCall.InfoClass);
       end;
   end;
 
@@ -86,11 +85,13 @@ begin
     for i := 0 to High(Status.LastCall.ExpectedAccess) do
       if Assigned(Status.LastCall.ExpectedAccess[i].AccessMaskType) then
       begin
-        AType := RttixTypeInfo(Status.LastCall.ExpectedAccess[i].AccessMaskType);
+        TypeFormatter := RttixMakeTypeFormatter(
+          Status.LastCall.ExpectedAccess[i].AccessMaskType);
 
         Result := Result + #$D#$A'Expected ' + RtlxStringOrDefault(
-          AType.FriendlyName, 'object') + ' access: ' +
-          RttixFormatText(AType, Status.LastCall.ExpectedAccess[i].AccessMask);
+          TypeFormatter.RttixType.FriendlyName, 'object') + ' access: ' +
+          TypeFormatter.FormatAsText(
+            Status.LastCall.ExpectedAccess[i].AccessMask);
       end;
 
   // Result: <STATUS_*/ERROR_*>
@@ -105,10 +106,10 @@ begin
     if (Status.LastCall.ExpectedPrivilege >= SE_CREATE_TOKEN_PRIVILEGE) and
       (Status.LastCall.ExpectedPrivilege <= High(TSeWellKnownPrivilege)) then
     begin
-      AType := RttixTypeInfo(TypeInfo(TSeWellKnownPrivilege));
+      TypeFormatter := RttixMakeTypeFormatter(TypeInfo(TSeWellKnownPrivilege));
       RtlxSuffixStripString('.', Result, True);
 
-      Result := Result + ': "' + RttixFormatText(AType,
+      Result := Result + ': "' + TypeFormatter.FormatAsText(
         Status.LastCall.ExpectedPrivilege) + '"';
     end;
 

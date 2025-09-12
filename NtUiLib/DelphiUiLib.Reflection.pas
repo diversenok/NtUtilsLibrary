@@ -196,7 +196,7 @@ end;
 function RepresentRttiType;
 var
   Value: TValue;
-  LiteType: IRttixType;
+  LiteFormatter: IRttixTypeFormatter;
 begin
   Result.TypeName := RttiType.Name;
   Result.Hint := '';
@@ -211,14 +211,15 @@ begin
     Exit;
   end;
 
-  LiteType := RttixTypeInfo(Pointer(RttiType.Handle));
+  LiteFormatter := RttixMakeTypeFormatter(Pointer(RttiType.Handle));
 
   // Represent types known to lite reflection
-  if LiteType.SubKind <> rtkOther then
+  if LiteFormatter.HasCustomFormatting or
+    (LiteFormatter.RttixType.SubKind <> rtkOther) then
   begin
     Result.TypeName := RttiType.Name;
-    Result.Text := RttixFormatText(LiteType, Instance);
-    Result.Hint := RttixFormatHint(LiteType, Instance);
+    Result.Text := LiteFormatter.FormatAsText(Instance);
+    Result.Hint := LiteFormatter.FormatAsHint(Instance);
     Exit;
   end;
 
