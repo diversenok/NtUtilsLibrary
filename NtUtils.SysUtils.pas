@@ -17,6 +17,18 @@ const
   DEFAULT_PATH_SEPARATOR = '\';
   DEFAULT_EXTENSION_SEPARATOR = '.';
 
+  DAYS_FROM_1601 = 109205; // difference between native & Delphi's zero time
+  NATIVE_TIME_DAY = 864000000000; // 100ns in 1 day
+  NATIVE_TIME_HOUR = 36000000000; // 100ns in 1 hour
+  NATIVE_TIME_MINUTE = 600000000; // 100ns in 1 minute
+  NATIVE_TIME_SECOND =  10000000; // 100ns in 1 sec
+  NATIVE_TIME_MILLISEC =   10000; // 100ns in 1 millisec
+
+  SECONDS_PER_DAY = 86400;
+  MILLISEC_PER_DAY = 86400000;
+
+  DAYS_FROM_1970 = 25569; // difference Unix & Delphi's zero time
+
 type
   TIntegerSign = (isUnsigned, isSigned);
   TIntegerSize = (
@@ -314,6 +326,28 @@ function RtlxStrToUIntPtr(
   AllowMinusSign: Boolean = False;
   AllowSpaces: TNumericSpacechars = []
 ): Boolean;
+
+// Time
+
+// Convert time from UTC to the current timezone
+function RtlxSystemTimeToLocalTime(
+  [in] const SystemTime: TLargeInteger
+): TLargeInteger;
+
+// Convert time from the current timezone to UTC
+function RtlxLocalTimeToSystemTime(
+  [in] const LocalTime: TLargeInteger
+): TLargeInteger;
+
+// Convert a NT time to Delphi time
+function RtlxLargeIntegerToDateTime(
+  const NativeTime: TLargeInteger
+): TDateTime;
+
+// Convert a Delphi time to NT time
+function RtlxDateTimeToLargeInteger(
+  const DateTime: TDateTime
+): TLargeInteger;
 
 // Random
 
@@ -1422,6 +1456,49 @@ begin
 
   if Result then
     Value := UIntPtr(Value64)
+end;
+
+function TimeZoneBias: TLargeInteger;
+begin
+  Result := USER_SHARED_DATA.TimeZoneBias.QuadPart;
+end;
+
+function RtlxSystemTimeToLocalTime;
+begin
+  if not NT_SUCCESS(RtlSystemTimeToLocalTime(SystemTime, Result)) then
+  begin
+    {$Q-}{$R-}
+    Result := SystemTime - TimeZoneBias;
+    {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
+  end;
+end;
+
+function RtlxLocalTimeToSystemTime;
+begin
+  if not NT_SUCCESS(RtlLocalTimeToSystemTime(LocalTime, Result)) then
+  begin
+    {$Q-}{$R-}
+    Result := LocalTime + TimeZoneBias;
+    {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
+  end;
+end;
+
+function RtlxLargeIntegerToDateTime;
+var
+  LocalTime: TLargeInteger;
+begin
+  LocalTime := RtlxSystemTimeToLocalTime(NativeTime);
+  {$Q-}{$R-}
+  Result := Double(LocalTime) / NATIVE_TIME_DAY - DAYS_FROM_1601;
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
+end;
+
+function RtlxDateTimeToLargeInteger;
+begin
+  {$Q-}{$R-}
+  Result := Trunc(NATIVE_TIME_DAY * (DateTime + DAYS_FROM_1601));
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
+  Result := RtlxLocalTimeToSystemTime(Result);
 end;
 
 var

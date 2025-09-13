@@ -23,6 +23,22 @@ const
   FILE_NAME_OPENED = $0008;
   FILE_NAME_MASK = FILE_NAME_OPENED;
 
+  // SDK::WinNls.h - time format flags
+  TIME_NOMINUTESORSECONDS = $00000001;
+  TIME_NOSECONDS = $00000002;
+  TIME_NOTIMEMARKER = $00000004;
+  TIME_FORCE24HOURFORMAT = $00000008;
+
+  // SDK::WinNls.h - date format flags
+  DATE_SHORTDATE = $00000001;
+  DATE_LONGDATE = $00000002;
+  DATE_USE_ALT_CALENDAR = $00000004;
+  DATE_YEARMONTH = $00000008;
+  DATE_LTRREADING = $00000010;
+  DATE_RTLREADING = $00000020;
+  DATE_AUTOLAYOUT = $00000040;
+  DATE_MONTHDAY = $00000080; // Windows 10 TH1+
+
   // SDK::WinBase.h - application restart flags
   RESTART_NO_CRASH = $1;
   RESTART_NO_HANG = $2;
@@ -198,6 +214,22 @@ type
   TSystemTimeArray = TAnysizeArray<TSystemTime>;
   PSystemTimeArray = ^TSystemTimeArray;
 
+  [FlagName(TIME_NOMINUTESORSECONDS, 'No Minutes Or Seconds')]
+  [FlagName(TIME_NOSECONDS, 'No Seconds')]
+  [FlagName(TIME_NOTIMEMARKER, 'No Time Marker')]
+  [FlagName(TIME_FORCE24HOURFORMAT, 'Force 24-hour Format')]
+  TTimeFormatFlags = type Cardinal;
+
+  [FlagName(DATE_SHORTDATE, 'Short Date')]
+  [FlagName(DATE_LONGDATE, 'Long Date')]
+  [FlagName(DATE_USE_ALT_CALENDAR, 'Use Alternative Calendar')]
+  [FlagName(DATE_YEARMONTH, 'Year-Month Format')]
+  [FlagName(DATE_LTRREADING, 'LTR Reading')]
+  [FlagName(DATE_RTLREADING, 'RTL Reading')]
+  [FlagName(DATE_AUTOLAYOUT, 'Auto Layout')]
+  [FlagName(DATE_MONTHDAY, 'Month-Day Format')]
+  TDateFormatFlags = type Cardinal;
+
   [FlagName(RESTART_NO_CRASH, 'No Crash')]
   [FlagName(RESTART_NO_HANG, 'No Hang')]
   [FlagName(RESTART_NO_PATCH, 'No Patch')]
@@ -221,6 +253,29 @@ function LocalFree(
 procedure OutputDebugStringW(
   [in, opt] OutputString: PWideChar
 ); stdcall; external kernel32;
+
+// SDK::datetimeapi.h
+[Result: NumberOfElements]
+function GetTimeFormatEx(
+  [in, opt] LocaleName: PWideChar;
+  [in] Flags: TTimeFormatFlags;
+  [in, opt] Time: PSystemTime;
+  [in, opt] Format: PWideChar;
+  [out, WritesTo] TimeStr: PWideChar;
+  [in, NumberOfElements] cchTime: Integer
+): Integer; stdcall; external kernel32;
+
+// SDK::datetimeapi.h
+[Result: NumberOfElements]
+function GetDateFormatEx(
+  [in, opt] LocaleName: PWideChar;
+  [in] Flags: TDateFormatFlags;
+  [in, opt] Date: PSystemTime;
+  [in, opt] Format: PWideChar;
+  [out, WritesTo] DateStr: PWideChar;
+  [in, NumberOfElements] cchDate: Integer;
+  [Reserved] Calendar: Pointer
+): Integer; stdcall; external kernel32;
 
 // SDK::securitybaseapi.h
 [SetsLastError]

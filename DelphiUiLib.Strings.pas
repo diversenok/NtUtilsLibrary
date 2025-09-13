@@ -77,6 +77,11 @@ function UiLibBytesToString(
   const Bytes: UInt64
 ): String;
 
+// Convert a Delphi timestamp to a string
+function UiLibDateTimeToString(
+  const DateTime: TDateTime
+): String;
+
 { Hints }
 
 type
@@ -94,7 +99,7 @@ function BuildHint(const Titles, Contents: TArray<String>): String; overload;
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils;
+  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.WinBase, Ntapi.ntstatus, NtUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -380,6 +385,73 @@ begin
     Result := UiLibUIntToDec(IntValue) + Units
   else
     Result := UiLibFixedPointToString(FloatValue, Digits) + Units;
+end;
+
+function AdvxFormatTime(
+  out TimeString: String;
+  const Time: TSystemTime
+): TNtxStatus;
+var
+  Required: Integer;
+begin
+  Result.Location := 'GetTimeFormatEx';
+  Required := GetTimeFormatEx(nil, 0, @Time, nil, nil, 0);
+  Result.Win32Result := Required > 0;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(TimeString, Pred(Required));
+  Required := GetTimeFormatEx(nil, 0, @Time, nil, PWideChar(TimeString),
+    Required);
+  Result.Win32Result := Required > 0;
+end;
+
+function AdvxFormatDate(
+  out DateString: String;
+  const Date: TSystemTime
+): TNtxStatus;
+var
+  Required: Integer;
+begin
+  Result.Location := 'GetDateFormatEx';
+  Required := GetDateFormatEx(nil, 0, @Date, nil, nil, 0, nil);
+  Result.Win32Result := Required > 0;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(DateString, Pred(Required));
+  Required := GetDateFormatEx(nil, 0, @Date, nil, PWideChar(DateString),
+    Required, nil);
+  Result.Win32Result := Required > 0;
+end;
+
+function UiLibDateTimeToString;
+var
+  Fields: TTimeFields;
+  Time: TSystemTime;
+  LocalTime: TLargeInteger;
+  DatePart, TimePart: String;
+begin
+  // Split time into fields
+  LocalTime := Trunc(NATIVE_TIME_DAY * (DateTime + DAYS_FROM_1601));
+  RtlTimeToTimeFields(LocalTime, Fields);
+
+  // Convert fields to the Win32 format
+  Time.Year := Fields.Year;
+  Time.Month := Fields.Month;
+  Time.DayOfWeek := Fields.Weekday;
+  Time.Day := Fields.Day;
+  Time.Hour := Fields.Hour;
+  Time.Minute := Fields.Minute;
+  Time.Second := Fields.Second;
+  Time.Milliseconds := Fields.Milliseconds;
+
+  // Format
+  AdvxFormatDate(DatePart, Time);
+  AdvxFormatTime(TimePart, Time);
+  Result := DatePart + ' ' + TimePart;
 end;
 
 { Hints }

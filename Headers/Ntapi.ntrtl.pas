@@ -1697,6 +1697,44 @@ procedure RtlGetUnloadEventTraceEx(
   [out] out RtlpUnloadEventTraceEx: PPRtlUnloadEventTrace
 ); stdcall; external ntdll;
 
+// Time
+
+// PHNT::ntrtl.h
+function RtlSystemTimeToLocalTime(
+  [in] const [ref] SystemTime: TLargeInteger;
+  [out] out LocalTime: TLargeInteger
+): NTSTATUS; stdcall external ntdll;
+
+// PHNT::ntrtl.h
+function RtlLocalTimeToSystemTime(
+  [in] const [ref] LocalTime: TLargeInteger;
+  [out] out SystemTime: TLargeInteger
+): NTSTATUS; stdcall external ntdll;
+
+// PHNT::ntrtl.h
+procedure RtlTimeToTimeFields(
+  [in] const [ref] Time: TLargeInteger;
+  [out] out TimeFields: TTimeFields
+); stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+function RtlTimeFieldsToTime(
+  [in] const TimeFields: TTimeFields;
+  [out] out Time: TLargeInteger
+): Boolean; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+function RtlTimeToSecondsSince1970(
+  [in] const [ref] Time: TLargeInteger;
+  [out] out ElapsedSeconds: TUnixTime
+): Boolean; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+procedure RtlSecondsSince1970ToTime(
+  [in] ElapsedSeconds: TUnixTime;
+  [out] out Time: TLargeInteger
+); stdcall; external ntdll;
+
 // Thread pool
 
 // PHNT::ntrtl.h

@@ -785,29 +785,6 @@ function RtlWow64EnableFsRedirectionEx(
 function RtlIsThreadWithinLoaderCallout(
 ): Boolean; stdcall; external ntdll;
 
-{ Time Helpers }
-
-const
-  DAYS_FROM_1601 = 109205; // difference between native & Delphi's zero time
-  NATIVE_TIME_DAY = 864000000000; // 100ns in 1 day
-  NATIVE_TIME_HOUR = 36000000000; // 100ns in 1 hour
-  NATIVE_TIME_MINUTE = 600000000; // 100ns in 1 minute
-  NATIVE_TIME_SECOND =  10000000; // 100ns in 1 sec
-  NATIVE_TIME_MILLISEC =   10000; // 100ns in 1 millisec
-
-  SECONDS_PER_DAY = 86400;
-  MILLISEC_PER_DAY = 86400000;
-
-  DAYS_FROM_1970 = 25569; // difference Unix & Delphi's zero time
-
-// Native time
-function DateTimeToLargeInteger([in] DateTime: TDateTime): TLargeInteger;
-function LargeIntegerToDateTime([in] QuadPart: TLargeInteger): TDateTime;
-
-// Unix time
-function DateTimeToUnixTime([in] DateTime: TDateTime): TUnixTime;
-function UnixTimeToDateTime([in] UnixTime: TUnixTime): TDateTime;
-
 { Other helpers }
 
 // Hash for telemetry coverage entries
@@ -859,45 +836,6 @@ begin
 
   if Result = 0 then
     Result := 1;
-end;
-
-{ Time Helpers }
-
-function TimeZoneBias: TLargeInteger;
-begin
-  // Workaround "Internal Error X64TAB2051" in Delphi compiler by extracting
-  // this expression from the functions below... wtf was that?
-  Result := USER_SHARED_DATA.TimeZoneBias.QuadPart;
-end;
-
-function DateTimeToLargeInteger;
-begin
-  {$Q-}{$R-}
-  Result := Trunc(NATIVE_TIME_DAY * (DAYS_FROM_1601 + DateTime)) + TimeZoneBias;
-  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
-end;
-
-function LargeIntegerToDateTime;
-begin
-  {$Q-}{$R-}
-  Result := (QuadPart - TimeZoneBias) / NATIVE_TIME_DAY - DAYS_FROM_1601;
-  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
-end;
-
-function DateTimeToUnixTime;
-begin
-  {$Q-}{$R-}
-  Result := Trunc((DateTime - DAYS_FROM_1970) * SECONDS_PER_DAY) +
-    TimeZoneBias div NATIVE_TIME_SECOND;
-  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
-end;
-
-function UnixTimeToDateTime;
-begin
-  {$Q-}{$R-}
-  Result := (UnixTime - TimeZoneBias / NATIVE_TIME_SECOND) / SECONDS_PER_DAY +
-    DAYS_FROM_1970;
-  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 { KUSER_SHARED_DATA }

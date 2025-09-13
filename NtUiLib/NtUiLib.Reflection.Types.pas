@@ -216,7 +216,7 @@ uses
   Ntapi.winsta, Ntapi.ntstatus, DelphiApi.Reflection, NtUtils.Security.Sid,
   NtUtils.Lsa.Sid, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads,
   NtUtils.Errors, NtUiLib.Errors, NtUtils.Lsa.Logon, NtUtils.WinStation,
-  NtUtils.Synchronization, DelphiUiLib.Strings, NtUtils.SysUtils;
+  NtUtils.Synchronization, DelphiUiLib.Strings, NtUtils.SysUtils, Ntapi.ntrtl;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -541,7 +541,7 @@ begin
   else if Value = Int64.MaxValue then
     Result.Text := 'Infinite'
   else
-    Result.Text := DateTimeToStr(LargeIntegerToDateTime(Value));
+    Result.Text := DateTimeToStr(RtlxLargeIntegerToDateTime(Value));
 
   Result.Hint := BuildHint('Raw value', UiLibUIntToDec(UInt64(Value)));
 end;
@@ -637,8 +637,10 @@ end;
 class function TUnixTimeRepresenter.Represent;
 var
   Value: TUnixTime absolute Instance;
+  NativeTime: TLargeInteger;
 begin
-  Result.Text := DateTimeToStr(UnixTimeToDateTime(Value));
+  RtlSecondsSince1970ToTime(Value, NativeTime);
+  Result.Text := DateTimeToStr(RtlxLargeIntegerToDateTime(NativeTime));
   Result.Hint := BuildHint('Raw value', UiLibUIntToDec(Value));
 end;
 
