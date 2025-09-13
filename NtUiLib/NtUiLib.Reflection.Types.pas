@@ -553,77 +553,11 @@ begin
   Result := TypeInfo(TULargeInteger);
 end;
 
-function TimeIntervalToString(Seconds: UInt64): String;
-const
-  SecondsInDay = 86400;
-  SecondsInHour = 3600;
-  SecondsInMinute = 60;
-var
-  Value: UInt64;
-  Strings: TArray<String>;
-  Count: Integer;
-begin
-  SetLength(Strings, 4);
-  Count := 0;
-
-  // Days
-  if Seconds >= SecondsInDay then
-  begin
-    Value := Seconds div SecondsInDay;
-    Seconds := Seconds mod SecondsInDay;
-
-    if Value = 1 then
-      Strings[Count] := '1 day'
-    else
-      Strings[Count] := UiLibUIntToDec(Value) + ' days';
-
-    Inc(Count);
-  end;
-
-  // Hours
-  if Seconds >= SecondsInHour then
-  begin
-    Value := Seconds div SecondsInHour;
-    Seconds := Seconds mod SecondsInHour;
-
-    if Value = 1 then
-      Strings[Count] := '1 hour'
-    else
-      Strings[Count] := UiLibUIntToDec(Value) + ' hours';
-
-    Inc(Count);
-  end;
-
-  // Minutes
-  if Seconds >= SecondsInMinute then
-  begin
-    Value := Seconds div SecondsInMinute;
-    Seconds := Seconds mod SecondsInMinute;
-
-    if Value = 1 then
-      Strings[Count] := '1 minute'
-    else
-      Strings[Count] := UiLibUIntToDec(Value) + ' minutes';
-
-    Inc(Count);
-  end;
-
-  // Seconds
-  if Seconds = 1 then
-    Strings[Count] := '1 second'
-  else
-    Strings[Count] := UiLibUIntToDec(Seconds) + ' seconds';
-
-  Inc(Count);
-  SetLength(Strings, Count);
-  Result := RtlxJoinStrings(Strings, ' ');
-end;
-
 class function TULargeIntegerRepresenter.Represent;
 var
   Value: TULargeInteger absolute Instance;
 begin
-  Result.Text := TimeIntervalToString(Value div NATIVE_TIME_SECOND);
+  Result.Text := UiLibULargeIntegerToString(Value);
   Result.Hint := BuildHint('Raw value', UiLibUIntToDec(UInt64(Value)));
 end;
 

@@ -1712,6 +1712,12 @@ function RtlLocalTimeToSystemTime(
 ): NTSTATUS; stdcall external ntdll;
 
 // PHNT::ntrtl.h
+procedure RtlTimeToElapsedTimeFields(
+  [in] const [ref] Time: TULargeInteger;
+  [out] out TimeFields: TTimeFields
+); stdcall; external ntdll;
+
+// PHNT::ntrtl.h
 procedure RtlTimeToTimeFields(
   [in] const [ref] Time: TLargeInteger;
   [out] out TimeFields: TTimeFields

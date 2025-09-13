@@ -18,11 +18,12 @@ const
   DEFAULT_EXTENSION_SEPARATOR = '.';
 
   DAYS_FROM_1601 = 109205; // difference between native & Delphi's zero time
-  NATIVE_TIME_DAY = 864000000000; // 100ns in 1 day
-  NATIVE_TIME_HOUR = 36000000000; // 100ns in 1 hour
-  NATIVE_TIME_MINUTE = 600000000; // 100ns in 1 minute
-  NATIVE_TIME_SECOND =  10000000; // 100ns in 1 sec
-  NATIVE_TIME_MILLISEC =   10000; // 100ns in 1 millisec
+  NATIVE_TIME_DAY = TULargeInteger(864000000000); // 100ns in 1 day
+  NATIVE_TIME_HOUR = TULargeInteger(36000000000); // 100ns in 1 hour
+  NATIVE_TIME_MINUTE = TULargeInteger(600000000); // 100ns in 1 minute
+  NATIVE_TIME_SECOND =  TULargeInteger(10000000); // 100ns in 1 sec
+  NATIVE_TIME_MILLISEC =   TULargeInteger(10000); // 100ns in 1 millisec
+  NATIVE_TIME_MICROSEC =      TULargeInteger(10); // 100ns in 1 microsec
 
   SECONDS_PER_DAY = 86400;
   MILLISEC_PER_DAY = 86400000;

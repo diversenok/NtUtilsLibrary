@@ -7,7 +7,7 @@
 interface
 
 uses
-  DelphiApi.Reflection, NtUtils.SysUtils;
+  Ntapi.WinNt, DelphiApi.Reflection, NtUtils.SysUtils;
 
 { Text prettification }
 
@@ -82,6 +82,11 @@ function UiLibDateTimeToString(
   const DateTime: TDateTime
 ): String;
 
+// Convert a time duration in naive (100ns) units to a string
+function UiLibULargeIntegerToString(
+  TimeSpan: TULargeInteger
+): String;
+
 { Hints }
 
 type
@@ -99,7 +104,7 @@ function BuildHint(const Titles, Contents: TArray<String>): String; overload;
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.WinBase, Ntapi.ntstatus, NtUtils;
+  Ntapi.ntrtl, Ntapi.WinBase, Ntapi.ntstatus, NtUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -452,6 +457,59 @@ begin
   AdvxFormatDate(DatePart, Time);
   AdvxFormatTime(TimePart, Time);
   Result := DatePart + ' ' + TimePart;
+end;
+
+function UiLibULargeIntegerToString;
+var
+  Days, Hours, Minutes, Seconds: Cardinal;
+begin
+  if TimeSpan = 0 then
+    Result := 'None'
+  else if TimeSpan < NATIVE_TIME_MILLISEC then
+    Result := RtlxFormatString('%I64u us', [TimeSpan div NATIVE_TIME_MICROSEC])
+  else if TimeSpan < NATIVE_TIME_SECOND then
+    Result := RtlxFormatString('%I64u ms', [TimeSpan div NATIVE_TIME_MILLISEC])
+  else if TimeSpan < NATIVE_TIME_MINUTE then
+    Result := RtlxFormatString('%I64u sec', [TimeSpan div NATIVE_TIME_SECOND])
+  else
+  begin
+    Seconds := (TimeSpan div NATIVE_TIME_SECOND) mod 60;
+    Minutes := (TimeSpan div NATIVE_TIME_MINUTE) mod 60;
+    Hours := (TimeSpan div NATIVE_TIME_HOUR) mod 24;
+    Days := TimeSpan div NATIVE_TIME_DAY;
+
+    if TimeSpan < NATIVE_TIME_HOUR then
+    begin
+      if Seconds <> 0 then
+        Result := RtlxFormatString('%u min %u sec', [Minutes, Seconds])
+      else
+        Result := RtlxFormatString('%u min', [Minutes])
+    end
+    else if TimeSpan < NATIVE_TIME_DAY then
+    begin
+      if (Minutes <> 0) and (Seconds <> 0) then
+        Result := RtlxFormatString('%u hours %u min %u sec',
+          [Hours, Minutes, Seconds])
+      else if Minutes <> 0 then
+        Result := RtlxFormatString('%u hours %u min', [Hours, Minutes])
+      else if Seconds <> 0 then
+        Result := RtlxFormatString('%u hours %u sec', [Hours, Seconds])
+      else
+        Result := RtlxFormatString('%u hours', [Hours]);
+    end
+    else
+    begin
+      if (Hours <> 0) and (Minutes <> 0) then
+        Result := RtlxFormatString('%I64u days %u hours %u min',
+          [Days, Hours, Minutes])
+      else if Hours <> 0 then
+        Result := RtlxFormatString('%I64u days %u hours', [Days, Hours])
+      else if Minutes <> 0 then
+        Result := RtlxFormatString('%I64u days %u minutes', [Days, Minutes])
+      else
+        Result := RtlxFormatString('%I64u days', [Days]);
+    end;
+  end;
 end;
 
 { Hints }
