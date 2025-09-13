@@ -11,6 +11,15 @@ uses
   DelphiApi.Reflection, DelphiUtils.LiteRTTI, DelphiUtils.LiteRTTI.Extension;
 
 type
+  TRttixReflectionFormat = (rfText, rfHint);
+  TRttixReflectionFormats = set of TRttixReflectionFormat;
+
+  TRttixFullReflection = record
+    ValidFormats: TRttixReflectionFormats;
+    Text: String;
+    Hint: String;
+  end;
+
   IRttixTypeFormatter = interface
     ['{C5915174-2560-4C84-B51D-D257BBB2783D}']
     function GetRttixType: IRttixType;
@@ -18,20 +27,21 @@ type
 
     property RttixType: IRttixType read GetRttixType;
     property HasCustomFormatting: Boolean read GetHasCustomFormatting;
-    function FormatAsText(const [ref] Instance): String;
-    function FormatAsHint(const [ref] Instance): String;
+    function FormatText(const [ref] Instance): String;
+    function FormatHint(const [ref] Instance): String;
+    function FormatFull(const [ref] Instance): TRttixFullReflection;
   end;
 
   TRttixCustomTypeFormatter = function (
     const RttixType: IRttixType;
-    const [ref] Instance
-  ): String;
+    const [ref] Instance;
+    RequestedFormats: TRttixReflectionFormats
+  ): TRttixFullReflection;
 
 // Add a callback for formatting a custom type
 procedure RttixRegisterCustomTypeFormatter(
   TypeInfo: PLiteRttiTypeInfo;
-  [opt] TextFormatter: TRttixCustomTypeFormatter;
-  [opt] HintFormatter: TRttixCustomTypeFormatter
+  Formatter: TRttixCustomTypeFormatter
 );
 
 // Prepare formatter for representing a specific type
@@ -40,20 +50,33 @@ function RttixMakeTypeFormatter(
   const FieldAttributes: TArray<PLiteRttiAttribute> = nil
 ): IRttixTypeFormatter;
 
-// Represent a type from raw type info
+// Represent a type as text from raw type info
 function RttixFormat(
   TypeInfo: PLiteRttiTypeInfo;
   const [ref] Instance;
   const FieldAttributes: TArray<PLiteRttiAttribute> = nil
 ): String;
 
+// Represent a type as text and hint from raw type info
+function RttixFormatFull(
+  TypeInfo: PLiteRttiTypeInfo;
+  const [ref] Instance;
+  const FieldAttributes: TArray<PLiteRttiAttribute> = nil
+): TRttixFullReflection;
+
 type
   Rttix = record
-    // Represent a known type from a generic parameter
+    // Represent a known type as text from a generic parameter
     class function Format<T>(
       const Instance: T;
       const FieldAttributes: TArray<PLiteRttiAttribute> = nil
     ): String; static;
+
+    // Represent a known type as text and hint from a generic parameter
+    class function FormatFull<T>(
+      const Instance: T;
+      const FieldAttributes: TArray<PLiteRttiAttribute> = nil
+    ): TRttixFullReflection; static;
   end;
 
 implementation
@@ -71,8 +94,7 @@ uses
 type
   TRttixFormatterEntry = record
     TypeInfo: PLiteRttiTypeInfo;
-    TextFormatter: TRttixCustomTypeFormatter;
-    HintFormatter: TRttixCustomTypeFormatter
+    Formatter: TRttixCustomTypeFormatter;
   end;
 
 var
@@ -98,8 +120,7 @@ var
   Entry: TRttixFormatterEntry;
 begin
   Entry.TypeInfo := TypeInfo;
-  Entry.TextFormatter := TextFormatter;
-  Entry.HintFormatter := HintFormatter;
+  Entry.Formatter := Formatter;
   Index := RttixFindTypeIndex(TypeInfo);
 
   if Index < 0 then
@@ -322,71 +343,104 @@ end;
 type
   TRttixTypeFormatter = class (TAutoInterfacedObject, IRttixTypeFormatter)
     FRttixType: IRttixType;
-    FTextFormatter: TRttixCustomTypeFormatter;
-    FHintFormatter: TRttixCustomTypeFormatter;
+    FFormatter: TRttixCustomTypeFormatter;
     function GetRttixType: IRttixType;
     function GetHasCustomFormatting: Boolean;
-    function FormatAsText(const [ref] Instance): String;
-    function FormatAsHint(const [ref] Instance): String;
+    function FormatText(const [ref] Instance): String;
+    function FormatHint(const [ref] Instance): String;
+    function FormatFull(const [ref] Instance): TRttixFullReflection;
+    function Format(Formats: TRttixReflectionFormats; const [ref] Instance): TRttixFullReflection;
     constructor Create(
       [opt] const RttixType: IRttixType;
-      [opt] TextFormatter: TRttixCustomTypeFormatter;
-      [opt] HintFormatter: TRttixCustomTypeFormatter
+      [opt] Formatter: TRttixCustomTypeFormatter
     );
   end;
 
 constructor TRttixTypeFormatter.Create;
 begin
   FRttixType := RttixType;
-  FTextFormatter := TextFormatter;
-  FHintFormatter := HintFormatter;
+  FFormatter := Formatter;
 end;
 
-function TRttixTypeFormatter.FormatAsText;
+function TRttixTypeFormatter.Format;
 begin
-  if Assigned(FTextFormatter) then
-    Result := FTextFormatter(FRttixType, Instance)
-  else if Assigned(FRttixType) then
-    case FRttixType.SubKind of
-      rtkEnumeration:
-        Result := RttixFormatEnum(FRttixType as IRttixEnumType, Instance);
-      rtkBoolean:
-        Result := RttixFormatBool(FRttixType as IRttixBoolType, Instance);
-      rtkBitwise:
-        Result := RttixFormatBitwise(FRttixType as IRttixBitwiseType, Instance);
-      rtkDigits:
-        Result := RttixFormatDigits(FRttixType as IRttixDigitsType, Instance);
-      rtkString:
-        Result := RttixFormatString(FRttixType as IRttixStringType, Instance);
-    else
-      Result := '(' + FRttixType.TypeInfo.Name + ')';
-    end
+  // Use the custom formatter first
+  if Assigned(FFormatter) then
+    Result := FFormatter(FRttixType, Instance, Formats)
   else
-    Result := '(no type info)';
+    Result.ValidFormats := [];
+
+  // Fall back to generic text formatting
+  if (rfText in Formats) and not (rfText in Result.ValidFormats) then
+  begin
+    if Assigned(FRttixType) then
+      case FRttixType.SubKind of
+        rtkEnumeration:
+          Result.Text := RttixFormatEnum(FRttixType as IRttixEnumType,
+            Instance);
+        rtkBoolean:
+          Result.Text := RttixFormatBool(FRttixType as IRttixBoolType,
+            Instance);
+        rtkBitwise:
+          Result.Text := RttixFormatBitwise(FRttixType as IRttixBitwiseType,
+            Instance);
+        rtkDigits:
+          Result.Text := RttixFormatDigits(FRttixType as IRttixDigitsType,
+            Instance);
+        rtkString:
+          Result.Text := RttixFormatString(FRttixType as IRttixStringType,
+            Instance);
+      else
+        Result.Text := '(' + FRttixType.TypeInfo.Name + ')';
+      end
+    else
+      Result.Text := '(no type info)';
+
+    Include(Result.ValidFormats, rfText);
+  end;
+
+  // Fall back to generic hint formatting
+  if (rfHint in Formats) and not (rfHint in Result.ValidFormats) then
+  begin
+    if Assigned(FRttixType) then
+      case FRttixType.SubKind of
+        rtkEnumeration:
+          Result.Hint := RttixFormatEnumHint(FRttixType as IRttixEnumType,
+            Instance);
+        rtkBitwise:
+          Result.Hint := RttixFormatBitwiseHint(FRttixType as IRttixBitwiseType,
+            Instance);
+        rtkDigits:
+          Result.Hint := RttixFormatDigitsHint(FRttixType as IRttixDigitsType,
+            Instance);
+      else
+        Result.Hint := '';
+      end
+    else
+      Result.Hint := '';
+
+    Include(Result.ValidFormats, rfHint);
+  end;
 end;
 
-function TRttixTypeFormatter.FormatAsHint;
+function TRttixTypeFormatter.FormatFull;
 begin
-  if Assigned(FHintFormatter) then
-    Result := FHintFormatter(FRttixType, Instance)
-  else if Assigned(FRttixType) then
-    case FRttixType.SubKind of
-      rtkEnumeration:
-        Result := RttixFormatEnumHint(FRttixType as IRttixEnumType, Instance);
-      rtkBitwise:
-        Result := RttixFormatBitwiseHint(FRttixType as IRttixBitwiseType, Instance);
-      rtkDigits:
-        Result := RttixFormatDigitsHint(FRttixType as IRttixDigitsType, Instance);
-    else
-      Result := '';
-    end
-  else
-    Result := '';
+  Result := Format([rfText, rfHint], Instance);
+end;
+
+function TRttixTypeFormatter.FormatHint;
+begin
+  Result := Format([rfHint], Instance).Hint;
+end;
+
+function TRttixTypeFormatter.FormatText;
+begin
+  Result := Format([rfText], Instance).Text;
 end;
 
 function TRttixTypeFormatter.GetHasCustomFormatting;
 begin
-  Result := Assigned(FTextFormatter) or Assigned(FHintFormatter);
+  Result := Assigned(FFormatter);
 end;
 
 function TRttixTypeFormatter.GetRttixType;
@@ -398,10 +452,9 @@ function RttixMakeTypeFormatter;
 var
   Index: Integer;
   RttixType: IRttixType;
-  TextFormatter, HintFormatter: TRttixCustomTypeFormatter;
+  Formatter: TRttixCustomTypeFormatter;
 begin
-  TextFormatter := nil;
-  HintFormatter := nil;
+  Formatter := nil;
 
   if Assigned(TypeInfo) then
   begin
@@ -409,15 +462,12 @@ begin
     Index := RttixFindTypeIndex(TypeInfo);
 
     if Index >= 0 then
-    begin
-      TextFormatter := RttixKnownFormatters[Index].TextFormatter;
-      HintFormatter := RttixKnownFormatters[Index].HintFormatter;
-    end;
+      Formatter := RttixKnownFormatters[Index].Formatter;
   end
   else
     RttixType := nil;
 
-  Result := TRttixTypeFormatter.Create(RttixType, TextFormatter, HintFormatter);
+  Result := TRttixTypeFormatter.Create(RttixType, Formatter);
 end;
 
 { Common }
@@ -427,7 +477,15 @@ var
   Formatter: IRttixTypeFormatter;
 begin
   Formatter := RttixMakeTypeFormatter(TypeInfo, FieldAttributes);
-  Result := Formatter.FormatAsText(Instance);
+  Result := Formatter.FormatText(Instance);
+end;
+
+function RttixFormatFull;
+var
+  Formatter: IRttixTypeFormatter;
+begin
+  Formatter := RttixMakeTypeFormatter(TypeInfo, FieldAttributes);
+  Result := Formatter.FormatFull(Instance);
 end;
 
 class function Rttix.Format<T>;
@@ -435,7 +493,15 @@ var
   Formatter: IRttixTypeFormatter;
 begin
   Formatter := RttixMakeTypeFormatter(TypeInfo(T), FieldAttributes);
-  Result := Formatter.FormatAsText(Instance);
+  Result := Formatter.FormatText(Instance);
+end;
+
+class function Rttix.FormatFull<T>;
+var
+  Formatter: IRttixTypeFormatter;
+begin
+  Formatter := RttixMakeTypeFormatter(TypeInfo(T), FieldAttributes);
+  Result := Formatter.FormatFull(Instance);
 end;
 
 end.

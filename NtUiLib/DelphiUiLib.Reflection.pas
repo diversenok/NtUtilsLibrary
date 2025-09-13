@@ -197,6 +197,7 @@ function RepresentRttiType;
 var
   Value: TValue;
   LiteFormatter: IRttixTypeFormatter;
+  LiteReflection: TRttixFullReflection;
 begin
   Result.TypeName := RttiType.Name;
   Result.Hint := '';
@@ -217,9 +218,10 @@ begin
   if LiteFormatter.HasCustomFormatting or
     (LiteFormatter.RttixType.SubKind <> rtkOther) then
   begin
+    LiteReflection := LiteFormatter.FormatFull(Instance);
     Result.TypeName := RttiType.Name;
-    Result.Text := LiteFormatter.FormatAsText(Instance);
-    Result.Hint := LiteFormatter.FormatAsHint(Instance);
+    Result.Text := LiteReflection.Text;
+    Result.Hint := LiteReflection.Hint;
     Exit;
   end;
 

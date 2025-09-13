@@ -64,7 +64,7 @@ begin
 
         Result := Result + #$D#$A'Desired ' +
           RtlxStringOrDefault(TypeFormatter.RttixType.FriendlyName, 'object') +
-          ' access: ' + TypeFormatter.FormatAsText(Status.LastCall.AccessMask);
+          ' access: ' + TypeFormatter.FormatText(Status.LastCall.AccessMask);
       end;
 
     // Information class: <name>
@@ -75,7 +75,7 @@ begin
           PLiteRttiTypeInfo(TypeInfo(PreserveCase)).Attributes);
 
         Result := Result + #$D#$A'Information class: ' +
-          TypeFormatter.FormatAsText(Status.LastCall.InfoClass);
+          TypeFormatter.FormatText(Status.LastCall.InfoClass);
       end;
   end;
 
@@ -90,7 +90,7 @@ begin
 
         Result := Result + #$D#$A'Expected ' + RtlxStringOrDefault(
           TypeFormatter.RttixType.FriendlyName, 'object') + ' access: ' +
-          TypeFormatter.FormatAsText(
+          TypeFormatter.FormatText(
             Status.LastCall.ExpectedAccess[i].AccessMask);
       end;
 
@@ -109,7 +109,7 @@ begin
       TypeFormatter := RttixMakeTypeFormatter(TypeInfo(TSeWellKnownPrivilege));
       RtlxSuffixStripString('.', Result, True);
 
-      Result := Result + ': "' + TypeFormatter.FormatAsText(
+      Result := Result + ': "' + TypeFormatter.FormatText(
         Status.LastCall.ExpectedPrivilege) + '"';
     end;
 
