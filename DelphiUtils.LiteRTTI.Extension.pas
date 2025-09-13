@@ -875,13 +875,13 @@ begin
 
   // Apply [ValidMask(...)]
   FValidMask := UInt64(-1);
-  for Attribute in FAttributes do
+  for Attribute in Attributes do
     if Attribute.ParseValidMaskAttribute(FValidMask) then
       Break;
 
   // Apply [FlagName(...)] and [SubEnum(...)]
   Count := 0;
-  for Attribute in FAttributes do
+  for Attribute in Attributes do
     if Attribute.IsFlagNameAttribute or Attribute.IsSubEnumAttribute then
       Inc(Count);
 
