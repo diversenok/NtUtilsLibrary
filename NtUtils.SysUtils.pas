@@ -1063,10 +1063,16 @@ begin
     Exit('');
 
   // Count required characters
-  Count := Length(Separator) * (Length(Strings) - 1);
+  Count := 0;
 
   for i := 0 to High(Strings) do
-    Inc(Count, Length(Strings[i]));
+    if Length(Strings[i]) > 0 then
+    begin
+      Inc(Count, Length(Strings[i]));
+
+      if (Length(Separator) > 0) and (i < High(Strings)) then
+        Inc(Count, Length(Separator));
+    end;
 
   if Count <= 0 then
     Exit('');
@@ -1076,21 +1082,19 @@ begin
   Cursor := @Result[Low(String)];
 
   for i := 0 to High(Strings) do
-  begin
     if Length(Strings[i]) > 0 then
     begin
       Move(Strings[i][Low(String)], Cursor^, Length(Strings[i]) *
         SizeOf(WideChar));
       Inc(Cursor, Length(Strings[i]));
-    end;
 
-    if (Length(Separator) > 0) and (i < High(Strings)) then
-    begin
-      Move(Separator[Low(String)], Cursor^, Length(Separator) *
-        SizeOf(WideChar));
-      Inc(Cursor, Length(Separator));
+      if (Length(Separator) > 0) and (i < High(Strings)) then
+      begin
+        Move(Separator[Low(String)], Cursor^, Length(Separator) *
+          SizeOf(WideChar));
+        Inc(Cursor, Length(Separator));
+      end;
     end;
-  end;
 end;
 
 function RtlxIsNameInExpression;
