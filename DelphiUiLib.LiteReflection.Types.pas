@@ -57,6 +57,7 @@ function RttixLargeIntegerFormatter(
 ): TRttixFullReflection;
 var
   Value: TLargeInteger absolute Instance;
+  HintSections: TArray<THintSection>;
 begin
   Result.ValidFormats := [];
 
@@ -68,11 +69,16 @@ begin
 
   if rfHint in RequestedFormats then
   begin
-    Result.Hint := BuildHint([
+    HintSections := [
       THintSection.New('Raw Value (Dec)', UiLibUIntToDec(Value)),
       THintSection.New('Raw Value (Hex)', UiLibUIntToHex(Value)),
-      THintSection.New('Relative To Now', UiLibSystemTimeDurationFromNow(Value))
-    ]);
+      THintSection.New('Relative To Now', '')
+    ];
+
+    if (Value <> 0) and (Value <> MAX_INT64) then
+      HintSections[2].Content := UiLibSystemTimeDurationFromNow(Value);
+
+    Result.Hint := BuildHint(HintSections);
     Include(Result.ValidFormats, rfHint);
   end;
 end;

@@ -26,7 +26,10 @@ const
   INVALID_HANDLE_VALUE = THandle(-1);
   MAX_HANDLE = $3FFFFFF; // handle table maximum, including lower bits
   MAX_WORD = $FFFF;
+  MAX_INT = $7FFFFFFF;
   MAX_UINT = $FFFFFFFF;
+  MAX_INT64 = $7FFFFFFFFFFFFFFF;
+  MAX_UINT64 = $FFFFFFFFFFFFFFFF;
 
   // SDK::minwindef.h
   MAX_PATH = 260;

@@ -475,7 +475,7 @@ function UiLibNativeTimeToString;
 begin
   if NativeTime = 0 then
     Result := 'Never'
-  else if NativeTime = $7FFFFFFFFFFFFFFF then
+  else if NativeTime = MAX_INT64 then
     Result := 'Infinite'
   else
     Result := UiLibDateTimeToString(RtlxLargeIntegerToDateTime(NativeTime));
