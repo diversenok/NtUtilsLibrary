@@ -1,4 +1,4 @@
-unit DelphiUtils.LiteRTTI;
+unit DelphiUtils.LiteRTTI.Base;
 
 {
   This module provides lightweight RTTI wrappers for parsing compiler-generated

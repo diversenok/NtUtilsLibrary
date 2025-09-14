@@ -8,7 +8,7 @@ unit DelphiUtils.LiteRTTI.Extension;
 interface
 
 uses
-  DelphiApi.Reflection, Ntapi.Versions, DelphiUtils.LiteRTTI;
+  DelphiApi.Reflection, Ntapi.Versions, DelphiUtils.LiteRTTI.Base;
 
 type
   TLiteRttiAttributeExtension = record helper for TLiteRttiAttribute

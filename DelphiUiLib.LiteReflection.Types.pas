@@ -17,7 +17,7 @@ uses
   NtUtils.Errors, NtUiLib.Errors, NtUtils.Synchronization, NtUtils.Processes,
   NtUtils.Processes.Info, NtUtils.Threads, NtUtils.WinStation,
   NtUtils.Lsa.Logon, NtUtils.Security.Sid, NtUtils.Lsa.Sid, DelphiUiLib.Strings,
-  DelphiUtils.LiteRTTI, DelphiUtils.LiteRTTI.Extension,
+  DelphiUtils.LiteRTTI.Base, DelphiUtils.LiteRTTI.Extension,
   DelphiUiLib.LiteReflection;
 
 {$BOOLEVAL OFF}
