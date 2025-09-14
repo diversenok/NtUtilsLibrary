@@ -7,10 +7,13 @@ unit DelphiUiLib.Reflection.Records;
 
 interface
 
-uses
-  DelphiUiLib.Reflection;
-
 type
+  TRepresentation = record
+    TypeName: String;
+    Text: String;
+    Hint: String;
+  end;
+
   TFieldReflection = record
     FieldName: String;
     Offset: IntPtr;
@@ -48,7 +51,8 @@ type
 implementation
 
 uses
-  System.Rtti, DelphiApi.Reflection, Ntapi.Versions;
+  System.Rtti, DelphiApi.Reflection, Ntapi.Versions, DelphiUiLib.LiteReflection,
+  System.TypInfo;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -86,6 +90,7 @@ var
   Unlisted, Internal, Aggregate: Boolean;
   OsVersion: TWindowsVersion;
   MinVersion: MinOSVersionAttribute;
+  LiteReflection: TRttixFullReflection;
 begin
   // Pointers to records do not have any fields. If the passed type is PRecord,
   // dereference it, and use TRecord to access the fields
@@ -152,8 +157,12 @@ begin
     end;
 
     if Assigned(pField) then
-      FieldInfo.Reflection := RepresentRttiType(TRttiContext.Create,
-        RttiField.FieldType, pField^, Attributes)
+    begin
+      FieldInfo.Reflection.TypeName := RttiField.FieldType.Name;
+      LiteReflection := RttixFormatFull(Pointer(RttiField.FieldType.Handle), pField^);
+      FieldInfo.Reflection.Text := LiteReflection.Text;
+      FieldInfo.Reflection.Hint := LiteReflection.Hint;
+    end
     else
       FieldInfo.Reflection.Text := 'Unknown';
 

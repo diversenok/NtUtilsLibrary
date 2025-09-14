@@ -11,7 +11,7 @@ You can find some example code in a [**dedicated repository**](https://github.co
 The library has a layered structure with three layers in total:
  - [**Headers**](./Headers/Readme.md) layer defines data types and annotated function prototypes from Windows and Native API. It brings zero dependencies and contains almost no code. Note that the library is self-sufficient and **doesn't import Winapi units** that are included with Delphi. It's possible to mix the built-in `Winapi.*.pas` and library `Ntapi.*.pas` headers in your program; although, it might require explicitly specifying the namespace prefix in case of conflicting names.
  - [**NtUtils**]() layer provides most of the functionality of the library by offering hundreds of wrappers for various categories of OS APIs. It depends exclusively on the headers layer and **not even on System.SysUtils**, so it barely increases the size of compiled executables.
- - [**NtUiLib**](./NtUiLib) layer adds support for reflective data representation meant for the end-users. It depends on NtUtils, `System.SysUtils`, `System.Rtti`, and `System.Generics.Collections`.
+ - [**NtUiLib**](./NtUiLib) layer adds support for reflective data representation meant for the end-users. It depends on NtUtils, `System.SysUtils`, `System.Rtti`, and `System.Generics.Collections`. **Update:** the library is currently transitioning to our custom lightweight RTTI/reflection engine (without any of above-mentioned dependencies like `System.Rtti`), so information on this layer is becoming outdated.
 
 Therefore, everything you need is already included with the latest [free version of Delphi](https://www.embarcadero.com/products/delphi/starter). As a bonus, compiling console applications without RTTI (aka reflection) yields extremely small executables. See [examples](https://github.com/diversenok/NtUtilsLibrary-Examples) for more details.
 
@@ -274,7 +274,7 @@ The library targets Windows 7 or higher, both 32- and 64-bit editions. Though, s
 
 Delphi comes with a rich reflection system that the library utilizes within the [**NtUiLib**](./NtUiLib) layer. Most of the types defined in the [**Headers**](./Headers/Readme.md) layer are decorated with custom attributes (see [DelphiApi.Reflection](./Headers/DelphiApi.Reflection.pas))  to achieve it. These decorations emit useful metadata that helps the library to precisely represent complex data types (like PEB, TEB, USER_SHARED_DATA) in runtime and produce astonishing reports with a single line of code.
 
-Here is an example representation of `TSecurityLogonSessionData` from [Ntapi.NtSecApi](./Headers/Ntapi.NtSecApi.pas) using [NtUiLib.Reflection.Types](./NtUiLib/NtUiLib.Reflection.Types.pas):
+Here is an example representation of `TSecurityLogonSessionData` from [Ntapi.NtSecApi](./Headers/Ntapi.NtSecApi.pas) using [DelphiUiLib.LiteReflection.Types](./DelphiUiLib.LiteReflection.Types.pas):
 
 ![RTTI-based report](https://user-images.githubusercontent.com/30962924/91781072-b12b2400-ebf9-11ea-923d-89d3b7c305dc.png)
 
@@ -299,9 +299,7 @@ Support unit                                                                    
 [NtUiLib.Errors](./NtUiLib.Errors.pas)                                                           | Error code name lookup
 [NtUiLib.Exceptions](./NtUiLib.Exceptions.pas)                                                   | SysUtils exception integration
 [DelphiUiLib.Strings](./DelphiUiLib.Strings.pas)                                                 | String prettification
-[DelphiUiLib.Reflection](./NtUiLib/DelphiUiLib.Reflection.pas)                                   | Base RTTI support
 [DelphiUiLib.Reflection.Records](./NtUiLib/DelphiUiLib.Reflection.Records.pas)                   | RTTI representation of record types
-[NtUiLib.Reflection.Types](./NtUiLib/NtUiLib.Reflection.Types.pas)                               | RTTI representation for common types
 [NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console I/O helpers
 [NtUiLib.TaskDialog](./NtUiLib/NtUiLib.TaskDialog.pas)                                           | TaskDialog-based GUI
 [NtUiLib.Errors.Dialog](./NtUiLib/NtUiLib.Errors.Dialog.pas)                                     | GUI error dialog
