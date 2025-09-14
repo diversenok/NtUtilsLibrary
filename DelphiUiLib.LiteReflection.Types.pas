@@ -618,6 +618,7 @@ initialization
   RttixRegisterCustomTypeFormatter(TypeInfo(TWin32Error), RttixStatusFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TNtxStatus), RttixNtxStatusFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TSessionId), RttixSessionIdFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TLogonId), RttixLogonIdFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TRect), RttixRectFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(PSid), RttixSidFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(ISid), RttixSidFormatter);
