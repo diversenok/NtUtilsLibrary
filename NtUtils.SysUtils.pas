@@ -1243,6 +1243,7 @@ end;
 
 function RtlxIntToStr;
 const
+  MIN_DIGITS_TO_GROUP: array [TNumericSystem] of Byte = (7, 4);
   DIGITS_PER_GROUP: array [TNumericSystem] of ShortInt = (3, 4);
   SPACE_CHAR: array [TNumericSpaceChar] of AnsiChar = (#0, ' ', '`', '''', '_');
   DIGIT_MAP: array [0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6',
@@ -1289,7 +1290,8 @@ begin
     Insert('0', ShortResult, 1);
 
   // Group digits
-  if SpaceDigits <> npNone then
+  if (SpaceDigits <> npNone) and
+    (Length(ShortResult) >= MIN_DIGITS_TO_GROUP[Base]) then
   begin
     i := Length(ShortResult) - DIGITS_PER_GROUP[Base] + 1;
     while i >= DIGITS_PER_GROUP[Base] - 1 do
