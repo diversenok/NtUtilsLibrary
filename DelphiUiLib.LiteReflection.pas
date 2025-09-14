@@ -232,34 +232,20 @@ function RttixFormatBitwiseHint(
   const [ref] Instance
 ): String;
 var
-  Value, ExcludedMask: UInt64;
+  Value: UInt64;
   Checkboxes: TArray<String>;
   i: Integer;
-  Matched: Boolean;
 begin
   Value := BitwiseType.ReadInstance(Instance);
 
   SetLength(Checkboxes, Length(BitwiseType.Flags));
-  ExcludedMask := 0;
 
   for i := 0 to High(BitwiseType.Flags) do
-  begin
-    if (BitwiseType.Flags[i].Mask and ExcludedMask = 0) and
-      (Value and BitwiseType.Flags[i].Mask = BitwiseType.Flags[i].Value) then
-    begin
-      Matched := True;
-      Value := Value and not BitwiseType.Flags[i].Mask;
-      ExcludedMask := ExcludedMask or BitwiseType.Flags[i].Mask;
-    end
-    else
-      Matched := False;
-
-    Checkboxes[i] := '  ' + CheckboxToString(Matched) + ' ' +
-      BitwiseType.Flags[i].Name + '  ';
-  end;
+    Checkboxes[i] := '  ' + CheckboxToString(Value and BitwiseType.Flags[i].Mask
+      = BitwiseType.Flags[i].Value) + ' ' + BitwiseType.Flags[i].Name + '  ';
 
   Result := 'Flags:  '#$D#$A + RtlxJoinStrings(Checkboxes, #$D#$A) +
-    #$D#$A'Value:  ' + UiLibUIntToHex(Value, BitwiseType.MinDigits or
+    #$D#$A'Value:  '#$D#$A'  ' + UiLibUIntToHex(Value, BitwiseType.MinDigits or
     NUMERIC_WIDTH_ROUND_TO_GROUP) + '  ';
 end;
 
