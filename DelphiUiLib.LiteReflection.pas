@@ -50,6 +50,10 @@ function RttixMakeTypeFormatter(
   const FieldAttributes: TArray<PLiteRttiAttribute> = nil
 ): IRttixTypeFormatter;
 
+// An attribute indicating that reflection should presetve enumeration names
+function RttixPreserveEnumCase(
+): PLiteRttiAttribute;
+
 // Represent a type as text from raw type info
 function RttixFormat(
   TypeInfo: PLiteRttiTypeInfo;
@@ -468,6 +472,14 @@ begin
     RttixType := nil;
 
   Result := TRttixTypeFormatter.Create(RttixType, Formatter);
+end;
+
+function RttixPreserveEnumCase;
+type
+  [NamingStyle(nsPreserveCase)]
+  PreserveCase = type Pointer;
+begin
+  Result := RttixTypeInfo(TypeInfo(PreserveCase)).Attributes[0];
 end;
 
 { Common }

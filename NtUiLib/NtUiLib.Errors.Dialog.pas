@@ -33,7 +33,7 @@ implementation
 
 uses
   Ntapi.ntdef, NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog,
-  NtUtils.DbgHelp, DelphiApi.Reflection, DelphiUtils.LiteRTTI,
+  NtUtils.DbgHelp, DelphiApi.Reflection,
   DelphiUiLib.LiteReflection, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntseapi;
 
 {$BOOLEVAL OFF}
@@ -41,9 +41,6 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 function UiLibVerboseStatusMessage;
-type
-  [NamingStyle(nsPreserveCase)]
-  PreserveCase = type Pointer;
 var
   i: Integer;
   TypeFormatter: IRttixTypeFormatter;
@@ -72,7 +69,7 @@ begin
       if Assigned(Status.LastCall.InfoClassType) then
       begin
         TypeFormatter := RttixMakeTypeFormatter(Status.LastCall.InfoClassType,
-          PLiteRttiTypeInfo(TypeInfo(PreserveCase)).Attributes);
+          [RttixPreserveEnumCase]);
 
         Result := Result + #$D#$A'Information class: ' +
           TypeFormatter.FormatText(Status.LastCall.InfoClass);
