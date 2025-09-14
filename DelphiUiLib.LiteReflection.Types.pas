@@ -238,13 +238,13 @@ begin
   end
   else if RttixType.TypeInfo = TypeInfo(TThreadId) then
   begin
-    CID.UniqueProcess := TThreadId(Instance);
+    CID.UniqueThread := TThreadId(Instance);
     IsProcessIdKnown := False;
     IsThreadIdKnown := True;
   end
   else if RttixType.TypeInfo = TypeInfo(TThreadId32) then
   begin
-    CID.UniqueProcess := TThreadId32(Instance);
+    CID.UniqueThread := TThreadId32(Instance);
     IsProcessIdKnown := False;
     IsThreadIdKnown := True;
   end
@@ -271,7 +271,7 @@ begin
         ThreadBasicInformation, ThreadInfo).IsSuccess then
       begin
         IsProcessIdKnown := True;
-        CID.UniqueThread := ThreadInfo.ClientId.UniqueThread;
+        CID.UniqueProcess := ThreadInfo.ClientId.UniqueProcess;
       end;
 
       // Determine thread name
