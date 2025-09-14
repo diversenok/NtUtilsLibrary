@@ -600,6 +600,55 @@ begin
   end;
 end;
 
+// TSidAndAttributes, TGroup
+function RttixGroupFormatter(
+  const RttixType: IRttixType;
+  const [ref] Instance;
+  RequestedFormats: TRttixReflectionFormats
+): TRttixFullReflection;
+var
+  Attributes: TGroupAttributes;
+  State: TGroupAttributesState;
+begin
+  if RttixType.TypeInfo = TypeInfo(TSidAndAttributes) then
+  begin
+    // Start with PSid formatting
+    Result := RttixSidFormatter(RttixTypeInfo(TypeInfo(PSid)),
+      TSidAndAttributes(Instance).Sid, RequestedFormats);
+    Attributes := TSidAndAttributes(Instance).Attributes;
+  end
+  else if RttixType.TypeInfo = TypeInfo(TGroup) then
+  begin
+    // Start with ISid formatting
+    Result := RttixSidFormatter(RttixTypeInfo(TypeInfo(ISid)),
+      TGroup(Instance).Sid, RequestedFormats);
+    Attributes := TGroup(Instance).Attributes;
+  end
+  else
+  begin
+    Error(reAssertionFailed);
+    Exit;
+  end;
+
+  if rfHint in RequestedFormats then
+  begin
+    // Split state and flags
+    State := Attributes and SE_GROUP_STATE_MASK;
+    Attributes := Attributes and not SE_GROUP_STATE_MASK;
+
+    // Add attributes to the
+    Result.Hint := RtlxJoinStrings([
+      Result.Hint,
+      BuildHint([
+        THintSection.New('State', RttixFormat(TypeInfo(TGroupAttributesState),
+          State)),
+        THintSection.New('Flags', RttixFormat(TypeInfo(TGroupAttributes),
+          Attributes))
+      ])
+    ], #$D#$A);
+  end;
+end;
+
 initialization
   RttixRegisterCustomTypeFormatter(TypeInfo(TDateTime), RttixDateTimeFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TLargeInteger), RttixLargeIntegerFormatter);
@@ -622,4 +671,6 @@ initialization
   RttixRegisterCustomTypeFormatter(TypeInfo(TRect), RttixRectFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(PSid), RttixSidFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(ISid), RttixSidFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TSidAndAttributes), RttixGroupFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TGroup), RttixGroupFormatter);
 end.
