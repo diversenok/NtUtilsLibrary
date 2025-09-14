@@ -487,19 +487,13 @@ begin
 end;
 
 class function Rttix.Format<T>;
-var
-  Formatter: IRttixTypeFormatter;
 begin
-  Formatter := RttixMakeTypeFormatter(TypeInfo(T), FieldAttributes);
-  Result := Formatter.FormatText(Instance);
+  Result := RttixFormat(TypeInfo(T), Instance, FieldAttributes);
 end;
 
 class function Rttix.FormatFull<T>;
-var
-  Formatter: IRttixTypeFormatter;
 begin
-  Formatter := RttixMakeTypeFormatter(TypeInfo(T), FieldAttributes);
-  Result := Formatter.FormatFull(Instance);
+  Result := RttixFormatFull(TypeInfo(T), Instance, FieldAttributes);
 end;
 
 end.
