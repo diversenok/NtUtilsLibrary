@@ -8,7 +8,7 @@ unit DelphiUiLib.LiteReflection;
 interface
 
 uses
-  DelphiApi.Reflection, DelphiUtils.LiteRTTI.Base, DelphiUtils.LiteRTTI.Extension;
+  DelphiApi.Reflection, DelphiUtils.LiteRTTI;
 
 type
   TRttixReflectionFormat = (rfText, rfHint);

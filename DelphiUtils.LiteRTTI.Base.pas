@@ -19,7 +19,7 @@ type
   PLiteRttiPropertyEx = ^TLiteRttiPropertyEx;
   PLiteRttiArrayProperty = ^TLiteRttiArrayProperty;
   PLiteRttiProcedureSignature = ^TLiteRttiProcedureSignature;
-  PLiteRttiProcedureParameter = ^TLiteRttiProcedureParam;
+  PLiteRttiProcedureParameter = ^TLiteRttiProcedureParameter;
   PLiteRttiManagedField = ^TLiteRttiManagedField;
   PLiteRttiField = ^TLiteRttiField;
   PLiteRttiRecordMethod = ^TLiteRttiRecordMethod;
@@ -226,7 +226,7 @@ type
     function Parameters: TArray<PLiteRttiProcedureParameter>;
   end;
 
-  TLiteRttiProcedureParam = record
+  TLiteRttiProcedureParameter = record
   private
     function Start: PProcedureParam;
   public
@@ -1204,7 +1204,7 @@ end;
 
 function TLiteRttiProcedureSignature.Parameters;
 var
-  ResultRaw: TArray<TLiteRttiProcedureParam.RelatedType> absolute Result;
+  ResultRaw: TArray<TLiteRttiProcedureParameter.RelatedType> absolute Result;
 begin
   ResultRaw := Start.CollectParams;
 end;
@@ -1219,29 +1219,29 @@ begin
   Result := Pointer(@Self);
 end;
 
-{ TLiteRttiProcedureParam }
+{ TLiteRttiProcedureParameter }
 
-function TLiteRttiProcedureParam.Attributes;
+function TLiteRttiProcedureParameter.Attributes;
 begin
   Result := TLiteRttiAttribute.Collect(Start.AttrDataStart);
 end;
 
-function TLiteRttiProcedureParam.Flags;
+function TLiteRttiProcedureParameter.Flags;
 begin
   Result := Start.Flags;
 end;
 
-function TLiteRttiProcedureParam.Name;
+function TLiteRttiProcedureParameter.Name;
 begin
   Result := UTF8IdentToString(@Start.Name);
 end;
 
-function TLiteRttiProcedureParam.ParamType;
+function TLiteRttiProcedureParameter.ParamType;
 begin
   Result := TLiteRttiTypeInfo.FromTypeInfoRef(Start.ParamType);
 end;
 
-function TLiteRttiProcedureParam.Start;
+function TLiteRttiProcedureParameter.Start;
 begin
   Result := Pointer(@Self);
 end;

@@ -298,8 +298,12 @@ Support unit                                                                    
 [NtUtils.Errors](./NtUtils.Errors.pas)                                                           | Error code conversion
 [NtUiLib.Errors](./NtUiLib.Errors.pas)                                                           | Error code name lookup
 [NtUiLib.Exceptions](./NtUiLib.Exceptions.pas)                                                   | SysUtils exception integration
-[DelphiUiLib.Strings](./DelphiUiLib.Strings.pas)                                                 | String prettification
-[DelphiUiLib.Reflection.Records](./NtUiLib/DelphiUiLib.Reflection.Records.pas)                   | RTTI representation of record types
+[DelphiUiLib.Strings](./DelphiUiLib.Strings.pas)                                                 | String formatting for UI purposes
+[DelphiUtils.LiteRTTI.Base](./DelphiUtils.LiteRTTI.Base.pas)                                     | Base TypeInfo parsing for lite RTTI
+[DelphiUtils.LiteRTTI](./DelphiUtils.LiteRTTI.pas)                                               | Lite RTTI and custom attribute parsing
+[DelphiUiLib.LiteReflection](./DelphiUiLib.LiteReflection.pas)                                   | Type representation via lite RTTI
+[DelphiUiLib.LiteReflection.Types](./DelphiUiLib.LiteReflection.Types.pas)                       | Lite RTTI formatting for some known types
+[DelphiUiLib.Reflection.Records](./NtUiLib/DelphiUiLib.Reflection.Records.pas)                   | RTTI representation of record types (up for replacement)
 [NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console I/O helpers
 [NtUiLib.TaskDialog](./NtUiLib/NtUiLib.TaskDialog.pas)                                           | TaskDialog-based GUI
 [NtUiLib.Errors.Dialog](./NtUiLib/NtUiLib.Errors.Dialog.pas)                                     | GUI error dialog

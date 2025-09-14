@@ -1,4 +1,4 @@
-unit DelphiUtils.LiteRTTI.Extension;
+unit DelphiUtils.LiteRTTI;
 
 {
   This module provides lightweight RTTI support for commonly used custom
@@ -11,6 +11,20 @@ uses
   DelphiApi.Reflection, Ntapi.Versions, DelphiUtils.LiteRTTI.Base;
 
 type
+  PLiteRttiTypeInfo = DelphiUtils.LiteRTTI.Base.PLiteRttiTypeInfo;
+  PLiteRttiAttribute = DelphiUtils.LiteRTTI.Base.PLiteRttiAttribute;
+  PLiteRttiInterfaceMethod = DelphiUtils.LiteRTTI.Base.PLiteRttiInterfaceMethod;
+  PLiteRttiInterfaceMethodParameter = DelphiUtils.LiteRTTI.Base.PLiteRttiInterfaceMethodParameter;
+  PLiteRttiProperty = DelphiUtils.LiteRTTI.Base.PLiteRttiProperty;
+  PLiteRttiPropertyEx = DelphiUtils.LiteRTTI.Base.PLiteRttiPropertyEx;
+  PLiteRttiArrayProperty = DelphiUtils.LiteRTTI.Base.PLiteRttiArrayProperty;
+  PLiteRttiProcedureSignature = DelphiUtils.LiteRTTI.Base.PLiteRttiProcedureSignature;
+  PLiteRttiProcedureParameter = DelphiUtils.LiteRTTI.Base.PLiteRttiProcedureParameter;
+  PLiteRttiManagedField = DelphiUtils.LiteRTTI.Base.PLiteRttiManagedField;
+  PLiteRttiField = DelphiUtils.LiteRTTI.Base.PLiteRttiField;
+  PLiteRttiRecordMethod = DelphiUtils.LiteRTTI.Base.PLiteRttiRecordMethod;
+  PLiteRttiMethodParameter = DelphiUtils.LiteRTTI.Base.PLiteRttiMethodParameter;
+
   TLiteRttiAttributeExtension = record helper for TLiteRttiAttribute
     // Read a [NamingStyle(...)] attribute
     function IsNamingStyleAttribute: Boolean;
