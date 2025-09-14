@@ -350,6 +350,14 @@ function RtlxDateTimeToLargeInteger(
   const DateTime: TDateTime
 ): TLargeInteger;
 
+// Determine the current NT time
+function RtlxCurrentSystemTime(
+): TLargeInteger;
+
+// Determine the current Delphi
+function RtlxCurrentDateTime(
+): TDateTime;
+
 // Random
 
 // Generate a random number
@@ -1500,6 +1508,16 @@ begin
   Result := Trunc(NATIVE_TIME_DAY * (DateTime + DAYS_FROM_1601));
   {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
   Result := RtlxLocalTimeToSystemTime(Result);
+end;
+
+function RtlxCurrentSystemTime;
+begin
+  Result := USER_SHARED_DATA.SystemTime.QuadPart;
+end;
+
+function RtlxCurrentDateTime;
+begin
+  Result := RtlxLargeIntegerToDateTime(RtlxCurrentSystemTime);
 end;
 
 var

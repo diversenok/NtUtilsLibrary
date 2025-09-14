@@ -152,16 +152,14 @@ begin
     Result := RemoveSummaryAndNewLines(Result)
   else
     Result := '';
-
-  if Result = '' then
-    Result := '<No description available>';
 end;
 
 { TNtxStatusHelper }
 
 function TNtxStatusHelper.Description;
 begin
-  Result := RtlxNtStatusMessage(Status);
+  Result := RtlxStringOrDefault(RtlxNtStatusMessage(Status),
+    '<No description available>');
 end;
 
 function TNtxStatusHelper.Name;

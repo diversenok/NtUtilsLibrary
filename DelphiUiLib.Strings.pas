@@ -77,14 +77,26 @@ function UiLibBytesToString(
   const Bytes: UInt64
 ): String;
 
+{ Time }
+
 // Convert a Delphi timestamp to a string
 function UiLibDateTimeToString(
   const DateTime: TDateTime
 ): String;
 
-// Convert a time duration in naive (100ns) units to a string
-function UiLibULargeIntegerToString(
+// Convert an NT timestamp to a string
+function UiLibNativeTimeToString(
+  const NativeTime: TLargeInteger
+): String;
+
+// Convert a time duration in native (100ns) units to a string
+function UiLibDurationToString(
   TimeSpan: TULargeInteger
+): String;
+
+// Convert a timespan between now and the timestamprelative to now to a string
+function UiLibSystemTimeDurationFromNow(
+  const Timestamp: TLargeInteger
 ): String;
 
 { Hints }
@@ -459,7 +471,17 @@ begin
   Result := DatePart + ' ' + TimePart;
 end;
 
-function UiLibULargeIntegerToString;
+function UiLibNativeTimeToString;
+begin
+  if NativeTime = 0 then
+    Result := 'Never'
+  else if NativeTime = $7FFFFFFFFFFFFFFF then
+    Result := 'Infinite'
+  else
+    Result := UiLibDateTimeToString(RtlxLargeIntegerToDateTime(NativeTime));
+end;
+
+function UiLibDurationToString;
 var
   Days, Hours, Minutes, Seconds: Cardinal;
 begin
@@ -510,6 +532,22 @@ begin
         Result := RtlxFormatString('%I64u days', [Days]);
     end;
   end;
+end;
+
+function UiLibSystemTimeDurationFromNow;
+var
+  Now: TLargeInteger;
+begin
+  Now := RtlxCurrentSystemTime;
+
+  if Now > Timestamp then
+    Result := UiLibDurationToString({$Q-}{$R-}Now - Timestamp
+      {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}) + ' ago'
+  else if Now < Timestamp then
+    Result := UiLibDurationToString({$Q-}{$R-}Timestamp - Now
+      {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}) + ' later'
+  else
+    Result := 'Now';
 end;
 
 { Hints }

@@ -426,14 +426,12 @@ implementation
 
 function TWinStationInformation.FullUserName;
 begin
-  if (Domain = '') and (UserName = '') then
-    Result := 'No user'
-  else if Domain = '' then
-    Result := UserName
-  else if UserName = '' then
+  if (Domain <> '') and (UserName <> '') then
+    Result := String(Domain) + '\' + String(UserName)
+  else if Domain <> '' then
     Result := Domain
   else
-    Result := String(Domain) + '\' + String(UserName);
+    Result := UserName;
 end;
 
 end.

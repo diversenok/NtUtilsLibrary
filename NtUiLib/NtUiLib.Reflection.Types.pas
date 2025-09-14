@@ -557,7 +557,7 @@ class function TULargeIntegerRepresenter.Represent;
 var
   Value: TULargeInteger absolute Instance;
 begin
-  Result.Text := UiLibULargeIntegerToString(Value);
+  Result.Text := UiLibDurationToString(Value);
   Result.Hint := BuildHint('Raw value', UiLibUIntToDec(UInt64(Value)));
 end;
 
