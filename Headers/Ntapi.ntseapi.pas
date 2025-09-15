@@ -253,7 +253,12 @@ type
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_INTEGRITY_ENABLED or SE_GROUP_ENABLED_BY_DEFAULT, 'Integrity Enabled, Group Disabled (modified)')]
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_INTEGRITY_ENABLED or SE_GROUP_ENABLED, 'Integrity Enabled, Group Enabled (modified)')]
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_STATE_MASK, 'Integrity Enabled, Group Enabled')]
-  TGroupAttributesState = type TGroupAttributes;
+  TGroupAttributesFullState = type TGroupAttributes;
+
+  [InheritsFrom(System.TypeInfo(TGroupAttributes))]
+  [SubEnum(SE_GROUP_ENABLED, 0, 'Disabled')]
+  [SubEnum(SE_GROUP_ENABLED, SE_GROUP_ENABLED, 'Enabled')]
+  TGroupAttributesMinimalState = type TGroupAttributes;
 
   // SDK::winnt.h
   [SDKName('SID_AND_ATTRIBUTES')]

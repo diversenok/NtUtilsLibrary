@@ -607,7 +607,7 @@ function RttixGroupFormatter(
 ): TRttixFullReflection;
 var
   Attributes: TGroupAttributes;
-  State: TGroupAttributesState;
+  State: TGroupAttributesFullState;
 begin
   if RttixType.TypeInfo = TypeInfo(TSidAndAttributes) then
   begin
@@ -639,10 +639,10 @@ begin
     Result.Hint := RtlxJoinStrings([
       Result.Hint,
       BuildHint([
-        THintSection.New('State', RttixFormat(TypeInfo(TGroupAttributesState),
-          State)),
-        THintSection.New('Flags', RttixFormat(TypeInfo(TGroupAttributes),
-          Attributes))
+        THintSection.New('State', RttixFormat(
+          TypeInfo(TGroupAttributesFullState), State)),
+        THintSection.New('Flags', RttixFormat(
+          TypeInfo(TGroupAttributes), Attributes))
       ])
     ], #$D#$A);
   end;
