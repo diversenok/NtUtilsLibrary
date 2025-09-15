@@ -370,7 +370,6 @@ end;
 function NtxQueryGroupsToken;
 var
   xMemory: IMemory<PTokenGroups>;
-  i: Integer;
 begin
   Result := NtxQueryToken(hxToken, InfoClass, IMemory(xMemory));
 
