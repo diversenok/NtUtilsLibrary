@@ -10,7 +10,8 @@ interface
 { NOTE: All query/set functions here support pseudo-handles on all OS versions }
 
 uses
-  Ntapi.WinNt, Ntapi.ntseapi, Ntapi.appmodel, NtUtils, NtUtils.Tokens;
+  Ntapi.WinNt, Ntapi.ntseapi, Ntapi.appmodel, NtUtils, NtUtils.Tokens,
+  Ntapi.Versions;
 
 type
   TSecurityAttribute = NtUtils.Tokens.TSecurityAttribute;
@@ -18,6 +19,25 @@ type
   TBnoIsolation = record
     Enabled: Boolean;
     Prefix: String;
+  end;
+
+  TNtxTokenAccessInfo = record
+    Sids: TArray<TGroup>;
+    SidHash: TSidHash;
+    RestrictedSids: TArray<TGroup>;
+    RestrictedSidHash: TSidHash;
+    Privileges: TArray<TPrivilege>;
+    AuthenticationId: TLogonId;
+    TokenType: TTokenType;
+    ImpersonationLevel: TSecurityImpersonationLevel;
+    MandatoryPolicy: TTokenMandatoryPolicy;
+    Flags: TTokenFlags;
+    [MinOSVersion(OsWin8)] AppContainerNumber: Cardinal;
+    [MinOSVersion(OsWin8)] PackageSid: ISid;
+    [MinOSVersion(OsWin8)] Capabilities: TArray<TGroup>;
+    [MinOSVersion(OsWin8)] CapabilitiesHash: TSidHash;
+    [MinOSVersion(OsWin81)] TrustLevelSid: ISid;
+    [MinOSVersion(OsWin10TH1)] SecurityAttributes: Cardinal;
   end;
 
 // Make sure pseudo-handles are supported for querying on all OS versions
@@ -125,6 +145,12 @@ function NtxMakeDefaultDaclToken(
   out DefaultDacl: IAcl
 ): TNtxStatus;
 
+// Query access-related token information
+function NtxQueryAccessInfoToken(
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  out Info: TNtxTokenAccessInfo
+): TNtxStatus;
+
 // Query token flags
 function NtxQueryFlagsToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
@@ -215,8 +241,8 @@ function NtxQueryClaimsToken(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.Versions, NtUtils.Security.Acl,
-  NtUtils.Tokens.Misc, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Security.Acl, NtUtils.Tokens.Misc,
+  NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -348,21 +374,11 @@ var
 begin
   Result := NtxQueryToken(hxToken, InfoClass, IMemory(xMemory));
 
-  if Result.IsSuccess then
-  begin
-    SetLength(Groups, xMemory.Data.GroupCount);
+  if not Result.IsSuccess then
+    Exit;
 
-    for i := 0 to High(Groups) do
-    begin
-      Groups[i].Attributes := xMemory.Data
-        .Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Attributes;
-      Result := RtlxCopySid(xMemory.Data
-        .Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Sid, Groups[i].Sid);
-
-      if not Result.IsSuccess then
-        Break;
-    end;
-  end;
+  Result := NtxpCaptureGroups(@xMemory.Data.Groups[0],
+    xMemory.Data.GroupCount, Groups);
 end;
 
 function NtxQueryLogonSidToken;
@@ -447,6 +463,86 @@ begin
       GENERIC_EXECUTE, LogonSid.Sid)];
 
   Result := RtlxBuildAcl(DefaultDacl, Aces);
+end;
+
+function NtxQueryAccessInfoToken;
+var
+  Buffer: IMemory<PTokenAccessInformation>;
+  i: Integer;
+  Version: TWindowsVersion;
+begin
+  Result := NtxQueryToken(hxToken, TokenAccessInformation, IMemory(Buffer));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Info := Default(TNtxTokenAccessInfo);
+
+  // Groups
+  Info.SidHash := Buffer.Data.SidHash.Hash;
+  Result := NtxpCaptureGroups(Buffer.Data.SidHash.SidAttr,
+    Buffer.Data.SidHash.SidCount, Info.Sids);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Restricted SIDs
+  Info.RestrictedSidHash := Buffer.Data.RestrictedSidHash.Hash;
+  Result := NtxpCaptureGroups(Buffer.Data.RestrictedSidHash.SidAttr,
+    Buffer.Data.RestrictedSidHash.SidCount, Info.RestrictedSids);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Privileges
+  SetLength(Info.Privileges, Buffer.Data.Privileges.PrivilegeCount);
+
+  for i := 0 to High(Info.Privileges) do
+    Info.Privileges[i] := Buffer.Data.Privileges
+      .Privileges{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+
+  Info.AuthenticationId := Buffer.Data.AuthenticationId;
+  Info.TokenType := Buffer.Data.TokenType;
+  Info.ImpersonationLevel := Buffer.Data.ImpersonationLevel;
+  Info.MandatoryPolicy := Buffer.Data.MandatoryPolicy;
+  Info.Flags := Buffer.Data.Flags;
+  Version := RtlOsVersion;
+
+  if Version >= OsWin8 then
+  begin
+    Info.AppContainerNumber := Buffer.Data.AppContainerNumber;
+
+    // Package SID
+    if Assigned(Buffer.Data.PackageSid) then
+    begin
+      Result := RtlxCopySid(Buffer.Data.PackageSid, Info.PackageSid);
+
+      if not Result.IsSuccess then
+        Exit;
+    end;
+
+    // Capabilities
+    Info.CapabilitiesHash := Buffer.Data.CapabilitiesHash.Hash;
+    Result := NtxpCaptureGroups(Buffer.Data.CapabilitiesHash.SidAttr,
+      Buffer.Data.CapabilitiesHash.SidCount, Info.Capabilities);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Trust SID
+  if (Version >= OsWin81) and Assigned(Buffer.Data.TrustLevelSid) then
+  begin
+    Result := RtlxCopySid(Buffer.Data.TrustLevelSid, Info.TrustLevelSid);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Security attributes
+  // Note: there is a double-linked list we can parse, but currently don't
+  if (Version >= OsWin10TH1) and Assigned(Buffer.Data.SecurityAttributes) then
+    Info.SecurityAttributes := Cardinal(Buffer.Data.SecurityAttributes^);
 end;
 
 function NtxQueryFlagsToken;

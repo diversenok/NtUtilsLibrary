@@ -271,14 +271,14 @@ type
   TSidAndAttributesArray = TAnysizeArray<TSidAndAttributes>;
   PSidAndAttributesArray = ^TSidAndAttributesArray;
 
+  TSidHash = array [0..31] of NativeUInt;
+
   // SDK::winnt.h
   [SDKName('SID_AND_ATTRIBUTES_HASH')]
   TSidAndAttributesHash = record
-    const SID_HASH_SIZE = 32;
-  var
     SidCount: Cardinal;
     SidAttr: PSIDAndAttributes;
-    Hash: array [0 .. SID_HASH_SIZE - 1] of NativeUInt;
+    Hash: TSidHash;
   end;
   PSidAndAttributesHash = ^TSidAndAttributesHash;
 

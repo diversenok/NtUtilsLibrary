@@ -37,6 +37,12 @@ function NtxpAllocGroups2(
   [opt] const Groups: TArray<TGroup>
 ): IMemory<PTokenGroups>;
 
+function NtxpCaptureGroups(
+  [in] Buffer: PSidAndAttributes;
+  Count: Cardinal;
+  out Groups: TArray<TGroup>
+): TNtxStatus;
+
 // Attributes
 
 function NtxpParseSecurityAttributes(
@@ -162,6 +168,26 @@ begin
     Result.Data.Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
       .Attributes := Groups[i].Attributes;
   end;
+end;
+
+function NtxpCaptureGroups;
+var
+  i: Integer;
+begin
+  SetLength(Groups, Count);
+
+  for i := 0 to High(Groups) do
+  begin
+    Groups[i].Attributes := Buffer.Attributes;
+    Result := RtlxCopySid(Buffer.Sid, Groups[i].Sid);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Inc(Buffer);
+  end;
+
+  Result := NtxSuccess;
 end;
 
 // Attributes
