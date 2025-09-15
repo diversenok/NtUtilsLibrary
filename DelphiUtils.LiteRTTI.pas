@@ -195,7 +195,14 @@ type
     property BooleanKind: TBooleanKind read GetBooleanKind;
   end;
 
+  TRttixBitwiseFlagKind = (
+    rbkFlag,
+    rbkSubEnum,
+    rbkGroup
+  );
+
   TRttixBitwiseFlag = record
+    Kind: TRttixBitwiseFlagKind;
     Mask: UInt64;
     Value: UInt64;
     Name: String;
@@ -905,6 +912,7 @@ begin
   for Attribute in Attributes do
     if Attribute.ParseFlagNameAttribute(Value, Name) then
     begin
+      FFlags[i].Kind := rbkFlag;
       FFlags[i].Value := Value;
       FFlags[i].Mask := Value;
       FFlags[i].Name := Name;
@@ -912,6 +920,7 @@ begin
     end
     else if Attribute.ParseSubEnumAttribute(Mask, Value, Name) then
     begin
+      FFlags[i].Kind := rbkSubEnum;
       FFlags[i].Mask := Mask;
       FFlags[i].Value := Value;
       FFlags[i].Name := Name;
@@ -929,6 +938,7 @@ begin
   for Attribute in Attributes do
     if Attribute.ParseFlagGroupAttribute(Mask, Name) then
     begin
+      FFlags[i].Kind := rbkGroup;
       FFlagGroups[i].Value := Mask;
       FFlagGroups[i].Mask := Mask;
       FFlagGroups[i].Name := Name;
