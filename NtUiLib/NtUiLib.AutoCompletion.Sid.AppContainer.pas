@@ -238,8 +238,7 @@ begin
   // We accept all AppContainer names but only valid package family names
   if RtlxPrefixStripString(APP_CONTAINER_PREFIX, Name) then
     MakePackageSid := False
-  else if RtlxPrefixStripString(APP_PACKAGE_PREFIX, Name) and
-    PkgxIsValidFamilyName(Name) then
+  else if RtlxPrefixStripString(APP_PACKAGE_PREFIX, Name) then
     MakePackageSid := True
   else
     Exit;
