@@ -938,7 +938,7 @@ begin
   for Attribute in Attributes do
     if Attribute.ParseFlagGroupAttribute(Mask, Name) then
     begin
-      FFlags[i].Kind := rbkGroup;
+      FFlagGroups[i].Kind := rbkGroup;
       FFlagGroups[i].Value := Mask;
       FFlagGroups[i].Mask := Mask;
       FFlagGroups[i].Name := Name;
