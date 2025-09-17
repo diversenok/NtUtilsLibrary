@@ -36,6 +36,16 @@ function ComxShellDispatchExecute(
   out Info: TProcessInfo
 ): TNtxStatus;
 
+// Create a new process MMC20.Application
+[RequiresCOM]
+[SupportedOption(spoParameters)]
+[SupportedOption(spoCurrentDirectory)]
+[SupportedOption(spoWindowMode)]
+function MmcxExecuteShellCommand(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
+
 // Create a new process via WDC
 [RequiresCOM]
 [SupportedOption(spoParameters)]
@@ -431,6 +441,55 @@ begin
     VarFromWideString(CurrentDirAsWide),
     vOperation,
     vShow
+  );
+
+  // This method does not provide any information about the new process
+end;
+
+{ ----------------------------------- MMC ------------------------------------ }
+
+function MmcxExecuteShellCommand;
+var
+  Application: IMMCApplication;
+  Document: IMMCDocument;
+  ActiveView: IMMCView;
+  WindowMode: String;
+begin
+  Info := Default(TProcessInfo);
+
+  Result := ComxCreateInstance(CLSID_MMCApplication, IMMCApplication,
+    Application, 'CLSID_MMCApplication', CLSCTX_LOCAL_SERVER);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'Application::get_Document';
+  Result.HResult := Application.get_Document(Document);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'Document::get_ActiveView';
+  Result.HResult := Document.get_ActiveView(ActiveView);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  WindowMode := '';
+
+  if poUseWindowMode in Options.Flags then
+    case Options.WindowMode of
+      TShowMode32.SW_SHOW_NORMAL:    WindowMode := 'Restored';
+      TShowMode32.SW_SHOW_MINIMIZED: WindowMode := 'Minimized';
+      TShowMode32.SW_SHOW_MAXIMIZED: WindowMode := 'Maximized';
+    end;
+
+  Result.Location := 'View::ExecuteShellCommand';
+  Result.HResult := ActiveView.ExecuteShellCommand(
+    WideStringNonNil(Options.ApplicationWin32),
+    WideStringNonNil(Options.CurrentDirectory),
+    WideStringNonNil(Options.Parameters),
+    WideStringNonNil(WindowMode)
   );
 
   // This method does not provide any information about the new process

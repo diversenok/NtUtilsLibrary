@@ -285,6 +285,9 @@ function VarFromIntegerRef(var Value: Integer): TVarData;
 function VarFromWideString(const [ref] Value: WideString): TVarData;
 function VarFromIDispatch(const Value: IDispatch): TVarData;
 
+// Make a wide string or an empty non-nil wide string
+function WideStringNonNil(const Source: String): WideString;
+
 { IDispatch helpers }
 
 // Bind to a COM IDispatch object by name
@@ -1233,6 +1236,16 @@ begin
   VariantInit(Result);
   Result.VType := varDispatch;
   Result.VDispatch := Pointer(Value);
+end;
+
+function WideStringNonNil;
+var
+  ResultRaw: Pointer absolute Result;
+begin
+  if Length(Source) > 0 then
+    Result := WideString(Source)
+  else
+    ResultRaw := SysAllocStringLen('', 0);
 end;
 
 { Binding helpers }

@@ -48,6 +48,7 @@ const
   CLSID_CmstpLua: TGuid = '{3E5FC7F9-9A51-4367-9063-A120244FBEC7}';
   CLSID_CMLuaUtil: TGuid = '{3E000D72-A845-4CD9-BD83-80C07C3B881F}';
   CLSID_HxHelpPaneServer: TGuid = '{8CEC58AE-07A1-11D9-B15E-000D56BFE6EE}';
+  CLSID_MMCApplication: TGuid = '{49B2791A-B1AE-4C90-9B8E-E860BA07F889}';
 
 type
   [FlagName(SEE_MASK_NOCLOSEPROCESS, 'Don''t Close Process')]
@@ -252,6 +253,305 @@ type
       [in] const Url: PWideChar
     ): TWin32Error; stdcall;
   end;
+
+  IMMCDocument = interface;
+  IMMCViews = IUnknown;
+  IMMCView = interface;
+  IMMCSnapIns = IUnknown;
+  IMMCDocumentMode = IUnknown;
+  IMMCNode = IUnknown;
+  IMMCScopeNamespace = IUnknown;
+  IMMCProperties = IUnknown;
+  IMMCContextMenu = IUnknown;
+  IMMCFrame = IUnknown;
+  IMMCColumns = IUnknown;
+
+  IMMCApplication = interface (IDispatch)
+    ['{A3AFB9CC-B653-4741-86AB-F0470EC1384C}']
+    procedure Help;
+    procedure Quit;
+
+    function get_Document(
+      [out] out Document: IMMCDocument
+    ): HResult; stdcall;
+
+    function Load(
+      [in] Filename: WideString
+    ): HResult; stdcall;
+
+    function get_Frame(
+      [out] out Frame: IUnknown
+    ): HResult; stdcall;
+
+    function get_Visible(
+      [out] out Visible: LongBool
+    ): HResult; stdcall;
+
+    function Show(
+    ): HResult; stdcall;
+
+    function Hide(
+    ): HResult; stdcall;
+
+    function get_UserControl(
+      [out] out UserControl: Cardinal
+    ): HResult; stdcall;
+
+    function put_UserControl(
+      [in] UserControl: Cardinal
+    ): HResult; stdcall;
+
+    function get_VersionMajor(
+      [out] out VersionMajor: Cardinal
+    ): HResult; stdcall;
+
+    function get_VersionMinor(
+      [out] out VersionMinor: Cardinal
+    ): HResult; stdcall;
+  end;
+
+  IMMCDocument = interface (IDispatch)
+    ['{225120D6-1E0F-40A3-93FE-1079E6A8017B}']
+    function Save(
+    ): HResult; stdcall;
+
+    function SaveAs(
+      [in] Filename: WideString
+    ): HResult; stdcall;
+
+    function Close(
+      [in] SaveChanges: LongBool
+    ): HResult; stdcall;
+
+    function get_Views(
+      [out] out Views: IMMCViews
+    ): HResult; stdcall;
+
+    function get_SnapIns(
+      [out] out SnapIns: IMMCSnapIns
+    ): HResult; stdcall;
+
+    function get_ActiveView(
+      [out] out ActiveView: IMMCView
+    ): HResult; stdcall;
+
+    function get_Name(
+      [out] out Name: WideString
+    ): HResult; stdcall;
+
+    function put_Name(
+      [in] Name: WideString
+    ): HResult; stdcall;
+
+    function get_Location(
+      [out] out Location: WideString
+    ): HResult; stdcall;
+
+    function get_IsSaved(
+      [out] out IsSaved: LongBool
+    ): HResult; stdcall;
+
+    function get_Mode(
+      [out] out Mode: IMMCDocumentMode
+    ): HResult; stdcall;
+
+    function put_Mode(
+      [in] DocumentMode: IMMCDocumentMode
+    ): HResult; stdcall;
+
+    function get_RootNode(
+      [out] out Node: IMMCNode
+    ): HResult; stdcall;
+
+    function get_ScopeNamespace(
+      [out] out ScopeNamespace: IMMCScopeNamespace
+    ): HResult; stdcall;
+
+    function CreateProperties(
+      [out] out Properties: IMMCProperties
+    ): HResult; stdcall;
+
+    function get_Application(
+      [out] out Application: IMMCApplication
+    ): HResult; stdcall;
+  end;
+
+  IMMCView = interface (IDispatch)
+    ['{6EFC2DA2-B38C-457E-9ABB-ED2D189B8C38}']
+
+    function get_ActiveScopeNode(
+      [out] out ActiveScopeNode: IMMCNode
+    ): HResult; stdcall;
+
+    function put_ActiveScopeNode(
+      [in] ActiveScopeNode: IMMCNode
+    ): HResult; stdcall;
+
+    function get_Selection(
+      [out] out Selection: IMMCNode
+    ): HResult; stdcall;
+
+    function get_ListItems(
+      [out] out ListItems: IMMCNode
+    ): HResult; stdcall;
+
+    function SnapinScopeObject(
+      [in] const ScopeNode: TVarData;
+      [out] out ScopeNodeObject: IDispatch
+    ): HResult; stdcall;
+
+    function SnapinSelectionObject(
+      [out] out SelectedObject: IDispatch
+    ): HResult; stdcall;
+
+    function &Is(
+      [in] View: IMMCView;
+      [out] out TheSame: WordBool
+    ): HResult; stdcall;
+
+    function get_Document(
+      [out] out Document: IMMCDocument
+    ): HResult; stdcall;
+
+    function SelectAll(
+    ): HResult; stdcall;
+
+    function Select(
+      [in] Node: IMMCNode
+    ): HResult; stdcall;
+
+    function Deselect(
+      [in] Node: IMMCNode
+    ): HResult; stdcall;
+
+    function IsSelected(
+      [in] Node: IMMCNode;
+      [out] out IsSelected: LongBool
+    ): HResult; stdcall;
+
+    function DisplayScopeNodePropertySheet(
+      [in] ScopeNode: TVarData
+    ): HResult; stdcall;
+
+    function DisplaySelectionPropertySheet(
+    ): HResult; stdcall;
+
+    function CopyScopeNode(
+      [in] ScopeNode: TVarData
+    ): HResult; stdcall;
+
+    function CopySelection(
+    ): HResult; stdcall;
+
+    function DeleteScopeNode(
+      [in] ScopeNode: TVarData
+    ): HResult; stdcall;
+
+    function DeleteSelection(
+    ): HResult; stdcall;
+
+    function RenameScopeNode(
+      [in] NewName: WideString;
+      [in] ScopeNode: TVarData
+    ): HResult; stdcall;
+
+    function RenameSelectedItem(
+      [in] NewName: WideString
+    ): HResult; stdcall;
+
+    function get_ScopeNodeContextMenu(
+      [in] ScopeNode: TVarData;
+      [out] out ContextMenu: IMMCContextMenu
+    ): HResult; stdcall;
+
+    function get_SelectionContextMenu(
+      [out] out ContextMenu: IMMCContextMenu
+    ): HResult; stdcall;
+
+    function RefreshScopeNode(
+      [in] ScopeNode: TVarData
+    ): HResult; stdcall;
+
+    function RefreshSelection(
+    ): HResult; stdcall;
+
+    function ExecuteSelectionMenuItem(
+      [in] MenuItemPath: WideString
+    ): HResult; stdcall;
+
+    function ExecuteScopeNodeMenuItem(
+      [in] MenuItemPath: WideString;
+      [in] ScopeNode: TVarData
+    ): HResult; stdcall;
+
+    function ExecuteShellCommand(
+      [in] Command: WideString;
+      [in] Directory: WideString;
+      [in] Parameters: WideString;
+      [in] WindowState: WideString
+    ): HResult; stdcall;
+
+    function get_Frame(
+      [out] out Frame: IMMCFrame
+    ): HResult; stdcall;
+
+    function Close(
+    ): HResult; stdcall;
+
+    function get_ScopeTreeVisible(
+      [out] out Visible: LongBool
+    ): HResult; stdcall;
+
+    function put_ScopeTreeVisible(
+      [in] Visible: LongBool
+    ): HResult; stdcall;
+
+    function Back(
+    ): HResult; stdcall;
+
+    function &Forward(
+    ): HResult; stdcall;
+
+    function put_StatusBarText(
+      [in] StatusBarText: WideString
+    ): HResult; stdcall;
+
+    function get_Memento(
+      [out] out Memento: WideString
+    ): HResult; stdcall;
+
+    function ViewMemento(
+      [in] Memento: WideString
+    ): HResult; stdcall;
+
+    function get_Columns(
+      [out] out Columns: IMMCColumns
+    ): HResult; stdcall;
+
+    function get_CellContents(
+      [in] Node: IMMCNode;
+      [in] Column: Cardinal;
+      [out] out CellContents: WideString
+    ): HResult; stdcall;
+
+    function ExportList(
+      [in] &File: WideString;
+      [in] ExportOptions: Cardinal
+    ): HResult; stdcall;
+
+    function get_ListViewMode(
+      [out] out Mode: Cardinal
+    ): HResult; stdcall;
+
+    function put_ListViewMode(
+      [in] Mode: Cardinal
+    ): HResult; stdcall;
+
+    function get_ControlObject(
+      [out] out Control: IDispatch
+    ): HResult; stdcall;
+  end;
+
 
 // SDK::shellapi.h
 [SetsLastError]

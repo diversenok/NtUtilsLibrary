@@ -581,7 +581,14 @@ const
 [Result: ReleaseWith('SysFreeString')]
 function SysAllocString(
   [in, opt] Buffer: PWideChar
-): WideString; stdcall; external oleaut32;
+): Pointer; stdcall; external oleaut32;
+
+// SDK::oleauto.h
+[Result: ReleaseWith('SysFreeString')]
+function SysAllocStringLen(
+  [in, ReadsFrom] Buffer: PWideChar;
+  [in, NumberOfElements] Length: Cardinal
+): Pointer; stdcall; external oleaut32;
 
 // SDK::oleauto.h
 procedure SysAddRefString(
