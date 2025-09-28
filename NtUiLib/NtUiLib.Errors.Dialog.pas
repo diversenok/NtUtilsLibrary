@@ -69,7 +69,7 @@ begin
       if Assigned(Status.LastCall.InfoClassType) then
       begin
         TypeFormatter := RttixMakeTypeFormatter(Status.LastCall.InfoClassType,
-          [RttixPreserveEnumCase]);
+          RttixPreserveEnumCase);
 
         Result := Result + #$D#$A'Information class: ' +
           TypeFormatter.FormatText(Status.LastCall.InfoClass);
