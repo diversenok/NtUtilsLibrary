@@ -77,6 +77,11 @@ function UiLibBytesToString(
   const Bytes: UInt64
 ): String;
 
+// Read a value an ASCII magic
+function UiLibAsciiMagicToString(
+  const Value: UInt64
+): String;
+
 { Time }
 
 // Convert a Delphi timestamp to a string
@@ -402,6 +407,11 @@ begin
     Result := UiLibUIntToDec(IntValue) + Units
   else
     Result := UiLibFixedPointToString(FloatValue, Digits) + Units;
+end;
+
+function UiLibAsciiMagicToString;
+begin
+  Result := String(RtlxCaptureAnsiString(Pointer(@Value), SizeOf(UInt64)));
 end;
 
 function AdvxFormatTime(

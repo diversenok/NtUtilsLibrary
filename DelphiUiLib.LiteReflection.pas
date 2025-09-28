@@ -257,7 +257,6 @@ var
   Size: TIntegerSize;
   Sign: TIntegerSign;
   Value: UInt64;
-  AsciiStr: AnsiString;
 begin
   Value := DigitsType.ReadInstance(Instance);
 
@@ -286,11 +285,7 @@ begin
       Result := UiLibBytesToString(Value);
 
     rokAscii:
-    begin
-      SetLength(AsciiStr, DigitsType.Size * 2);
-      Move(Value, AsciiStr[Low(AsciiStr)], DigitsType.Size * 2);
-      Result := String(AsciiStr);
-    end
+      Result := UiLibAsciiMagicToString(Value);
   else
     Error(reAssertionFailed);
   end;
