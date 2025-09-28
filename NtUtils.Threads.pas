@@ -939,8 +939,7 @@ begin
       Exit;
 
     // Locate ntdll LDR entry
-    Result := LdrxFindModuleEntry(LdrEntry, LdrxEntryStartsAt(
-      delayed_ntdll.DllAddress));
+    Result := LdrxFindModuleEntryByAddress(LdrEntry, delayed_ntdll.DllAddress);
 
     if not Result.IsSuccess then
       Exit;

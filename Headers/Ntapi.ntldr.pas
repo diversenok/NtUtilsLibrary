@@ -538,8 +538,8 @@ procedure LdrFastFailInLoaderCallout(
 
 // PHNT::ntldr.h
 function LdrFindEntryForAddress(
-  [in] DllBase: PDllBase;
-  [out] out Entry: PLdrDataTableEntry
+  [in] Address: PDllBase;
+  [out] out TableEntry: PLdrDataTableEntry
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntldr.h

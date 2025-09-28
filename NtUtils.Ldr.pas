@@ -155,6 +155,12 @@ function LdrxFindModuleEntry(
   MaximumCount: Integer = MAX_MODULES
 ): TNtxStatus;
 
+// Find a module that contains an address
+function LdrxFindModuleEntryByAddress(
+  out LdrEntry: PLdrDataTableEntry;
+  Access: Pointer
+): TNtxStatus;
+
 // Find a module that satisfies a condition
 function LdrxFindModuleInfo(
   out Module: TLdrxModuleInfo;
@@ -654,6 +660,12 @@ begin
 
   Result.Location := 'LdrxFindModuleEntry';
   Result.Status := STATUS_NOT_FOUND;
+end;
+
+function LdrxFindModuleEntryByAddress;
+begin
+  Result.Location := 'LdrFindEntryForAddress';
+  Result.Status := LdrFindEntryForAddress(Access, LdrEntry);
 end;
 
 function LdrxFindModuleInfo;
