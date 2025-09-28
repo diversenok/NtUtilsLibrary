@@ -168,23 +168,11 @@ function LdrxFindModuleInfo(
   MaximumCount: Integer = MAX_MODULES
 ): TNtxStatus;
 
-// Provides a finder for an LDR entry that starts at a specific address;
-// Use @ImageBase to find the current module
-function LdrxEntryStartsAt(
-  [in] Address: Pointer
-): TLdrxModuleEntryFinder;
-
 // Provides a finder for a module that starts at a specific address;
 // Use @ImageBase to find the current module
 function LdrxModuleStartsAt(
   [in] Address: Pointer
 ): TLdrxModuleInfoFinder;
-
-// Provides a finder for an LDR entry that contains a specific address;
-// Use @ImageBase to find the current module
-function LdrxEntryContains(
-  [in] Address: Pointer
-): TLdrxModuleEntryFinder;
 
 // Provides a finder for a module that contains a specific address
 function LdrxModuleContains(
@@ -701,28 +689,11 @@ begin
   Result.Status := STATUS_NOT_FOUND;
 end;
 
-function LdrxEntryStartsAt;
-begin
-  Result := function (Entry: PLdrDataTableEntry): Boolean
-    begin
-      Result := (Entry.DllBase = Address)
-    end;
-end;
-
 function LdrxModuleStartsAt;
 begin
   Result := function (const Module: TLdrxModuleInfo): Boolean
     begin
       Result :=(Module.DllBase = Address);
-    end;
-end;
-
-function LdrxEntryContains;
-begin
-  Result := function (Entry: PLdrDataTableEntry): Boolean
-    begin
-      Result := (UIntPtr(Address) >= UIntPtr(Entry.DllBase)) and
-        (UIntPtr(Address) - UIntPtr(Entry.DllBase) < Entry.SizeOfImage);
     end;
 end;
 
