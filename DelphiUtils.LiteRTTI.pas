@@ -308,7 +308,7 @@ end;
 
 function UTF8StringTail(Cursor: Pointer): Pointer;
 begin
-  Result := PByte(Cursor) + Word(Cursor^);
+  Result := PByte(Cursor) + SizeOf(Word) + Word(Cursor^);
 end;
 
 { TLiteRttiAttributeExtension }
