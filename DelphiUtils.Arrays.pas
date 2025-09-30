@@ -22,8 +22,8 @@ type
 
   TEqualityCheck<T> = reference to function (const A, B: T): Boolean;
 
-  TComparer<T> = reference to function (const A, B: T): NativeInt;
-  TBinaryCondition<T> = reference to function (const Entry: T): NativeInt;
+  TComparer<T> = reference to function (const A, B: T): Integer;
+  TBinaryCondition<T> = reference to function (const Entry: T): Integer;
 
   TDuplicateHandling = (dhInsert, dhOverwrite, dhSkip);
 
@@ -349,7 +349,7 @@ type
 
     // A default function for ordering array elements.
     // NOTE: the functions treats integers as unsigned
-    class function DefaultComparer<T>(const A, B: T): NativeInt; static;
+    class function DefaultComparer<T>(const A, B: T): Integer; static;
   end;
 
 { Internal Use }
@@ -414,7 +414,7 @@ begin
 
   try
     Result := BinarySearchEx<T>(Entries,
-      function (const Entry: T): NativeInt
+      function (const Entry: T): Integer
       begin
         Result := Comparer(Entry, Element);
 

@@ -53,7 +53,7 @@ type
     Name: String;
   end;
 
-function RtlxCompareCapabilities(const A, B: TCapabilityEntry): NativeInt;
+function RtlxCompareCapabilities(const A, B: TCapabilityEntry): Integer;
 begin
    Result := RtlxCompareSids(A.Sid, B.Sid);
 end;
@@ -252,7 +252,7 @@ begin
 
   // Find the matching SID
   Index := TArray.BinarySearchEx<TCapabilityEntry>(Cache,
-    function (const Entry: TCapabilityEntry): NativeInt
+    function (const Entry: TCapabilityEntry): Integer
     begin
       Result := RtlxCompareSids(Entry.Sid, Sid);
     end

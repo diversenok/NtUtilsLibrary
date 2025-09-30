@@ -109,11 +109,20 @@ function RttixFindTypeIndex(
 ): Integer;
 begin
   Result := TArray.BinarySearchEx<TRttixFormatterEntry>(RttixKnownFormatters,
-    function (const Entry: TRttixFormatterEntry): NativeInt
+    function (const Entry: TRttixFormatterEntry): Integer
+    var
+      Difference: IntPtr;
     begin
       {$Q-}{$R-}
-      Result := NativeInt(Entry.TypeInfo) - NativeInt(TypeInfo);
+      Difference := IntPtr(Entry.TypeInfo) - IntPtr(TypeInfo);
       {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
+
+      if Difference > 0 then
+        Result := 1
+      else if Difference < 0 then
+        Result := -1
+      else
+        Result := 0;
     end
   );
 end;

@@ -114,7 +114,7 @@ function RtlxMakeSiblingSid(
 function RtlxCompareSids(
   const SidA: ISid;
   const SidB: ISid
-): NativeInt;
+): Integer;
 
 { Custom SID Representation }
 

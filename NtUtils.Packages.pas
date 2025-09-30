@@ -1590,7 +1590,7 @@ begin
 
   Index := TArray.BinarySearchEx<TPkgxResourceCacheEntry>(
     PkgxResourceCache,
-    function (const Entry: TPkgxResourceCacheEntry): NativeInt
+    function (const Entry: TPkgxResourceCacheEntry): Integer
     begin
       Result := RtlxCompareStrings(Entry.Key, ResourceDefinition)
     end

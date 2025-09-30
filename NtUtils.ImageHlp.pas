@@ -669,7 +669,7 @@ function RtlxFindExportedNameIndex;
 begin
   // Export entries are sorted, use fast case-sensitive binary search
   Result := TArray.BinarySearchEx<TExportEntry>(Entries,
-    function (const Entry: TExportEntry): NativeInt
+    function (const Entry: TExportEntry): Integer
     begin
       Result := RtlxCompareAnsiStrings(Entry.Name, Name, True);
     end

@@ -127,7 +127,7 @@ begin
 
     if Import.ImportByName then
       i := TArray.BinarySearchEx<TExportEntry>(AlternateTargets,
-        function (const Target: TExportEntry): NativeInt
+        function (const Target: TExportEntry): Integer
         begin
           Result := RtlxCompareAnsiStrings(Target.Name, Import.Name, True)
         end

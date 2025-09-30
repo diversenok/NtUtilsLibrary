@@ -101,10 +101,10 @@ begin
 
   // Sort them to allow binary search
   TArray.SortInline<TImageHlpSymbol>(Symbols,
-    function (const A, B: TImageHlpSymbol): NativeInt
+    function (const A, B: TImageHlpSymbol): Integer
     begin
       {$Q-}{$R-}
-      Result := NativeInt(A.RVA) - NativeInt(B.RVA);
+      Result := Integer(A.RVA) - Integer(B.RVA);
       {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
     end
   );
@@ -128,10 +128,10 @@ var
 begin
   // We expect the symbols to be sorted
   BestMatch := TArray.BinarySearchEx<TImageHlpSymbol>(Symbols,
-    function (const Entry: TImageHlpSymbol): NativeInt
+    function (const Entry: TImageHlpSymbol): Integer
     begin
       {$Q-}{$R-}
-      Result := NativeInt(Entry.RVA) - NativeInt(RVA);
+      Result := Integer(Entry.RVA) - Integer(RVA);
       {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
     end
   );
