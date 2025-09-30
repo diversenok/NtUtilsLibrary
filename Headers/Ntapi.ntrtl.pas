@@ -1457,6 +1457,13 @@ function RtlLengthSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor
 ): Cardinal; stdcall; external ntdll;
 
+// WDK::wdm.h
+function RtlValidRelativeSecurityDescriptor(
+  [in, ReadsFrom] SecurityDescriptor: PSecurityDescriptor;
+  [in, NumberOfBytes] SecurityDescriptorLength: Cardinal;
+  [in] RequiredInformation: TSecurityInformation
+): Boolean; stdcall; external ntdll;
+
 // PHNT::ntrtl.h
 function RtlGetControlSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor;

@@ -405,6 +405,7 @@ System unit                                                                     
 [NtUtils.WinUser](./NtUtils.WinUser.pas)                                                         | User32/GUI API
 [NtUtils.WinUser.WindowAffinity](./NtUtils.WinUser.WindowAffinity.pas)                           | Window affinity modification
 [NtUtils.WinUser.WinstaLock](./NtUtils.WinUser.WinstaLock.pas)                                   | Locking & unlocking window stations
+[NtUtils.Wnf](./NtUtils.Wnf.pas)                                                                 | Windows Notification Facility (WNF)
 [NtUtils.XmlLite](./NtUtils.XmlLite.pas)                                                         | XML parsing & crafting via XmlLite
 [NtUiLib.AutoCompletion](./NtUiLib/NtUiLib.AutoCompletion.pas)                                   | Auto-completion for edit controls
 [NtUiLib.AutoCompletion.Namespace](./NtUiLib/NtUiLib.AutoCompletion.Namespace.pas)               | NT object namespace auto-completion
