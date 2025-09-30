@@ -30,6 +30,7 @@ type
   // Forward the types for automatic lifetime management
   TAutoInterfacedObject = DelphiUtils.AutoObjects.TAutoInterfacedObject;
   IAutoReleasable = DelphiUtils.AutoObjects.IAutoReleasable;
+  IDiscardableResource = DelphiUtils.AutoObjects.IDiscardableResource;
   IObject = DelphiUtils.AutoObjects.IObject;
   IPointer = DelphiUtils.AutoObjects.IPointer;
   TMemory = DelphiUtils.AutoObjects.TMemory;
