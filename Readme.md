@@ -413,4 +413,5 @@ System unit                                                                     
 [NtUiLib.AutoCompletion.Sid.Common](./NtUiLib/NtUiLib.AutoCompletion.Sid.Common.pas)             | Simple SID name providers/recognizers
 [NtUiLib.AutoCompletion.Sid.AppContainer](./NtUiLib/NtUiLib.AutoCompletion.Sid.AppContainer.pas) | AppContainer & package SID providers/recognizers
 [NtUiLib.AutoCompletion.Sid.Capabilities](./NtUiLib/NtUiLib.AutoCompletion.Sid.Capabilities.pas) | Capability SID providers/recognizers
+[NtUiLib.AutoCompletion.Wnf](./NtUiLib/NtUiLib.AutoCompletion.Wnf.pas)                           | Known WNF state name descriptions
 [NtUiLib.WinCred](./NtUiLib/NtUiLib.WinCred.pas)                                                 | Credentials dialog
