@@ -148,7 +148,8 @@ type
     rtkBoolean,
     rtkBitwise,
     rtkDigits,
-    rtkString
+    rtkString,
+    rtkPointer
   );
 
   // Base information for all type
@@ -265,6 +266,15 @@ type
     function ReadInstance(const [ref] Instance): String;
 
     property StringKind: TRttixStringKind read GetStringKind;
+  end;
+
+  // Extra information for rtkPointer types
+  IRttixPointerType = interface (IRttixType)
+    ['{D6B2A09A-DF9B-4FC5-937F-BA5FABC88974}']
+    function GetReferncedType: IRttixType;
+    function GetDontFollow: Boolean;
+    property ReferncedType: IRttixType read GetReferncedType;
+    property DontFollow: Boolean read GetDontFollow;
   end;
 
 // Collect known attribute information for a type
@@ -694,6 +704,17 @@ type
     );
   end;
 
+  TRttixPointerType = class (TRttixType, IRttixPointerType)
+    FReferencedType: IRttixType;
+    FDontFollow: Boolean;
+    function GetReferncedType: IRttixType;
+    function GetDontFollow: Boolean;
+    constructor Create(
+      TypeInfo: PLiteRttiTypeInfo;
+      const Attributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
 constructor TRttixType.Create;
 var
   Attribute: PLiteRttiAttribute;
@@ -1094,7 +1115,6 @@ begin
   else
     Error(reAssertionFailed);
   end;
-
 end;
 
 function TRttixStringType.GetStringKind;
@@ -1136,6 +1156,43 @@ begin
   else
     Error(reAssertionFailed);
   end;
+end;
+
+constructor TRttixPointerType.Create;
+var
+  Attribute: PLiteRttiAttribute;
+  RefType: PLiteRttiTypeInfo;
+begin
+  inherited Create(TypeInfo, rtkPointer, Attributes);
+
+  RefType := TypeInfo.PointerRefType;
+
+  if Assigned(RefType) then
+  begin
+    FReferencedType := RttixTypeInfo(RefType, FAttributes);
+
+    // Derive [SDKName(...)] from the referenced type if necessary
+    if (FSDKName = '') and (FReferencedType.SDKName <> '') then
+      FSDKName := 'P' + FReferencedType.SDKName;
+  end;
+
+  // Apply [DontFollow]
+  for Attribute in FAttributes do
+    if Attribute.IsDontFollowAttribute then
+    begin
+      FDontFollow := True;
+      Break;
+    end;
+end;
+
+function TRttixPointerType.GetDontFollow;
+begin
+  Result := FDontFollow;
+end;
+
+function TRttixPointerType.GetReferncedType;
+begin
+  Result := FReferencedType;
 end;
 
 function RttixTypeInfo;
@@ -1180,7 +1237,7 @@ begin
       if Assigned(NestedType) and (NestedType.Kind in [tkChar, tkWChar]) then
         SubKind := rtkString
       else
-        SubKind := rtkOther;
+        SubKind := rtkPointer;
     end;
 
     tkArray:
@@ -1207,6 +1264,8 @@ begin
       Result := TRttixDigitsType.Create(TypeInfo, Attributes);
     rtkString:
       Result := TRttixStringType.Create(TypeInfo, Attributes);
+    rtkPointer:
+      Result := TRttixPointerType.Create(TypeInfo, Attributes);
   else
     Result := TRttixType.Create(TypeInfo, SubKind, Attributes);
   end;

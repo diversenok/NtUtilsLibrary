@@ -21,7 +21,7 @@ type
   end;
 
   IRttixTypeFormatter = interface
-    ['{C5915174-2560-4C84-B51D-D257BBB2783D}']
+    ['{DDB726E6-F711-46CB-943A-1C1EA0BE4C66}']
     function GetRttixType: IRttixType;
     function GetHasCustomFormatting: Boolean;
 
@@ -29,7 +29,8 @@ type
     property HasCustomFormatting: Boolean read GetHasCustomFormatting;
     function FormatText(const [ref] Instance): String;
     function FormatHint(const [ref] Instance): String;
-    function FormatFull(const [ref] Instance): TRttixFullReflection;
+    function Format(const [ref] Instance;
+      Formats: TRttixReflectionFormats): TRttixFullReflection;
   end;
 
   TRttixCustomTypeFormatter = function (
@@ -52,6 +53,10 @@ function RttixMakeTypeFormatter(
 
 // An attribute indicating that reflection should presetve enumeration names
 function RttixPreserveEnumCase(
+): TArray<PLiteRttiAttribute>;
+
+// An attribute indicating that reflection should not follow pointers
+function RttixDontFollowPointers(
 ): TArray<PLiteRttiAttribute>;
 
 // Represent a type as text from raw type info
@@ -332,18 +337,28 @@ begin
   Result := StringType.ReadInstance(Instance);
 end;
 
+function RttixFormatPointer(
+  const PointerType: IRttixPointerType;
+  const [ref] Instance
+): String;
+begin
+  Result := '(' + UiLibUIntToHex(UIntPtr(Pointer(Instance))) + ' as ' +
+    PointerType.TypeInfo.Name + ')';
+end;
+
 { Formatters }
 
 type
   TRttixTypeFormatter = class (TAutoInterfacedObject, IRttixTypeFormatter)
     FRttixType: IRttixType;
     FFormatter: TRttixCustomTypeFormatter;
+    FInner: IRttixTypeFormatter;
     function GetRttixType: IRttixType;
     function GetHasCustomFormatting: Boolean;
     function FormatText(const [ref] Instance): String;
     function FormatHint(const [ref] Instance): String;
-    function FormatFull(const [ref] Instance): TRttixFullReflection;
-    function Format(Formats: TRttixReflectionFormats; const [ref] Instance): TRttixFullReflection;
+    function Format(const [ref] Instance;
+      Formats: TRttixReflectionFormats): TRttixFullReflection;
     constructor Create(
       [opt] const RttixType: IRttixType;
       [opt] Formatter: TRttixCustomTypeFormatter
@@ -351,16 +366,43 @@ type
   end;
 
 constructor TRttixTypeFormatter.Create;
+var
+  PointerType: IRttixPointerType;
+  Index: Integer;
+  CustomInnerFormatter: TRttixCustomTypeFormatter;
 begin
   FRttixType := RttixType;
   FFormatter := Formatter;
+
+  // Pointer types delegate formatting to the referenced type
+  if not Assigned(FFormatter) and (FRttixType.SubKind = rtkPointer) then
+  begin
+    PointerType := FRttixType as IRttixPointerType;
+
+    if not PointerType.DontFollow and Assigned(PointerType.ReferncedType) then
+    begin
+      // Find a custom formatter for the referenced type
+      Index := RttixFindTypeIndex(PointerType.ReferncedType.TypeInfo);
+
+      if Index >= 0 then
+        CustomInnerFormatter := RttixKnownFormatters[Index].Formatter
+      else
+        CustomInnerFormatter := nil;
+
+      // Save the inner formatter
+      FInner := TRttixTypeFormatter.Create(PointerType.ReferncedType,
+        CustomInnerFormatter);
+    end;
+  end;
 end;
 
 function TRttixTypeFormatter.Format;
 begin
-  // Use the custom formatter first
+  // Use the custom formatter first, then delegate pointer formatting
   if Assigned(FFormatter) then
     Result := FFormatter(FRttixType, Instance, Formats)
+  else if Assigned(FInner) then
+    Result := FInner.Format(Pointer(Instance)^, Formats)
   else
     Result.ValidFormats := [];
 
@@ -383,6 +425,9 @@ begin
             Instance);
         rtkString:
           Result.Text := RttixFormatString(FRttixType as IRttixStringType,
+            Instance);
+        rtkPointer:
+          Result.Text := RttixFormatPointer(FRttixType as IRttixPointerType,
             Instance);
       else
         Result.Text := '(' + FRttixType.TypeInfo.Name + ')';
@@ -417,19 +462,14 @@ begin
   end;
 end;
 
-function TRttixTypeFormatter.FormatFull;
-begin
-  Result := Format([rfText, rfHint], Instance);
-end;
-
 function TRttixTypeFormatter.FormatHint;
 begin
-  Result := Format([rfHint], Instance).Hint;
+  Result := Format(Instance, [rfHint]).Hint;
 end;
 
 function TRttixTypeFormatter.FormatText;
 begin
-  Result := Format([rfText], Instance).Text;
+  Result := Format(Instance, [rfText]).Text;
 end;
 
 function TRttixTypeFormatter.GetHasCustomFormatting;
@@ -472,6 +512,14 @@ begin
   Result := RttixTypeInfo(TypeInfo(PreserveCase)).Attributes;
 end;
 
+function RttixDontFollowPointers;
+type
+  [DontFollow]
+  DontFollowPointers = type Pointer;
+begin
+  Result := RttixTypeInfo(TypeInfo(DontFollowPointers)).Attributes;
+end;
+
 { Common }
 
 function RttixFormat;
@@ -487,7 +535,7 @@ var
   Formatter: IRttixTypeFormatter;
 begin
   Formatter := RttixMakeTypeFormatter(TypeInfo, FieldAttributes);
-  Result := Formatter.FormatFull(Instance);
+  Result := Formatter.Format(Instance, [rfText, rfHint]);
 end;
 
 class function Rttix.Format<T>;
