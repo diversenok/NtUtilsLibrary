@@ -264,6 +264,7 @@ type
     // tkEnumeration
     function EnumHasNameList: Boolean;
     function EnumNameListStart(Index: Integer): PShortString;
+    function EnumNameCount: Integer;
     function EnumName(Value: Integer): String;
     function EnumCollectNames: TArray<String>;
     function EnumUnitNameStart: PShortString;
@@ -1014,7 +1015,7 @@ begin
       BaseTypeData.OrdinalMinValue);
   end;
 
-  SetLength(Result, OrdinalMaxValue - OrdinalMinValue + 1);
+  SetLength(Result, EnumNameCount);
 
   for i := 0 to High(Result) do
   begin
@@ -1037,8 +1038,13 @@ begin
   if (Value < OrdinalMinValue) or (Value > OrdinalMaxValue) then
     Exit('');
 
+  // Hack for booleans
+  if (OrdinalMinValue = -2147483648) and (OrdinalMaxValue = 2147483647) and
+    (Value <> 0) then
+    Value := 1;
+
   if EnumHasNameList then
-    Cursor := EnumNameListStart(Value - OrdinalMinValue)
+    Cursor := EnumNameListStart(Value)
   else
   begin
     // The base type is not nil here since it's convered by EnumHasNames
@@ -1048,6 +1054,14 @@ begin
   end;
 
   Result := UTF8IdentToString(Cursor);
+end;
+
+function TTypeData.EnumNameCount;
+begin
+  if (OrdinalMinValue = -2147483648) and (OrdinalMaxValue = 2147483647) then
+    Result := 2 // Hack for boolean types
+  else
+    Result := OrdinalMaxValue - OrdinalMinValue + 1;
 end;
 
 function TTypeData.EnumNameListStart;
@@ -1064,7 +1078,7 @@ end;
 function TTypeData.EnumUnitNameStart;
 begin
   if EnumHasNameList then
-    Result := EnumNameListStart(OrdinalMaxValue - OrdinalMinValue + 1)
+    Result := EnumNameListStart(EnumNameCount)
   else
     Result := EnumNameListStart(0);
 end;

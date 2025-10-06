@@ -53,6 +53,7 @@ type
     function EnumerationIsBoolean: Boolean;
     function EnumerationBaseType: PLiteRttiTypeInfo;
     function EnumerationHasNames: Boolean;
+    function EnumerationNameCount: Integer;
     function EnumerationNames: TArray<String>;
     function EnumerationName(Value: Integer): String;
 
@@ -547,6 +548,11 @@ begin
     Error(reAssertionFailed);
 
   Result := TypeInfo.TypeDataStart.EnumName(Value)
+end;
+
+function TLiteRttiTypeInfo.EnumerationNameCount;
+begin
+  Result := TypeInfo.TypeDataStart.EnumNameCount;
 end;
 
 function TLiteRttiTypeInfo.EnumerationNames;
