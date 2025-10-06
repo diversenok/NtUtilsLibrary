@@ -149,7 +149,8 @@ type
     rtkBitwise,
     rtkDigits,
     rtkString,
-    rtkPointer
+    rtkPointer,
+    rtkRecord
   );
 
   // Base information for all type
@@ -277,16 +278,45 @@ type
     property DontFollow: Boolean read GetDontFollow;
   end;
 
+  // Information for record fields
+  IRttixField = interface
+    ['{33BB044E-68DE-4D9A-89EE-E8FC814C3A59}']
+    function GetName: String;
+    function GetHasOffset: Boolean;
+    function GetOffset: NativeInt;
+    function GetFieldType: IRttixType;
+    function GetMinOsVersion: TWindowsVersion;
+    function GetAggregate: Boolean;
+    function GetUnlisted: Boolean;
+    property Name: String read GetName;
+    property HasOffset: Boolean read GetHasOffset;
+    property Offset: NativeInt read GetOffset;
+    property FieldType: IRttixType read GetFieldType;
+    property MinOsVersion: TWindowsVersion read GetMinOsVersion;
+    property Aggregate: Boolean read GetAggregate;
+    property Unlisted: Boolean read GetUnlisted;
+  end;
+
+  // Extra information for rtkRecord types
+  IRttixRecordType = interface (IRttixType)
+    ['{F259B1C0-F6DF-4F3B-BBA0-8439E730EF32}']
+    function GetImmediateFields: TArray<IRttixField>;
+    function GetEffectiveFields: TArray<IRttixField>;
+    property ImmediateFields: TArray<IRttixField> read GetImmediateFields;
+    property EffectiveFields: TArray<IRttixField> read GetEffectiveFields;
+  end;
+
 // Collect known attribute information for a type
 function RttixTypeInfo(
   TypeInfo: PLiteRttiTypeInfo;
-  const FieldAttributes: TArray<PLiteRttiAttribute> = nil
+  const ExtraAttributes: TArray<PLiteRttiAttribute> = nil
 ): IRttixType;
 
 implementation
 
 uses
-  DelphiApi.TypInfo, DelphiUtils.AutoObjects, NtUtils.SysUtils;
+  DelphiApi.TypInfo, DelphiUtils.AutoObjects, DelphiUtils.Arrays,
+  NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -626,7 +656,7 @@ type
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
       SubKind: TRttixTypeSubKind;
-      const Attributes: TArray<PLiteRttiAttribute>
+      const AllAttributes: TArray<PLiteRttiAttribute>
     );
   end;
 
@@ -644,7 +674,7 @@ type
     function ReadInstance(const [ref] Instance): Cardinal;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
-      const Attributes: TArray<PLiteRttiAttribute>
+      const AllAttributes: TArray<PLiteRttiAttribute>
     );
   end;
 
@@ -656,7 +686,7 @@ type
     function ReadInstance(const [ref] Instance): Boolean;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
-      const Attributes: TArray<PLiteRttiAttribute>
+      const AllAttributes: TArray<PLiteRttiAttribute>
     );
   end;
 
@@ -674,7 +704,7 @@ type
     function ReadInstance(const [ref] Instance): UInt64;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
-      const Attributes: TArray<PLiteRttiAttribute>
+      const AllAttributes: TArray<PLiteRttiAttribute>
     );
   end;
 
@@ -690,7 +720,7 @@ type
     function ReadInstance(const [ref] Instance): UInt64;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
-      const Attributes: TArray<PLiteRttiAttribute>
+      const AllAttributes: TArray<PLiteRttiAttribute>
     );
   end;
 
@@ -700,7 +730,7 @@ type
     function ReadInstance(const [ref] Instance): String;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
-      const Attributes: TArray<PLiteRttiAttribute>
+      const AllAttributes: TArray<PLiteRttiAttribute>
     );
   end;
 
@@ -711,9 +741,131 @@ type
     function GetDontFollow: Boolean;
     constructor Create(
       TypeInfo: PLiteRttiTypeInfo;
-      const Attributes: TArray<PLiteRttiAttribute>
+      const AllAttributes: TArray<PLiteRttiAttribute>
     );
   end;
+
+  IRttixFieldInternal = interface
+    ['{F8E2AB5D-ADD5-4EA2-AAFF-BBDB76AADB3D}']
+    procedure AggregateAtOffset(NestedOffset: NativeInt);
+  end;
+
+  TRttixField = class (TAutoInterfacedObject, IRttixField, IRttixFieldInternal)
+    FFieldInfo: PLiteRttiField;
+    FName: String;
+    FManaged: PLiteRttiManagedField;
+    FOffset: NativeInt;
+    FTypeInfo: PLiteRttiTypeInfo;
+    FType: IRttixType;
+    FAttributes: TArray<PLiteRttiAttribute>;
+    FMinOsVersion: TWindowsVersion;
+    FAggregate, FUnlisted: Boolean;
+    function GetName: String;
+    function GetHasOffset: Boolean;
+    function GetOffset: NativeInt;
+    function GetFieldType: IRttixType;
+    function GetMinOsVersion: TWindowsVersion;
+    function GetAggregate: Boolean;
+    function GetUnlisted: Boolean;
+    procedure AggregateAtOffset(NestedOffset: NativeInt);
+    constructor Create(
+      FieldInfo: PLiteRttiField;
+      const ExtraAttributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
+  TRttixRecordType = class (TRttixType, IRttixRecordType)
+    FImmediateFields, FEffectiveFields: TArray<IRttixField>;
+    FImmediateFieldsInitialized, FEffectiveFieldsInitialized: Boolean;
+    function GetImmediateFields: TArray<IRttixField>;
+    function GetEffectiveFields: TArray<IRttixField>;
+    constructor Create(
+      TypeInfo: PLiteRttiTypeInfo;
+      const AllAttributes: TArray<PLiteRttiAttribute>
+    );
+  end;
+
+function RttixTypeInfoWorker(
+  TypeInfo: PLiteRttiTypeInfo;
+  const AllAttributes: TArray<PLiteRttiAttribute> = nil
+): IRttixType;
+var
+  Attribute: PLiteRttiAttribute;
+  SubKind: TRttixTypeSubKind;
+  NestedType: PLiteRttiTypeInfo;
+begin
+  if not Assigned(TypeInfo) then
+    Error(reInvalidPtr);
+
+  // Determine type sub-kind
+  case TypeInfo.Kind of
+    tkEnumeration:
+      if TypeInfo.EnumerationIsBoolean then
+        SubKind := rtkBoolean
+      else
+        SubKind := rtkEnumeration;
+
+    tkInteger, tkInt64:
+    begin
+      SubKind := rtkDigits;
+
+      for Attribute in AllAttributes do
+        if Attribute.IsFlagNameAttribute or Attribute.IsSubEnumAttribute then
+        begin
+          SubKind := rtkBitwise;
+          Break;
+        end;
+    end;
+
+    tkString, tkLString, tkWString, tkUString:
+      SubKind := rtkString;
+
+    tkPointer:
+    begin
+      NestedType := TypeInfo.PointerRefType;
+
+      if Assigned(NestedType) and (NestedType.Kind in [tkChar, tkWChar]) then
+        SubKind := rtkString
+      else
+        SubKind := rtkPointer;
+    end;
+
+    tkArray:
+    begin
+      NestedType := TypeInfo.ArrayElementType;
+
+      if Assigned(NestedType) and (NestedType.Kind in [tkChar, tkWChar]) then
+        SubKind := rtkString
+      else
+        SubKind := rtkOther;
+    end;
+
+    tkRecord:
+      SubKind := rtkRecord;
+  else
+    SubKind := rtkOther;
+  end;
+
+  case SubKind of
+    rtkEnumeration:
+      Result := TRttixEnumType.Create(TypeInfo, AllAttributes);
+    rtkBoolean:
+      Result := TRttixBoolType.Create(TypeInfo, AllAttributes);
+    rtkBitwise:
+      Result := TRttixBitwiseType.Create(TypeInfo, AllAttributes);
+    rtkDigits:
+      Result := TRttixDigitsType.Create(TypeInfo, AllAttributes);
+    rtkString:
+      Result := TRttixStringType.Create(TypeInfo, AllAttributes);
+    rtkPointer:
+      Result := TRttixPointerType.Create(TypeInfo, AllAttributes);
+    rtkRecord:
+      Result := TRttixRecordType.Create(TypeInfo, AllAttributes);
+  else
+    Result := TRttixType.Create(TypeInfo, SubKind, AllAttributes);
+  end;
+end;
+
 
 constructor TRttixType.Create;
 var
@@ -722,16 +874,16 @@ begin
   inherited Create;
 
   FTypeInfo := TypeInfo;
-  FAttributes := Attributes;
+  FAttributes := AllAttributes;
   FSubKind := SubKind;
 
   // Apply [SDKNameAttribute(...)]
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseSDKNameAttribute(FSDKName) then
       Break;
 
   // Apply [FriendlyName(...)]
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseFriendlyNameAttribute(FFriendlyName) then
       Break;
 end;
@@ -767,7 +919,7 @@ var
   MinValueOverride: Cardinal;
   ValidValuesOverride: TValidValues;
 begin
-  inherited Create(TypeInfo, rtkEnumeration, Attributes);
+  inherited Create(TypeInfo, rtkEnumeration, AllAttributes);
 
   if not TypeInfo.IsOrdinal then
     Error(reAssertionFailed);
@@ -785,7 +937,7 @@ begin
   FValidValues := [TypeInfo.OrdinalMinValue .. TypeInfo.OrdinalMaxValue];
 
   // Apply [MinValue(...)] overrides
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseMinValueAttribute(MinValueOverride) then
     begin
       if MinValueOverride > 0 then
@@ -794,12 +946,12 @@ begin
     end;
 
   // Apply [ValidValues(...)] overrides
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseValidValuesAttribute(ValidValuesOverride) then
       FValidValues := FValidValues * ValidValuesOverride;
 
   // Apply [NamingStyle(...)]
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseNamingStyleAttribute(FNamingStyle, FPrefix, FSuffix) then
       Break;
 end;
@@ -845,7 +997,7 @@ constructor TRttixBoolType.Create;
 var
   Attribute: PLiteRttiAttribute;
 begin
-  inherited Create(TypeInfo, rtkBoolean, Attributes);
+  inherited Create(TypeInfo, rtkBoolean, AllAttributes);
 
   if not TypeInfo.IsOrdinal then
     Error(reAssertionFailed);
@@ -860,7 +1012,7 @@ begin
   end;
 
   // Apply [BooleanKind(...)]
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseBooleanKindAttribute(FBooleanKind) then
       Break;
 end;
@@ -894,7 +1046,7 @@ var
   Value, Mask: UInt64;
   Name: String;
 begin
-  inherited Create(TypeInfo, rtkBitwise, Attributes);
+  inherited Create(TypeInfo, rtkBitwise, AllAttributes);
 
   // Determine the size
   if TypeInfo.IsOrdinal then
@@ -911,26 +1063,26 @@ begin
     Error(reAssertionFailed);
 
   // Apply [Hex(...)]
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseHexAttribute(FMinDigits) then
       Break;
 
   // Apply [ValidMask(...)]
   FValidMask := UInt64(-1);
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseValidMaskAttribute(FValidMask) then
       Break;
 
   // Apply [FlagName(...)] and [SubEnum(...)]
   Count := 0;
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.IsFlagNameAttribute or Attribute.IsSubEnumAttribute then
       Inc(Count);
 
   SetLength(FFlags, Count);
 
   i := 0;
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseFlagNameAttribute(Value, Name) then
     begin
       FFlags[i].Kind := rbkFlag;
@@ -950,13 +1102,13 @@ begin
 
   // Apply [FlagGroup(...)]
   Count := 0;
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.IsFlagGroupAttribute then
       Inc(Count);
 
   SetLength(FFlagGroups, Count);
   i := 0;
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
     if Attribute.ParseFlagGroupAttribute(Mask, Name) then
     begin
       FFlagGroups[i].Kind := rbkGroup;
@@ -1009,7 +1161,7 @@ constructor TRttixDigitsType.Create;
 var
   Attribute: PLiteRttiAttribute;
 begin
-  inherited Create(TypeInfo, rtkDigits, Attributes);
+  inherited Create(TypeInfo, rtkDigits, AllAttributes);
 
   // Determine the size
   if TypeInfo.IsOrdinal then
@@ -1041,7 +1193,7 @@ begin
   // Identify formatting kind
   FNumericKind := rokDecimal;
 
-  for Attribute in Attributes do
+  for Attribute in FAttributes do
   begin
     if Attribute.IsAsciiMagicAttribute then
       FNumericKind := rokAscii
@@ -1091,7 +1243,7 @@ end;
 
 constructor TRttixStringType.Create;
 begin
-  inherited Create(TypeInfo, rtkString, Attributes);
+  inherited Create(TypeInfo, rtkString, AllAttributes);
 
   case TypeInfo.Kind of
     tkString:  FStringKind := rskShort;
@@ -1162,18 +1314,23 @@ constructor TRttixPointerType.Create;
 var
   Attribute: PLiteRttiAttribute;
   RefType: PLiteRttiTypeInfo;
+  Depth: Integer;
 begin
-  inherited Create(TypeInfo, rtkPointer, Attributes);
+  inherited Create(TypeInfo, rtkPointer, AllAttributes);
 
-  RefType := TypeInfo.PointerRefType;
-
-  if Assigned(RefType) then
+  // Adjust the SDK name according to pointer depth
+  if FSDKName <> '' then
   begin
-    FReferencedType := RttixTypeInfo(RefType, FAttributes);
+    RefType := TypeInfo;
+    Depth := 0;
 
-    // Derive [SDKName(...)] from the referenced type if necessary
-    if (FSDKName = '') and (FReferencedType.SDKName <> '') then
-      FSDKName := 'P' + FReferencedType.SDKName;
+    while Assigned(RefType) and (RefType.Kind = tkPointer) do
+    begin
+      RefType := RefType.PointerRefType;
+      Inc(Depth);
+    end;
+
+    FSDKName := RtlxBuildString('P', Depth) + FSDKName;
   end;
 
   // Apply [DontFollow]
@@ -1192,83 +1349,184 @@ end;
 
 function TRttixPointerType.GetReferncedType;
 begin
+  // Lazily process the referenced type
+  if not Assigned(FReferencedType) and Assigned(FTypeInfo.PointerRefType()) then
+    FReferencedType := RttixTypeInfoWorker(FTypeInfo.PointerRefType, FAttributes);
+
   Result := FReferencedType;
 end;
 
-function RttixTypeInfo;
-var
-  Attributes: TArray<PLiteRttiAttribute>;
-  Attribute: PLiteRttiAttribute;
-  SubKind: TRttixTypeSubKind;
-  NestedType: PLiteRttiTypeInfo;
+procedure TRttixField.AggregateAtOffset;
 begin
-  if not Assigned(TypeInfo) then
-    Error(reInvalidPtr);
+  Inc(FOffset, NestedOffset);
+end;
 
-  Attributes := FieldAttributes + TypeInfo.AllAttributes;
+constructor TRttixField.Create;
+var
+  Attribute: PLiteRttiAttribute;
+begin
+  inherited Create;
+  FFieldInfo := FieldInfo;
+  FName := FieldInfo.Name;
+  FManaged := FieldInfo.Field;
+  FAttributes := ExtraAttributes + FieldInfo.Attributes;
 
-  // Determine type sub-kind
-  case TypeInfo.Kind of
-    tkEnumeration:
-      if TypeInfo.EnumerationIsBoolean then
-        SubKind := rtkBoolean
-      else
-        SubKind := rtkEnumeration;
+  if Assigned(FManaged) then
+  begin
+    FOffset := FManaged.FldOffset;
+    FTypeInfo := FManaged.TypeRef;
 
-    tkInteger, tkInt64:
-    begin
-      SubKind := rtkDigits;
-
-      for Attribute in Attributes do
-        if Attribute.IsFlagNameAttribute or Attribute.IsSubEnumAttribute then
-        begin
-          SubKind := rtkBitwise;
-          Break;
-        end;
-    end;
-
-    tkString, tkLString, tkWString, tkUString:
-      SubKind := rtkString;
-
-    tkPointer:
-    begin
-      NestedType := TypeInfo.PointerRefType;
-
-      if Assigned(NestedType) and (NestedType.Kind in [tkChar, tkWChar]) then
-        SubKind := rtkString
-      else
-        SubKind := rtkPointer;
-    end;
-
-    tkArray:
-    begin
-      NestedType := TypeInfo.ArrayElementType;
-
-      if Assigned(NestedType) and (NestedType.Kind in [tkChar, tkWChar]) then
-        SubKind := rtkString
-      else
-        SubKind := rtkOther;
-    end;
-  else
-    SubKind := rtkOther;
+    if Assigned(FTypeInfo) then
+      FAttributes := FAttributes + FTypeInfo.AllAttributes;
   end;
 
-  case SubKind of
-    rtkEnumeration:
-      Result := TRttixEnumType.Create(TypeInfo, Attributes);
-    rtkBoolean:
-      Result := TRttixBoolType.Create(TypeInfo, Attributes);
-    rtkBitwise:
-      Result := TRttixBitwiseType.Create(TypeInfo, Attributes);
-    rtkDigits:
-      Result := TRttixDigitsType.Create(TypeInfo, Attributes);
-    rtkString:
-      Result := TRttixStringType.Create(TypeInfo, Attributes);
-    rtkPointer:
-      Result := TRttixPointerType.Create(TypeInfo, Attributes);
-  else
-    Result := TRttixType.Create(TypeInfo, SubKind, Attributes);
+  // Apply [MinOSVersion(...)]
+  for Attribute in FAttributes do
+    if Attribute.ParseMinOSVersionAttribute(FMinOsVersion) then
+      Break;
+
+  // Apply [Aggregate]
+  for Attribute in FAttributes do
+    if Attribute.IsAggregateAttribute then
+    begin
+      FAggregate := True;
+      Break;
+    end;
+
+  // Apply [Unlisted]
+  for Attribute in FAttributes do
+    if Attribute.IsUnlistedAttribute then
+    begin
+      FUnlisted := True;
+      Break;
+    end;
+end;
+
+function TRttixField.GetAggregate;
+begin
+  Result := FAggregate;
+end;
+
+function TRttixField.GetFieldType;
+begin
+  if not Assigned(FType) and Assigned(FTypeInfo) then
+    FType := RttixTypeInfoWorker(FTypeInfo, FAttributes);
+
+  Result := FType;
+end;
+
+function TRttixField.GetHasOffset;
+begin
+  Result := Assigned(FManaged);
+end;
+
+function TRttixField.GetMinOsVersion;
+begin
+  Result := FMinOsVersion;
+end;
+
+function TRttixField.GetName;
+begin
+  Result := FName;
+end;
+
+function TRttixField.GetOffset;
+begin
+  Result := FOffset;
+end;
+
+function TRttixField.GetUnlisted;
+begin
+  Result := FUnlisted;
+end;
+
+function RttixAggregateFields(
+  const Fields: TArray<IRttixField>
+): TArray<IRttixField>;
+var
+  i, j: Integer;
+  Aggregates: TArray<TArray<IRttixField>>;
+begin
+  SetLength(Aggregates, Length(Fields));
+
+  for i := 0 to High(Fields) do
+    if Fields[i].Aggregate and Fields[i].HasOffset and Assigned(
+      Fields[i].FieldType) and (Fields[i].FieldType.SubKind = rtkRecord) then
+    begin
+      // Recursively collect fields from records marked as aggregated
+      Aggregates[i] := RttixAggregateFields((Fields[i].FieldType as
+        IRttixRecordType).ImmediateFields);
+
+      // Adjust their offsets since they are relative to the aggregatee
+      for j := 0 to High(Aggregates[i]) do
+        (Aggregates[i][j] as IRttixFieldInternal).AggregateAtOffset(
+          Fields[i].Offset);
+    end
+    else
+      // Use the field itself
+      Aggregates[i] := [Fields[i]];
+
+  // Make into a single array
+  Result := TArray.Flatten<IRttixField>(Aggregates);
+end;
+
+constructor TRttixRecordType.Create;
+begin
+  inherited Create(TypeInfo, rtkRecord, AllAttributes);
+
+  if TypeInfo.Kind <> tkRecord then
+    Error(reAssertionFailed);
+end;
+
+function TRttixRecordType.GetEffectiveFields;
+begin
+  // Lazily process aggregation
+  if not FEffectiveFieldsInitialized then
+  begin
+    FEffectiveFields := RttixAggregateFields(GetImmediateFields);
+    FEffectiveFieldsInitialized := True;
   end;
+
+  Result := FEffectiveFields;
+end;
+
+function TRttixRecordType.GetImmediateFields;
+var
+  Attribute: PLiteRttiAttribute;
+  ExtraAttributes: TArray<PLiteRttiAttribute>;
+  FieldInfo: TArray<PLiteRttiField>;
+  i: Integer;
+begin
+  // Lazily process the fields
+  if not FImmediateFieldsInitialized then
+  begin
+    // The only attribute we propagate from records to all fields is [DontFollow]
+    ExtraAttributes := nil;
+
+    for Attribute in FAttributes do
+      if Attribute.IsDontFollowAttribute then
+      begin
+        ExtraAttributes := [Attribute];
+        Break;
+      end;
+
+    // Collect immediate fields
+    FieldInfo := FTypeInfo.RecordFields;
+    SetLength(FImmediateFields, Length(FieldInfo));
+
+    for i := 0 to High(FieldInfo) do
+      FImmediateFields[i] := TRttixField.Create(FieldInfo[i], ExtraAttributes);
+
+    FImmediateFieldsInitialized := True;
+  end;
+
+  Result := FImmediateFields;
+end;
+
+function RttixTypeInfo;
+begin
+  Result := RttixTypeInfoWorker(TypeInfo,
+    ExtraAttributes + TypeInfo.AllAttributes);
 end;
 
 end.
