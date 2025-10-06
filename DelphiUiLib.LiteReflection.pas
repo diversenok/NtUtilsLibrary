@@ -341,9 +341,14 @@ function RttixFormatPointer(
   const PointerType: IRttixPointerType;
   const [ref] Instance
 ): String;
+var
+  Value: Pointer absolute Instance;
 begin
-  Result := '(' + UiLibUIntToHex(UIntPtr(Pointer(Instance))) + ' as ' +
-    PointerType.TypeInfo.Name + ')';
+  if Assigned(Value) then
+    Result := '(' + UiLibUIntToHex(UIntPtr(Value)) + ' as ' +
+      PointerType.TypeInfo.Name + ')'
+  else
+    Result := '(nil)';
 end;
 
 { Formatters }
@@ -401,7 +406,7 @@ begin
   // Use the custom formatter first, then delegate pointer formatting
   if Assigned(FFormatter) then
     Result := FFormatter(FRttixType, Instance, Formats)
-  else if Assigned(FInner) then
+  else if Assigned(FInner) and Assigned(Pointer(Instance)) then
     Result := FInner.Format(Pointer(Instance)^, Formats)
   else
     Result.ValidFormats := [];
