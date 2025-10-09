@@ -303,7 +303,6 @@ Support unit                                                                    
 [DelphiUtils.LiteRTTI](./DelphiUtils.LiteRTTI.pas)                                               | Lite RTTI and custom attribute parsing
 [DelphiUiLib.LiteReflection](./DelphiUiLib.LiteReflection.pas)                                   | Type representation via lite RTTI
 [DelphiUiLib.LiteReflection.Types](./DelphiUiLib.LiteReflection.Types.pas)                       | Lite RTTI formatting for some known types
-[DelphiUiLib.Reflection.Records](./NtUiLib/DelphiUiLib.Reflection.Records.pas)                   | RTTI representation of record types (up for replacement)
 [NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console I/O helpers
 [NtUiLib.TaskDialog](./NtUiLib/NtUiLib.TaskDialog.pas)                                           | TaskDialog-based GUI
 [NtUiLib.Errors.Dialog](./NtUiLib/NtUiLib.Errors.Dialog.pas)                                     | GUI error dialog
