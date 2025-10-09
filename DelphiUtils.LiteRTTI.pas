@@ -280,7 +280,7 @@ type
 
   // Information for record fields
   IRttixField = interface
-    ['{33BB044E-68DE-4D9A-89EE-E8FC814C3A59}']
+    ['{A4540DBF-1D92-4D3B-A361-932D4A1DFE52}']
     function GetName: String;
     function GetHasOffset: Boolean;
     function GetOffset: NativeInt;
@@ -288,6 +288,8 @@ type
     function GetMinOsVersion: TWindowsVersion;
     function GetAggregate: Boolean;
     function GetUnlisted: Boolean;
+    function GetIsRecordSize: Boolean;
+    function GetIsOffset: Boolean;
     property Name: String read GetName;
     property HasOffset: Boolean read GetHasOffset;
     property Offset: NativeInt read GetOffset;
@@ -295,6 +297,8 @@ type
     property MinOsVersion: TWindowsVersion read GetMinOsVersion;
     property Aggregate: Boolean read GetAggregate;
     property Unlisted: Boolean read GetUnlisted;
+    property IsRecordSize: Boolean read GetIsRecordSize;
+    property IsOffset: Boolean read GetIsOffset;
   end;
 
   // Extra information for rtkRecord types
@@ -759,7 +763,7 @@ type
     FType: IRttixType;
     FAttributes: TArray<PLiteRttiAttribute>;
     FMinOsVersion: TWindowsVersion;
-    FAggregate, FUnlisted: Boolean;
+    FAggregate, FUnlisted, FIsRecordSize, FIsOffset: Boolean;
     function GetName: String;
     function GetHasOffset: Boolean;
     function GetOffset: NativeInt;
@@ -767,6 +771,8 @@ type
     function GetMinOsVersion: TWindowsVersion;
     function GetAggregate: Boolean;
     function GetUnlisted: Boolean;
+    function GetIsRecordSize: Boolean;
+    function GetIsOffset: Boolean;
     procedure AggregateAtOffset(NestedOffset: NativeInt);
     constructor Create(
       FieldInfo: PLiteRttiField;
@@ -1197,9 +1203,10 @@ begin
   begin
     if Attribute.IsAsciiMagicAttribute then
       FNumericKind := rokAscii
-    else if Attribute.IsBytesAttribute then
+    else if Attribute.IsBytesAttribute or Attribute.IsRecordSizeAttribute then
       FNumericKind := rokBytes
-    else if Attribute.ParseHexAttribute(FMinHexDigits) then
+    else if Attribute.ParseHexAttribute(FMinHexDigits) or
+      Attribute.IsOffsetAttribute then
       FNumericKind := rokHex
     else
       Continue;
@@ -1400,6 +1407,22 @@ begin
       FUnlisted := True;
       Break;
     end;
+
+  // Apply [RecordSize]
+  for Attribute in FAttributes do
+    if Attribute.IsRecordSizeAttribute then
+    begin
+      FIsRecordSize := True;
+      Break;
+    end;
+
+  // Apply [Offset]
+  for Attribute in FAttributes do
+    if Attribute.IsOffsetAttribute then
+    begin
+      FIsOffset := True;
+      Break;
+    end;
 end;
 
 function TRttixField.GetAggregate;
@@ -1418,6 +1441,16 @@ end;
 function TRttixField.GetHasOffset;
 begin
   Result := Assigned(FManaged);
+end;
+
+function TRttixField.GetIsOffset;
+begin
+  Result := FIsOffset;
+end;
+
+function TRttixField.GetIsRecordSize;
+begin
+  Result := FIsRecordSize;
 end;
 
 function TRttixField.GetMinOsVersion;
