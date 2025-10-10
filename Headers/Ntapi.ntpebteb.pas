@@ -34,6 +34,40 @@ const
   PEB_CROSS_FLAGS_CURRENTLY_THROTTLED = $0040;  // Win 10 RS2+
   PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED = $0080;   // Win 10 RS5+
 
+  // PHNT::ntexapi.h - NT global flagd
+  FLG_STOP_ON_EXCEPTION = $00000001; // User, Kernal
+  FLG_SHOW_LDR_SNAPS = $00000002; // User, Kernal
+  FLG_DEBUG_INITIAL_COMMAND = $00000004; // Kernel
+  FLG_STOP_ON_HUNG_GUI = $00000008; // Kernel
+  FLG_HEAP_ENABLE_TAIL_CHECK = $00000010; // User
+  FLG_HEAP_ENABLE_FREE_CHECK = $00000020; // User
+  FLG_HEAP_VALIDATE_PARAMETERS = $00000040; // User
+  FLG_HEAP_VALIDATE_ALL = $00000080; // User
+  FLG_APPLICATION_VERIFIER = $00000100; // User
+  FLG_MONITOR_SILENT_PROCESS_EXIT = $00000200; // User, Kernal
+  FLG_POOL_ENABLE_TAGGING = $00000400; // Kernel
+  FLG_HEAP_ENABLE_TAGGING = $00000800; // User
+  FLG_USER_STACK_TRACE_DB = $00001000; // User (32)
+  FLG_KERNEL_STACK_TRACE_DB = $00002000; // Kernel (32)
+  FLG_MAINTAIN_OBJECT_TYPELIST = $00004000; // Kernel
+  FLG_HEAP_ENABLE_TAG_BY_DLL = $00008000; // User
+  FLG_DISABLE_STACK_EXTENSION = $00010000; // User
+  FLG_ENABLE_CSRDEBUG = $00020000; // Kernel
+  FLG_ENABLE_KDEBUG_SYMBOL_LOAD = $00040000; // Kernel
+  FLG_DISABLE_PAGE_KERNEL_STACKS = $00080000; // Kernel
+  FLG_ENABLE_SYSTEM_CRIT_BREAKS = $00100000; // User
+  FLG_HEAP_DISABLE_COALESCING = $00200000; // User
+  FLG_ENABLE_CLOSE_EXCEPTIONS = $00400000; // Kernel
+  FLG_ENABLE_EXCEPTION_LOGGING = $00800000; // Kernel
+  FLG_ENABLE_HANDLE_TYPE_TAGGING = $01000000; // Kernel
+  FLG_HEAP_PAGE_ALLOCS = $02000000; // User
+  FLG_DEBUG_INITIAL_COMMAND_EX = $04000000; // Kernel
+  FLG_DISABLE_DBGPRINT = $08000000; // Kernel
+  FLG_CRITSEC_EVENT_CREATION = $10000000; // User
+  FLG_LDR_TOP_DOWN = $20000000; // User (64)
+  FLG_ENABLE_HANDLE_EXCEPTIONS = $40000000; // Kernel
+  FLG_DISABLE_PROTDLLS = $80000000; // User
+
   // Extracted from bit union PEB.TracingFlags
   TRACING_FLAGS_HEAP_TRACING_ENABLED = $0001;
   TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED = $0002;
@@ -135,6 +169,40 @@ type
   [FlagName(PEB_CROSS_FLAGS_CURRENTLY_THROTTLED, 'Currently Throttled')]
   [FlagName(PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED, 'Images Hot-patched')]
   TPebCrossFlags = type Cardinal;
+
+  [FlagName(FLG_STOP_ON_EXCEPTION, 'Stop On Exception')]
+  [FlagName(FLG_SHOW_LDR_SNAPS, 'Show LDR Snaps')]
+  [FlagName(FLG_DEBUG_INITIAL_COMMAND, 'Debug Initial Command')]
+  [FlagName(FLG_STOP_ON_HUNG_GUI, 'Stop On Hung GUI')]
+  [FlagName(FLG_HEAP_ENABLE_TAIL_CHECK, 'Heap Enable Tail Check')]
+  [FlagName(FLG_HEAP_ENABLE_FREE_CHECK, 'Heap Enable Free Check')]
+  [FlagName(FLG_HEAP_VALIDATE_PARAMETERS, 'Heap Validate Parameters')]
+  [FlagName(FLG_HEAP_VALIDATE_ALL, 'Heap Validate All')]
+  [FlagName(FLG_APPLICATION_VERIFIER, 'AppVerifier')]
+  [FlagName(FLG_MONITOR_SILENT_PROCESS_EXIT, 'Monitor Silent Process Exit')]
+  [FlagName(FLG_POOL_ENABLE_TAGGING, 'Pool Enable Tagging')]
+  [FlagName(FLG_HEAP_ENABLE_TAGGING, 'Heap Enable Tagginh')]
+  [FlagName(FLG_USER_STACK_TRACE_DB, 'User Stack Trace DB')]
+  [FlagName(FLG_KERNEL_STACK_TRACE_DB, 'Kernel Stack Trace DB')]
+  [FlagName(FLG_MAINTAIN_OBJECT_TYPELIST, 'Maintain Object Type List')]
+  [FlagName(FLG_HEAP_ENABLE_TAG_BY_DLL, 'Heap Enable Tag By DLL')]
+  [FlagName(FLG_DISABLE_STACK_EXTENSION, 'Disable Stack Extension')]
+  [FlagName(FLG_ENABLE_CSRDEBUG, 'Enable CSR Debug')]
+  [FlagName(FLG_ENABLE_KDEBUG_SYMBOL_LOAD, 'Enable KDebug Symbol Load')]
+  [FlagName(FLG_DISABLE_PAGE_KERNEL_STACKS, 'Disable Page Kernel Stacks')]
+  [FlagName(FLG_ENABLE_SYSTEM_CRIT_BREAKS, 'Enable System Crit Breaks')]
+  [FlagName(FLG_HEAP_DISABLE_COALESCING, 'Heap Disable Coalescing')]
+  [FlagName(FLG_ENABLE_CLOSE_EXCEPTIONS, 'Enable Close Exceptions')]
+  [FlagName(FLG_ENABLE_EXCEPTION_LOGGING, 'Enable Exception Logging')]
+  [FlagName(FLG_ENABLE_HANDLE_TYPE_TAGGING, 'Enable Handle Type Tagging')]
+  [FlagName(FLG_HEAP_PAGE_ALLOCS, 'Heap Page Allocs')]
+  [FlagName(FLG_DEBUG_INITIAL_COMMAND_EX, 'Debug Initial Command Ex')]
+  [FlagName(FLG_DISABLE_DBGPRINT, 'Disable DbgPrint')]
+  [FlagName(FLG_CRITSEC_EVENT_CREATION, 'Critical Section Event Creation')]
+  [FlagName(FLG_LDR_TOP_DOWN, 'LDR Top-Down')]
+  [FlagName(FLG_ENABLE_HANDLE_EXCEPTIONS, 'Enable Handle Exceptions')]
+  [FlagName(FLG_DISABLE_PROTDLLS, 'Disable Prot. DLLs')]
+  TNtGlobalFlags = type Cardinal;
 
   // rev
   TKernelCallbackTable = array [0..129] of Pointer;
@@ -269,7 +337,7 @@ type
     OEMCodePageData: Pointer; // PCPTABLEINFO
     UnicodeCaseTableData: Pointer; // PNLSTABLEINFO
     NumberOfProcessors: Cardinal;
-    [Hex] NTGlobalFlag: Cardinal;
+    NtGlobalFlag: TNtGlobalFlags;
     CriticalSectionTimeout: TULargeInteger;
     [Bytes] HeapSegmentReserve: NativeUInt;
     [Bytes] HeapSegmentCommit: NativeUInt;

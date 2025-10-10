@@ -49,11 +49,6 @@ const
   SYSTEM_PROCESS_BACKGROUND_ACTIVITY_MODERATED = $0004;
   SYSTEM_PROCESS_VALID_MASK = $FFFFFFE1;
 
-  // Global flags
-
-  // PHNT::ntexapi.h - global flags
-  FLG_MAINTAIN_OBJECT_TYPELIST = $4000; // kernel
-
 type
   [FriendlyName('event'), ValidMask(EVENT_ALL_ACCESS)]
   [SubEnum(EVENT_ALL_ACCESS, EVENT_ALL_ACCESS, 'Full Access')]
