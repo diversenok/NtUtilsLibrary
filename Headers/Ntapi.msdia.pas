@@ -497,21 +497,21 @@ type
 
     function findChildren(
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [out] out ppResult: IDiaEnumSymbols
     ): HResult; stdcall;
 
     function findChildrenEx(
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [out] out ppResult: IDiaEnumSymbols
     ): HResult; stdcall;
 
     function findChildrenExByAddr(
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [in] isect: Cardinal;
       [in] offset: Cardinal;
@@ -520,7 +520,7 @@ type
 
     function findChildrenExByVA(
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [in] va: UInt64;
       [out] out ppResult: IDiaEnumSymbols
@@ -528,7 +528,7 @@ type
 
     function findChildrenExByRVA(
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [in] rva: Cardinal;
       [out] out ppResult: IDiaEnumSymbols
@@ -1182,7 +1182,7 @@ type
     function findChildren(
       [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [out] out Result: IDiaEnumSymbols
     ): HResult; stdcall;
@@ -1190,7 +1190,7 @@ type
     function findChildrenEx(
       [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [out] out Result: IDiaEnumSymbols
     ): HResult; stdcall;
@@ -1198,7 +1198,7 @@ type
     function findChildrenExByAddr(
       [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [in] isect: Cardinal;
       [in] offset: Cardinal;
@@ -1208,7 +1208,7 @@ type
     function findChildrenExByVA(
       [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [in] va: UInt64;
       [out] out Result: IDiaEnumSymbols
@@ -1217,7 +1217,7 @@ type
     function findChildrenExByRVA(
       [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
-      [in, opt] name: PWideChar;
+      [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [in] rva: Cardinal;
       [out] out Result: IDiaEnumSymbols
@@ -1274,7 +1274,7 @@ type
 
     function findFile(
       [in] const Compiland: IDiaSymbol;
-      [in] name: PWideChar;
+      [in] name: WideString;
       [in] compareFlags: TNameSearchOptions;
       [out] out Resul: IDiaEnumSourceFiles
     ): HResult; stdcall;
@@ -1318,7 +1318,7 @@ type
     ): HResult; stdcall;
 
     function findInjectedSource(
-      [in] srcFile: PWideChar;
+      [in] srcFile: WideString;
       [out] out Result: IDiaEnumInjectedSources
     ): HResult; stdcall;
 
@@ -1381,7 +1381,7 @@ type
     ): HResult; stdcall;
 
     function findInlineesByName(
-      [in] name: PWideChar;
+      [in] name: WideString;
       [in] option: Cardinal;
       [out] out Result: IDiaEnumSymbols
     ): HResult; stdcall;
@@ -1408,7 +1408,7 @@ type
     ): HResult; stdcall;
 
     function findAcceleratorInlineesByName(
-      [in] name: PWideChar;
+      [in] name: WideString;
       [in] option: Cardinal;
       [out] out Result: IDiaEnumSymbols
     ): HResult; stdcall;
@@ -1603,19 +1603,19 @@ type
     ): HResult; stdcall;
 
     function LoadDataFromPdb(
-      [in] Path: PWideChar
+      [in] Path: WideString
     ): HResult; stdcall;
 
     function LoadAndValidateDataFromPdb(
-      [in] Path: PWideChar;
+      [in] Path: WideString;
       [in] const sig70: TGuid;
       [in] sig: Cardinal;
       [in] age: Cardinal
     ): HResult; stdcall;
 
     function LoadDataForExe(
-      [in] executable: PWideChar;
-      [in] searchPath: PWideChar;
+      [in] executable: WideString;
+      [in] searchPath: WideString;
       [in] const Callback: IUnknown
     ): HResult; stdcall;
 
@@ -1628,16 +1628,16 @@ type
     ): HResult; stdcall;
 
     function LoadDataFromCodeViewInfo(
-      [in] executable: PWideChar;
-      [in] searchPath: PWideChar;
+      [in] executable: WideString;
+      [in] searchPath: WideString;
       [in, NumberOfBytes] cbCvInfo: Cardinal;
       [in, ReadsFrom] pbCvInfo: Pointer;
       [in] const Callback: IUnknown
     ): HResult; stdcall;
 
     function LoadDataFromMiscInfo(
-      [in] executable: PWideChar;
-      [in] searchPath: PWideChar;
+      [in] executable: WideString;
+      [in] searchPath: WideString;
       [in] timeStampExe: TUnixTime;
       [in] timeStampDbg: TUnixTime;
       [in, Bytes] sizeOfExe: Cardinal;

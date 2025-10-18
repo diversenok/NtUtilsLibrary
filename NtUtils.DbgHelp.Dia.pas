@@ -241,7 +241,7 @@ var
   Count: Integer;
 begin
   Result.Location := 'IDiaSymbol::findChildren';
-  Result.HResult := Symbol.findChildren(SymTag, PWideChar(Name), CompareFlags,
+  Result.HResult := Symbol.findChildren(SymTag, Name, CompareFlags,
     Enum);
 
   if not Result.IsSuccess then
