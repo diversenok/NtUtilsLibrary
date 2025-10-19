@@ -25,7 +25,76 @@ const
 
 type
   // DIA::cvconst.h
+  [SDKName('CV_call_e')]
+  [NamingStyle(nsSnakeCase, 'CV_CALL')]
+  TCvCallE = (
+    CV_CALL_NEAR_C = 0,
+    CV_CALL_FAR_C = 1,
+    CV_CALL_NEAR_PASCAL = 2,
+    CV_CALL_FAR_PASCAL = 3,
+    CV_CALL_NEAR_FAST = 4,
+    CV_CALL_FAR_FAST = 5,
+    CV_CALL_SKIPPED = 6,
+    CV_CALL_NEAR_STD = 7,
+    CV_CALL_FAR_STD = 8,
+    CV_CALL_NEAR_SYS = 9,
+    CV_CALL_FAR_SYS = 10,
+    CV_CALL_THISCALL = 11,
+    CV_CALL_MIPSCALL = 12,
+    CV_CALL_GENERIC = 13,
+    CV_CALL_ALPHACALL = 14,
+    CV_CALL_PPCCALL = 15,
+    CV_CALL_SHCALL = 16,
+    CV_CALL_ARMCALL = 17,
+    CV_CALL_AM33CALL = 18,
+    CV_CALL_TRICALL = 19,
+    CV_CALL_SH5CALL = 20,
+    CV_CALL_M32RCALL = 21,
+    CV_CALL_CLRCALL = 22,
+    CV_CALL_INLINE = 23,
+    CV_CALL_NEAR_VECTOR = 24,
+    CV_CALL_SWIFT = 25
+  );
+
+  // DIA::cvconst.h
+  [SDKName('CV_access_e')]
+  [NamingStyle(nsCamelCase, 'CV_'), MinValue(1)]
+  TCvAccessE = (
+    [Reserved] CV_reserverd = 0,
+    CV_private = 1,
+    CV_protected = 2,
+    CV_public = 3
+  );
+
+  // DIA::cvconst.h
+  [SDKName('THUNK_ORDINAL')]
+  [NamingStyle(nsSnakeCase, 'THUNK_ORDINAL')]
+  TThunkOrdinal = (
+    THUNK_ORDINAL_NOTYPE = 0,
+    THUNK_ORDINAL_ADJUSTOR = 1,
+    THUNK_ORDINAL_VCALL = 2,
+    THUNK_ORDINAL_PCODE = 3,
+    THUNK_ORDINAL_LOAD = 4,
+    THUNK_ORDINAL_TRAMP_INCREMENTAL = 5,
+    THUNK_ORDINAL_TRAMP_BRANCHISLAND = 6,
+    THUNK_ORDINAL_TRAMP_STRICTICF = 7,
+    THUNK_ORDINAL_TRAMP_ARM64XSAMEADDRESS = 8,
+    THUNK_ORDINAL_TRAMP_FUNCOVERRIDING = 9
+  );
+
+  // DIA::cvconst.h
+  [SDKName('CV_SourceChksum_t')]
+  [NamingStyle(nsSnakeCase, 'CHKSUM_TYPE')]
+  TCvSourceChecksumT = (
+    CHKSUM_TYPE_NONE = 0,
+    CHKSUM_TYPE_MD5 = 1,
+    CHKSUM_TYPE_SHA1 = 2,
+    CHKSUM_TYPE_SHA_256 = 3
+  );
+
+  // DIA::cvconst.h
   [SDKName('LocationType')]
+  [NamingStyle(nsCamelCase, 'LocIs')]
   TLocationType = (
     LocIsNull = 0,
     LocIsStatic = 1,
@@ -57,7 +126,9 @@ type
     DataIsConstant = 9
   );
 
+  // DIA::cvconst.h
   [SDKName('UdtKind')]
+  [NamingStyle(nsCamelCase, 'Udt')]
   TUdtKind = (
     UdtStruct = 0,
     UdtClass = 1,
@@ -108,36 +179,126 @@ type
   );
 
   // DIA::cvconst.h
-  [SDKName('CV_call_e')]
-  [NamingStyle(nsSnakeCase, 'CV_CALL')]
-  TCvCallE = (
-    CV_CALL_NEAR_C = 0,
-    CV_CALL_FAR_C = 1,
-    CV_CALL_NEAR_PASCAL = 2,
-    CV_CALL_FAR_PASCAL = 3,
-    CV_CALL_NEAR_FAST = 4,
-    CV_CALL_FAR_FAST = 5,
-    CV_CALL_SKIPPED = 6,
-    CV_CALL_NEAR_STD = 7,
-    CV_CALL_FAR_STD = 8,
-    CV_CALL_NEAR_SYS = 9,
-    CV_CALL_FAR_SYS = 10,
-    CV_CALL_THISCALL = 11,
-    CV_CALL_MIPSCALL = 12,
-    CV_CALL_GENERIC = 13,
-    CV_CALL_ALPHACALL = 14,
-    CV_CALL_PPCCALL = 15,
-    CV_CALL_SHCALL = 16,
-    CV_CALL_ARMCALL = 17,
-    CV_CALL_AM33CALL = 18,
-    CV_CALL_TRICALL = 19,
-    CV_CALL_SH5CALL = 20,
-    CV_CALL_M32RCALL = 21,
-    CV_CALL_CLRCALL = 22,
-    CV_CALL_INLINE = 23,
-    CV_CALL_NEAR_VECTOR = 24,
-    CV_CALL_SWIFT = 25
+  [SDKName('CV_CFL_LANG')]
+  [NamingStyle(nsSnakeCase, 'CV_CFL')]
+  TCvCflLang = (
+    CV_CFL_C = 0,
+    CV_CFL_CXX = 1,
+    CV_CFL_FORTRAN = 2,
+    CV_CFL_MASM = 3,
+    CV_CFL_PASCAL = 4,
+    CV_CFL_BASIC = 5,
+    CV_CFL_COBOL = 6,
+    CV_CFL_LINK = 7,
+    CV_CFL_CVTRES = 8,
+    CV_CFL_CVTPGD = 9,
+    CV_CFL_CSHARP = 10,
+    CV_CFL_VB = 11,
+    CV_CFL_ILASM = 12,
+    CV_CFL_JAVA = 13,
+    CV_CFL_JSCRIPT = 14,
+    CV_CFL_MSIL = 15,
+    CV_CFL_HLSL = 16,
+    CV_CFL_OBJC = 17,
+    CV_CFL_OBJCXX = 18,
+    CV_CFL_SWIFT = 19,
+    CV_CFL_ALIASOBJ = 20,
+    CV_CFL_RUST = 21,
+    CV_CFL_GO = 22
   );
+
+  // DIA::cvconst.h
+  [SDKName('CV_HLSLREG_e')]
+  [NamingStyle(nsSnakeCase, 'CV_HLSLREG')]
+  TCvHlslRegE = (
+    CV_HLSLREG_TEMP = 0,
+    CV_HLSLREG_INPUT = 1,
+    CV_HLSLREG_OUTPUT = 2,
+    CV_HLSLREG_INDEXABLE_TEMP = 3,
+    CV_HLSLREG_IMMEDIATE32 = 4,
+    CV_HLSLREG_IMMEDIATE64 = 5,
+    CV_HLSLREG_SAMPLER = 6,
+    CV_HLSLREG_RESOURCE = 7,
+    CV_HLSLREG_CONSTANT_BUFFER = 8,
+    CV_HLSLREG_IMMEDIATE_CONSTANT_BUFFER = 9,
+    CV_HLSLREG_LABEL = 10,
+    CV_HLSLREG_INPUT_PRIMITIVEID = 11,
+    CV_HLSLREG_OUTPUT_DEPTH = 12,
+    CV_HLSLREG_NULL = 13,
+    CV_HLSLREG_RASTERIZER = 14,
+    CV_HLSLREG_OUTPUT_COVERAGE_MASK = 15,
+    CV_HLSLREG_STREAM = 16,
+    CV_HLSLREG_FUNCTION_BODY = 17,
+    CV_HLSLREG_FUNCTION_TABLE = 18,
+    CV_HLSLREG_INTERFACE = 19,
+    CV_HLSLREG_FUNCTION_INPUT = 20,
+    CV_HLSLREG_FUNCTION_OUTPUT = 21,
+    CV_HLSLREG_OUTPUT_CONTROL_POINT_ID = 22,
+    CV_HLSLREG_INPUT_FORK_INSTANCE_ID = 23,
+    CV_HLSLREG_INPUT_JOIN_INSTANCE_ID = 24,
+    CV_HLSLREG_INPUT_CONTROL_POINT = 25,
+    CV_HLSLREG_OUTPUT_CONTROL_POINT = 26,
+    CV_HLSLREG_INPUT_PATCH_CONSTANT = 27,
+    CV_HLSLREG_INPUT_DOMAIN_POINT = 28,
+    CV_HLSLREG_THIS_POINTER = 29,
+    CV_HLSLREG_UNORDERED_ACCESS_VIEW = 30,
+    CV_HLSLREG_THREAD_GROUP_SHARED_MEMORY = 31,
+    CV_HLSLREG_INPUT_THREAD_ID = 32,
+    CV_HLSLREG_INPUT_THREAD_GROUP_ID = 33,
+    CV_HLSLREG_INPUT_THREAD_ID_IN_GROUP = 34,
+    CV_HLSLREG_INPUT_COVERAGE_MASK = 35,
+    CV_HLSLREG_INPUT_THREAD_ID_IN_GROUP_FLATTENED = 36,
+    CV_HLSLREG_INPUT_GS_INSTANCE_ID = 37,
+    CV_HLSLREG_OUTPUT_DEPTH_GREATER_EQUAL = 38,
+    CV_HLSLREG_OUTPUT_DEPTH_LESS_EQUAL = 39,
+    CV_HLSLREG_CYCLE_COUNTER = 40
+  );
+
+  // DIA::cvconst.h
+  [SDKName('CV_HLSLMemorySpace_e')]
+  [NamingStyle(nsSnakeCase, 'CV_HLSL_MEMSPACE')]
+  TCvHlslMemorySpaceE = (
+    CV_HLSL_MEMSPACE_DATA = 0,
+    CV_HLSL_MEMSPACE_SAMPLER = 1,
+    CV_HLSL_MEMSPACE_RESOURCE = 2,
+    CV_HLSL_MEMSPACE_RWRESOURCE = 3
+  );
+
+  // DIA::cvconst.h
+  [SDKName('CV_CoroutineKind_e')]
+  [NamingStyle(nsSnakeCase, 'CV_COROUTINEKIND')]
+  TCvCoroutineKindE = (
+    CV_COROUTINEKIND_NONE = 0,
+    CV_COROUTINEKIND_PRIMARY = 1,
+    CV_COROUTINEKIND_INIT = 2,
+    CV_COROUTINEKIND_RESUME = 3,
+    CV_COROUTINEKIND_DESTROY = 4
+  );
+
+  // DIA::cvconst.h
+  [SDKName('CV_AssociationKind_e')]
+  [NamingStyle(nsSnakeCase, 'CV_COROUTINEKIND')]
+  TCvAssociationKindE = (
+    CV_ASSOCIATIONKIND_NONE = 0,
+    CV_ASSOCIATIONKIND_COROUTINE = 1
+  );
+
+  TDiaTagValueUnion = record
+  case Integer of
+    1: (data8: Byte);
+    2: (data16: Word);
+    4: (data32: Cardinal);
+    8: (data64: UInt64);
+    16: (data128: TGuid);
+  end;
+
+  // DIA::dia2.h
+  [SDKName('DiaTagValue')]
+  TDiaTagValue = record
+    value: TDiaTagValueUnion;
+    valueSizeBytes: Byte;
+  end;
+  PDiaTagValue = ^TDiaTagValue;
 
   // DIA::dia2.h
   [SDKName('NameSearchOptions')]
@@ -214,7 +375,7 @@ type
     ): HResult; stdcall;
 
     function get_registerId(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: Cardinal // CV_HREG_e
     ): HResult; stdcall;
 
     function get_offset(
@@ -242,7 +403,7 @@ type
     ): HResult; stdcall;
 
     function get_access(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TCvAccessE
     ): HResult; stdcall;
 
     function get_libraryName(
@@ -254,7 +415,7 @@ type
     ): HResult; stdcall;
 
     function get_language(
-      [out] out RetVal: Cardinal // CV_CFL_LANG
+      [out] out RetVal: TCvCflLang
     ): HResult; stdcall;
 
     function get_editAndContinueEnabled(
@@ -294,7 +455,7 @@ type
     ): HResult; stdcall;
 
     function get_thunkOrdinal(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TThunkOrdinal
     ): HResult; stdcall;
 
     function get_thisAdjust(
@@ -836,7 +997,7 @@ type
     function get_modifierValues(
       [in, NumberOfElements] cnt: Cardinal;
       [out, NumberOfElements] out pcnt: Cardinal;
-      [out, WritesTo] pModifiers: PWord
+      [out, WritesTo] pModifiers: PCardinal // CV_modifier_e
     ): HResult; stdcall;
 
     function get_isReturnValue(
@@ -848,11 +1009,11 @@ type
     ): HResult; stdcall;
 
     function get_builtInKind(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: Cardinal // CV_builtin_e
     ): HResult; stdcall;
 
     function get_registerType(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TCvHlslRegE
     ): HResult; stdcall;
 
     function get_baseDataSlot(
@@ -880,7 +1041,7 @@ type
     ): HResult; stdcall;
 
     function get_memorySpaceKind(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TCvHlslMemorySpaceE
     ): HResult; stdcall;
 
     function get_unmodifiedTypeId(
@@ -1153,6 +1314,136 @@ type
 
     function get_bindSlot(
       [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol2 = interface (IDiaSymbol)
+    ['{611e86cd-b7d1-4546-8a15-070e2b07a427}']
+    function get_isObjCClass(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_isObjCCategory(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_isObjCProtocol(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol3 = interface (IDiaSymbol2)
+    ['{99b665f7-c1b2-49d3-89b2-a384361acab5}']
+    function get_inlinee(
+      [out] out RetVal: IDiaSymbol
+    ): HResult; stdcall;
+
+    function get_inlineeId(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol4 = interface (IDiaSymbol3)
+    ['{bf6c88a7-e9d6-4346-99a1-d053de5a7808}']
+    function get_noexcept(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol5 = interface (IDiaSymbol4)
+    ['{abe2de00-dc2d-4793-af9a-ef1d90832644}']
+    function get_hasAbsoluteAddress(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol6 = interface (IDiaSymbol5)
+    ['{abe2de00-dc2d-4793-af9a-ef1d90832644}']
+    function get_isStaticMemberFunc(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol7 = interface (IDiaSymbol6)
+    ['{64ce6cd5-7315-4328-86d6-10e303e010b4}']
+    function get_isSignRet(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol8 = interface (IDiaSymbol7)
+    ['{7f2e041f-1294-41bd-b83a-e715972d2ce3}']
+    function get_coroutineKind(
+      [out] out RetVal: TCvCoroutineKindE
+    ): HResult; stdcall;
+
+    function get_associatedSymbolKind(
+      [out] out RetVal: TCvAssociationKindE
+    ): HResult; stdcall;
+
+    function get_associatedSymbolSection(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_associatedSymbolOffset(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_associatedSymbolRva(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_associatedSymbolAddr(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+  end;
+
+    // DIA::dia2.h
+  IDiaSymbol9 = interface (IDiaSymbol8)
+    ['{a89e5969-92a1-4f8a-b704-00121c37abbb}']
+    function get_framePadSize(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_framePadOffset(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_isRTCs(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol10 = interface (IDiaSymbol9)
+    ['{9034a70b-b0b7-4605-8a97-33772f3a7b8c}']
+    function get_sourceLink(
+      [in, NumberOfBytes] cb: Cardinal;
+      [out, NumberOfBytes] out pcb: Cardinal;
+      [out, WritesTo] pb: Pointer
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSymbol11 = interface (IDiaSymbol10)
+    ['{b6f54fcd-05e3-433d-b305-b0c1437d2d16}']
+    function get_discriminatedUnionTag(
+      [out] out TagType: IDiaSymbol;
+      [out] out TagOffset: Cardinal;
+      [out] out TagMask: TDiaTagValue
+    ): HResult; stdcall;
+
+    function get_tagRanges(
+      [in, NumberOfBytes] count: Cardinal;
+      [out] out RangeValues: Cardinal;
+      [out, WritesTo] pRangeValues: PDiaTagValue
     ): HResult; stdcall;
   end;
 
