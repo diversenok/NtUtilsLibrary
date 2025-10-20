@@ -1277,7 +1277,7 @@ begin
 
   // Dynamically choose the width
   if Base = nsHexadecimal then
-    RtlxExpadWidthForHex(Width, Value, ValueSize)
+    RtlxExpadWidthForHex(Width, Remaining, ValueSize)
   else
     Width := Width and not NUMERIC_WIDTH_FLAG_MASK;
 
