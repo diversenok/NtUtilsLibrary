@@ -23,6 +23,72 @@ const
   nsfRegularExpression = $08;
   nsfUndecoratedName = $10;
 
+  // DIA::cvconst.h - platform types
+  CV_CFL_8080 = $00;
+  CV_CFL_8086 = $01;
+  CV_CFL_80286 = $02;
+  CV_CFL_80386 = $03;
+  CV_CFL_80486 = $04;
+  CV_CFL_PENTIUM = $05;
+  CV_CFL_PENTIUMII = $06;
+  CV_CFL_PENTIUMIII = $07;
+  CV_CFL_MIPS = $10;
+  CV_CFL_MIPS16 = $11;
+  CV_CFL_MIPS32 = $12;
+  CV_CFL_MIPS64 = $13;
+  CV_CFL_MIPSI = $14;
+  CV_CFL_MIPSII = $15;
+  CV_CFL_MIPSIII = $16;
+  CV_CFL_MIPSIV = $17;
+  CV_CFL_MIPSV = $18;
+  CV_CFL_M68000 = $20;
+  CV_CFL_M68010 = $21;
+  CV_CFL_M68020 = $22;
+  CV_CFL_M68030 = $23;
+  CV_CFL_M68040 = $24;
+  CV_CFL_ALPHA_21064 = $30;
+  CV_CFL_ALPHA_21164 = $31;
+  CV_CFL_ALPHA_21164A = $32;
+  CV_CFL_ALPHA_21264 = $33;
+  CV_CFL_ALPHA_21364 = $34;
+  CV_CFL_PPC601 = $40;
+  CV_CFL_PPC603 = $41;
+  CV_CFL_PPC604 = $42;
+  CV_CFL_PPC620 = $43;
+  CV_CFL_PPCFP = $44;
+  CV_CFL_PPCBE = $45;
+  CV_CFL_SH3 = $50;
+  CV_CFL_SH3E = $51;
+  CV_CFL_SH3DSP = $52;
+  CV_CFL_SH4 = $53;
+  CV_CFL_SHMEDIA = $54;
+  CV_CFL_ARM3 = $60;
+  CV_CFL_ARM4 = $61;
+  CV_CFL_ARM4T = $62;
+  CV_CFL_ARM5 = $63;
+  CV_CFL_ARM5T = $64;
+  CV_CFL_ARM6 = $65;
+  CV_CFL_ARM_XMAC = $66;
+  CV_CFL_ARM_WMMX = $67;
+  CV_CFL_ARM7 = $68;
+  CV_CFL_OMNI = $70;
+  CV_CFL_IA64 = $80;
+  CV_CFL_IA64_2 = $81;
+  CV_CFL_CEE = $90;
+  CV_CFL_AM33 = $A0;
+  CV_CFL_M32R = $B0;
+  CV_CFL_TRICORE = $C0;
+  CV_CFL_X64 = $D0;
+  CV_CFL_EBC = $E0;
+  CV_CFL_THUMB = $F0;
+  CV_CFL_ARMNT = $F4;
+  CV_CFL_ARM64 = $F6;
+  CV_CFL_HYBRID_X86_ARM64 = $F7;
+  CV_CFL_ARM64EC = $F8;
+  CV_CFL_ARM64X = $F9;
+  CV_CFL_UNKNOWN = $FF;
+  CV_CFL_D3D11_SHADER = $100;
+
 type
   // DIA::cvconst.h
   [SDKName('CV_call_e')]
@@ -206,6 +272,75 @@ type
     CV_CFL_RUST = 21,
     CV_CFL_GO = 22
   );
+
+  // DIA::cvconst.h
+  [SDKName('CV_CPU_TYPE_e')]
+  [NamingStyle(nsSnakeCase, 'CV_CFL')]
+  [SubEnum(MAX_UINT, CV_CFL_8080, 'CV_CFL_8080')]
+  [SubEnum(MAX_UINT, CV_CFL_8086, 'CV_CFL_8086')]
+  [SubEnum(MAX_UINT, CV_CFL_80286, 'CV_CFL_80286')]
+  [SubEnum(MAX_UINT, CV_CFL_80386, 'CV_CFL_80386')]
+  [SubEnum(MAX_UINT, CV_CFL_80486, 'CV_CFL_80486')]
+  [SubEnum(MAX_UINT, CV_CFL_PENTIUM, 'CV_CFL_PENTIUM')]
+  [SubEnum(MAX_UINT, CV_CFL_PENTIUMII, 'CV_CFL_PENTIUMII')]
+  [SubEnum(MAX_UINT, CV_CFL_PENTIUMIII, 'CV_CFL_PENTIUMIII')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPS, 'CV_CFL_MIPS')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPS16, 'CV_CFL_MIPS16')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPS32, 'CV_CFL_MIPS32')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPS64, 'CV_CFL_MIPS64')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPSI, 'CV_CFL_MIPSI')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPSII, 'CV_CFL_MIPSII')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPSIII, 'CV_CFL_MIPSIII')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPSIV, 'CV_CFL_MIPSIV')]
+  [SubEnum(MAX_UINT, CV_CFL_MIPSV, 'CV_CFL_MIPSV')]
+  [SubEnum(MAX_UINT, CV_CFL_M68000, 'CV_CFL_M68000')]
+  [SubEnum(MAX_UINT, CV_CFL_M68010, 'CV_CFL_M68010')]
+  [SubEnum(MAX_UINT, CV_CFL_M68020, 'CV_CFL_M68020')]
+  [SubEnum(MAX_UINT, CV_CFL_M68030, 'CV_CFL_M68030')]
+  [SubEnum(MAX_UINT, CV_CFL_M68040, 'CV_CFL_M68040')]
+  [SubEnum(MAX_UINT, CV_CFL_ALPHA_21064, 'CV_CFL_ALPHA_21064')]
+  [SubEnum(MAX_UINT, CV_CFL_ALPHA_21164, 'CV_CFL_ALPHA_21164')]
+  [SubEnum(MAX_UINT, CV_CFL_ALPHA_21164A, 'CV_CFL_ALPHA_21164A')]
+  [SubEnum(MAX_UINT, CV_CFL_ALPHA_21264, 'CV_CFL_ALPHA_21264')]
+  [SubEnum(MAX_UINT, CV_CFL_ALPHA_21364, 'CV_CFL_ALPHA_21364')]
+  [SubEnum(MAX_UINT, CV_CFL_PPC601, 'CV_CFL_PPC601')]
+  [SubEnum(MAX_UINT, CV_CFL_PPC603, 'CV_CFL_PPC603')]
+  [SubEnum(MAX_UINT, CV_CFL_PPC604, 'CV_CFL_PPC604')]
+  [SubEnum(MAX_UINT, CV_CFL_PPC620, 'CV_CFL_PPC620')]
+  [SubEnum(MAX_UINT, CV_CFL_PPCFP, 'CV_CFL_PPCFP')]
+  [SubEnum(MAX_UINT, CV_CFL_PPCBE, 'CV_CFL_PPCBE')]
+  [SubEnum(MAX_UINT, CV_CFL_SH3, 'CV_CFL_SH3')]
+  [SubEnum(MAX_UINT, CV_CFL_SH3E, 'CV_CFL_SH3E')]
+  [SubEnum(MAX_UINT, CV_CFL_SH3DSP, 'CV_CFL_SH3DSP')]
+  [SubEnum(MAX_UINT, CV_CFL_SH4, 'CV_CFL_SH4')]
+  [SubEnum(MAX_UINT, CV_CFL_SHMEDIA, 'CV_CFL_SHMEDIA')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM3, 'CV_CFL_ARM3')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM4, 'CV_CFL_ARM4')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM4T, 'CV_CFL_ARM4T')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM5, 'CV_CFL_ARM5')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM5T, 'CV_CFL_ARM5T')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM6, 'CV_CFL_ARM6')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM_XMAC, 'CV_CFL_ARM_XMAC')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM_WMMX, 'CV_CFL_ARM_WMMX')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM7, 'CV_CFL_ARM7')]
+  [SubEnum(MAX_UINT, CV_CFL_OMNI, 'CV_CFL_OMNI')]
+  [SubEnum(MAX_UINT, CV_CFL_IA64, 'CV_CFL_IA64')]
+  [SubEnum(MAX_UINT, CV_CFL_IA64_2, 'CV_CFL_IA64_2')]
+  [SubEnum(MAX_UINT, CV_CFL_CEE, 'CV_CFL_CEE')]
+  [SubEnum(MAX_UINT, CV_CFL_AM33, 'CV_CFL_AM33')]
+  [SubEnum(MAX_UINT, CV_CFL_M32R, 'CV_CFL_M32R')]
+  [SubEnum(MAX_UINT, CV_CFL_TRICORE, 'CV_CFL_TRICORE')]
+  [SubEnum(MAX_UINT, CV_CFL_X64, 'CV_CFL_X64')]
+  [SubEnum(MAX_UINT, CV_CFL_EBC, 'CV_CFL_EBC')]
+  [SubEnum(MAX_UINT, CV_CFL_THUMB, 'CV_CFL_THUMB')]
+  [SubEnum(MAX_UINT, CV_CFL_ARMNT, 'CV_CFL_ARMNT')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM64, 'CV_CFL_ARM64')]
+  [SubEnum(MAX_UINT, CV_CFL_HYBRID_X86_ARM64, 'CV_CFL_HYBRID_X86_ARM64')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM64EC, 'CV_CFL_ARM64EC')]
+  [SubEnum(MAX_UINT, CV_CFL_ARM64X, 'CV_CFL_ARM64X')]
+  [SubEnum(MAX_UINT, CV_CFL_UNKNOWN, 'CV_CFL_UNKNOWN')]
+  [SubEnum(MAX_UINT, CV_CFL_D3D11_SHADER, 'CV_CFL_D3D11_SHADER')]
+  TCvCpuTypeE = type Cardinal;
 
   // DIA::cvconst.h
   [SDKName('CV_HLSLREG_e')]
@@ -411,7 +546,7 @@ type
     ): HResult; stdcall;
 
     function get_platform(
-      [out] out RetVal: Cardinal // CV_CPU_TYPE_e
+      [out] out RetVal: TCvCpuTypeE
     ): HResult; stdcall;
 
     function get_language(
@@ -1363,7 +1498,7 @@ type
 
   // DIA::dia2.h
   IDiaSymbol6 = interface (IDiaSymbol5)
-    ['{abe2de00-dc2d-4793-af9a-ef1d90832644}']
+    ['{8133dad3-75fe-4234-ac7e-f8e7a1d3cbb3}']
     function get_isStaticMemberFunc(
       [out] out RetVal: LongBool
     ): HResult; stdcall;
