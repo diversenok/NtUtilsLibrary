@@ -216,6 +216,9 @@ type
     function GetSize: NativeUInt;
     function GetMinDigits: Byte;
     function GetValidMask: UInt64;
+    function GetNamingStyle: TNamingStyle;
+    function GetPrefix: String;
+    function GetSuffix: String;
     function GetFlags: TArray<TRttixBitwiseFlag>;
     function GetFlagGroups: TArray<TRttixBitwiseFlag>;
     function ReadInstance(const [ref] Instance): UInt64;
@@ -223,6 +226,9 @@ type
     property Size: NativeUInt read GetSize;
     property MinDigits: Byte read GetMinDigits;
     property ValidMask: UInt64 read GetValidMask;
+    property NamingStyle: TNamingStyle read GetNamingStyle;
+    property Prefix: String read GetPrefix;
+    property Suffix: String read GetSuffix;
     property Flags: TArray<TRttixBitwiseFlag> read GetFlags;
     property FlagGroups: TArray<TRttixBitwiseFlag> read GetFlagGroups;
   end;
@@ -698,11 +704,17 @@ type
     FSize: NativeUint;
     FMinDigits: Byte;
     FValidMask: UInt64;
+    FNamingStyle: TNamingStyle;
+    FPrefix: String;
+    FSuffix: String;
     FFlags: TArray<TRttixBitwiseFlag>;
     FFlagGroups: TArray<TRttixBitwiseFlag>;
     function GetSize: NativeUInt;
     function GetMinDigits: Byte;
     function GetValidMask: UInt64;
+    function GetNamingStyle: TNamingStyle;
+    function GetPrefix: String;
+    function GetSuffix: String;
     function GetFlags: TArray<TRttixBitwiseFlag>;
     function GetFlagGroups: TArray<TRttixBitwiseFlag>;
     function ReadInstance(const [ref] Instance): UInt64;
@@ -1079,6 +1091,11 @@ begin
     if Attribute.ParseValidMaskAttribute(FValidMask) then
       Break;
 
+  // Apply [NamingStyle(...)]
+  for Attribute in FAttributes do
+    if Attribute.ParseNamingStyleAttribute(FNamingStyle, FPrefix, FSuffix) then
+      Break;
+
   // Apply [FlagName(...)] and [SubEnum(...)]
   Count := 0;
   for Attribute in FAttributes do
@@ -1140,9 +1157,24 @@ begin
   Result := FMinDigits;
 end;
 
+function TRttixBitwiseType.GetNamingStyle;
+begin
+  Result := FNamingStyle;
+end;
+
+function TRttixBitwiseType.GetPrefix;
+begin
+  Result := FPrefix;
+end;
+
 function TRttixBitwiseType.GetSize;
 begin
   Result := FSize;
+end;
+
+function TRttixBitwiseType.GetSuffix;
+begin
+  Result := FSuffix;
 end;
 
 function TRttixBitwiseType.GetValidMask;

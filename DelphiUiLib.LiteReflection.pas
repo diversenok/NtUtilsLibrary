@@ -211,6 +211,23 @@ end;
 
 { Type sub-kind formatters }
 
+function RttixPrettifyName(
+  const Input: String;
+  NamingStyle: TNamingStyle;
+  const Prefix: String;
+  const Suffix: String
+): String;
+begin
+  Result := Input;
+
+  case NamingStyle of
+    nsCamelCase:
+      Result := PrettifyCamelCase(Result, Prefix, Suffix);
+    nsSnakeCase:
+      Result := PrettifySnakeCase(Result, Prefix, Suffix);
+  end;
+end;
+
 function RttixFormatEnum(
   const EnumType: IRttixEnumType;
   const [ref] Instance
@@ -222,14 +239,12 @@ begin
 
   if Value in EnumType.ValidValues then
   begin
-    Result := EnumType.TypeInfo.EnumerationName(Integer(Value));
-
-    case EnumType.NamingStyle of
-      nsCamelCase:
-        Result := PrettifyCamelCase(Result, EnumType.Prefix, EnumType.Suffix);
-      nsSnakeCase:
-        Result := PrettifySnakeCase(Result, EnumType.Prefix, EnumType.Suffix);
-    end;
+    Result := RttixPrettifyName(
+      EnumType.TypeInfo.EnumerationName(Integer(Value)),
+      EnumType.NamingStyle,
+      EnumType.Prefix,
+      EnumType.Suffix
+    );
   end
   else
     Result := UiLibUIntToDec(Value) + ' (out of bound)';
@@ -281,7 +296,12 @@ begin
     begin
       Value := Value and not BitwiseType.Flags[i].Mask;
       ExcludedMask := ExcludedMask or BitwiseType.Flags[i].Mask;
-      Matched[Count] := BitwiseType.Flags[i].Name;
+      Matched[Count] := RttixPrettifyName(
+        BitwiseType.Flags[i].Name,
+        BitwiseType.NamingStyle,
+        BitwiseType.Prefix,
+        BitwiseType.Suffix
+      );
       Inc(Count);
     end;
 
@@ -332,7 +352,9 @@ begin
 
   for i := 0 to High(BitwiseType.Flags) do
     Checkboxes[i] := '  ' + CheckboxToString(Value and BitwiseType.Flags[i].Mask
-      = BitwiseType.Flags[i].Value) + ' ' + BitwiseType.Flags[i].Name + '  ';
+      = BitwiseType.Flags[i].Value) + ' ' + RttixPrettifyName(
+        BitwiseType.Flags[i].Name, BitwiseType.NamingStyle, BitwiseType.Prefix,
+        BitwiseType.Suffix) + '  ';
 
   Result := 'Flags:  '#$D#$A + RtlxJoinStrings(Checkboxes, #$D#$A) +
     #$D#$A'Value:  '#$D#$A'  ' + UiLibUIntToHex(Value, BitwiseType.MinDigits or
