@@ -354,8 +354,8 @@ begin
       Result := RtlxIntToDec(Value, Size, Sign, 0, npSpace);
 
     rokHex:
-      Result := RtlxIntToHex(Value, DigitsType.MinHexDigits or
-        NUMERIC_WIDTH_ROUND_TO_GROUP, True, npSpace);
+      Result := RtlxIntToStr(Value, nsHexadecimal, DigitsType.MinHexDigits or
+        NUMERIC_WIDTH_ROUND_TO_GROUP, Size, Sign, [nsHexadecimal], npSpace);
 
     rokBytes:
       Result := UiLibBytesToString(Value);
