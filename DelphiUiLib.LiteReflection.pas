@@ -308,10 +308,24 @@ function RttixFormatBitwiseHint(
   const [ref] Instance
 ): String;
 var
+  HasNonEnumFlags: Boolean;
   Value: UInt64;
   Checkboxes: TArray<String>;
   i: Integer;
 begin
+  // Only format hints if there are any flags, not just sub-enums
+  HasNonEnumFlags := False;
+
+  for i := 0 to High(BitwiseType.Flags) do
+    if BitwiseType.Flags[i].Kind = rbkFlag then
+    begin
+      HasNonEnumFlags := True;
+      Break;
+    end;
+
+  if not HasNonEnumFlags then
+    Exit('');
+
   Value := BitwiseType.ReadInstance(Instance);
 
   SetLength(Checkboxes, Length(BitwiseType.Flags));
