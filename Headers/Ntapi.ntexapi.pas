@@ -428,9 +428,9 @@ type
   // PHNT::ntexapi.h
   [SDKName('SYSTEM_THREAD_INFORMATION')]
   TSystemThreadInformation = record
-    KernelTime: TLargeInteger;
-    UserTime: TLargeInteger;
-    CreateTime: TLargeInteger;
+    KernelTime: TULargeInteger;
+    UserTime: TULargeInteger;
+    CreateTime: TULargeInteger;
     WaitTime: Cardinal;
     StartAddress: Pointer;
     ClientID: TClientId;
@@ -449,10 +449,10 @@ type
     [Bytes] WorkingSetPrivateSize: UInt64;
     HardFaultCount: Cardinal;
     NumberOfThreadsHighWatermark: Cardinal;
-    CycleTime: UInt64;
+    CycleTime: TULargeInteger;
     CreateTime: TLargeInteger;
-    UserTime: UInt64;
-    KernelTime: UInt64;
+    UserTime: TULargeInteger;
+    KernelTime: TULargeInteger;
     ImageName: TNtUnicodeString;
     BasePriority: Cardinal;
     ProcessID: TProcessId;
@@ -478,7 +478,6 @@ type
     ReadTransferCount: UInt64;
     WriteTransferCount: UInt64;
     OtherTransferCount: UInt64;
-    function GetImageName: String;
   end;
   PSystemProcessInformationFixed = ^TSystemProcessInformationFixed;
 
@@ -604,7 +603,7 @@ type
     InvalidAttributes: TObjectAttributesFlags;
     GenericMapping: TGenericMapping;
     ValidAccessMask: TAccessMask;
-    PoolType: Cardinal;
+    [Hex] PoolType: Cardinal;
     SecurityRequired: Boolean;
     WaitableObject: Boolean;
     TypeName: TNtUnicodeString;
@@ -915,20 +914,6 @@ implementation
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-{ TSystemProcessInformationFixed }
-
-function TSystemProcessInformationFixed.GetImageName;
-begin
-  if not Assigned(@Self) then
-    Result := 'Unknown process'
-  else
-  begin
-    Result := ImageName.ToString;
-    if Result = '' then
-      Result := 'System Idle Process';
-  end;
-end;
 
 { TSystemProcessInformationExtension }
 
