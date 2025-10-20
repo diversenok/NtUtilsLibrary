@@ -95,8 +95,20 @@ function RttixMakeFieldFormatters(
   const ExtraAttributes: TArray<PLiteRttiAttribute> = nil
 ): TArray<IRttixFieldFormatter>;
 
-// An attribute indicating that reflection should presetve enumeration names
+// An attribute indicating that reflection should preserve constant names
 function RttixPreserveEnumCase(
+): TArray<PLiteRttiAttribute>;
+
+// An attribute indicating that reflection should format numbers as hexadecimal
+function RttixAsHex(
+): TArray<PLiteRttiAttribute>;
+
+// An attribute indicating that reflection should format numbers as byte sizes
+function RttixAsBytes(
+): TArray<PLiteRttiAttribute>;
+
+// An attribute indicating that reflection should interpret numbers as ASCII
+function RttixAsAsciiMagic(
 ): TArray<PLiteRttiAttribute>;
 
 // An attribute indicating that reflection should not follow pointers
@@ -754,6 +766,30 @@ type
   PreserveCase = type Pointer;
 begin
   Result := RttixTypeInfo(TypeInfo(PreserveCase)).Attributes;
+end;
+
+function RttixAsHex;
+type
+  [Hex]
+  AsHex = type Pointer;
+begin
+  Result := RttixTypeInfo(TypeInfo(AsHex)).Attributes;
+end;
+
+function RttixAsBytes;
+type
+  [Bytes]
+  AsBytes = type Pointer;
+begin
+  Result := RttixTypeInfo(TypeInfo(AsBytes)).Attributes;
+end;
+
+function RttixAsAsciiMagic;
+type
+  [AsciiMagic]
+  AsAsciiMagic = type Pointer;
+begin
+  Result := RttixTypeInfo(TypeInfo(AsAsciiMagic)).Attributes;
 end;
 
 function RttixDontFollowPointers;
