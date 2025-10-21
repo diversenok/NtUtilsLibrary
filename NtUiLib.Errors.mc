@@ -90,6 +90,7 @@ FacilityNames = (
   HRESULT_VolMgr = 0x1038
   HRESULT_BCD = 0x1039
   HRESULT_VHD = 0x103A
+  HRESULT_PDB = 0x106D
   HRESULT_DismAPI2 = 0x1151
 )
 
@@ -17705,6 +17706,188 @@ Severity = Warning
 Facility = HRESULT_Shell
 Language = Neutral
 E_APPLICATION_TRIAL_LICENSE_EXPIRED
+.
+
+MessageId = 0x0001 ; // HRESULT(0x806D0001)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_OK
+.
+
+MessageId = 0x0002 ; // HRESULT(0x806D0002)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_USAGE
+.
+
+MessageId = 0x0003 ; // HRESULT(0x806D0003)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_OUT_OF_MEMORY
+.
+
+MessageId = 0x0004 ; // HRESULT(0x806D0004)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_FILE_SYSTEM
+.
+
+MessageId = 0x0005 ; // HRESULT(0x806D0005)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_NOT_FOUND
+.
+
+MessageId = 0x0006 ; // HRESULT(0x806D0006)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_INVALID_SIG
+.
+
+MessageId = 0x0007 ; // HRESULT(0x806D0007)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_INVALID_AGE
+.
+
+MessageId = 0x0008 ; // HRESULT(0x806D0008)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_PRECOMP_REQUIRED
+.
+
+MessageId = 0x0009 ; // HRESULT(0x806D0009)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_OUT_OF_TI
+.
+
+MessageId = 0x000A ; // HRESULT(0x806D000A)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_NOT_IMPLEMENTED
+.
+
+MessageId = 0x000B ; // HRESULT(0x806D000B)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_V1_PDB
+.
+
+MessageId = 0x000C ; // HRESULT(0x806D000C)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_FORMAT
+.
+
+MessageId = 0x000D ; // HRESULT(0x806D000D)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_LIMIT
+.
+
+MessageId = 0x000E ; // HRESULT(0x806D000E)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_CORRUPT
+.
+
+MessageId = 0x000F ; // HRESULT(0x806D000F)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_TI16
+.
+
+MessageId = 0x0010 ; // HRESULT(0x806D0010)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_ACCESS_DENIED
+.
+
+MessageId = 0x0011 ; // HRESULT(0x806D0011)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_ILLEGAL_TYPE_EDIT
+.
+
+MessageId = 0x0012 ; // HRESULT(0x806D0012)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_INVALID_EXECUTABLE
+.
+
+MessageId = 0x0013 ; // HRESULT(0x806D0013)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_DBG_NOT_FOUND
+.
+
+MessageId = 0x0014 ; // HRESULT(0x806D0014)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_NO_DEBUG_INFO
+.
+
+MessageId = 0x0015 ; // HRESULT(0x806D0015)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_INVALID_EXE_TIMESTAMP
+.
+
+MessageId = 0x0016 ; // HRESULT(0x806D0016)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_RESERVED
+.
+
+MessageId = 0x0017 ; // HRESULT(0x806D0017)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_DEBUG_INFO_NOT_IN_PDB
+.
+
+MessageId = 0x0018 ; // HRESULT(0x806D0018)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_SYMSRV_BAD_CACHE_PATH
+.
+
+MessageId = 0x0019 ; // HRESULT(0x806D0019)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_SYMSRV_CACHE_FULL
+.
+
+MessageId = 0x001A ; // HRESULT(0x806D001A)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_OBJECT_DISPOSED
 .
 
 ; /* Error */
