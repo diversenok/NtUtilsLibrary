@@ -1460,7 +1460,7 @@ type
     ): HResult; stdcall;
 
     function get_characteristics(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TImageSectionCharacteristics
     ): HResult; stdcall;
 
     function get_coffGroup(
@@ -2069,8 +2069,8 @@ type
 
     function LoadDataForExe(
       [in] executable: WideString;
-      [in] searchPath: WideString;
-      [in] const Callback: IUnknown
+      [in, opt] searchPath: WideString;
+      [in, opt] const Callback: IUnknown
     ): HResult; stdcall;
 
     function LoadDataFromIStream(

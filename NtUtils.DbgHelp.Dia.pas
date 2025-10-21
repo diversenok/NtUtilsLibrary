@@ -40,8 +40,15 @@ type
 
 // Open a DIA session to on a PDB file
 function DiaxRtlxLoadPdb(
-  const PdbPath: String;
-  out Session: IDiaSession
+  out Session: IDiaSession;
+  const PdbPath: String
+): TNtxStatus;
+
+// Open a DIA session to on an EXE/DLL file
+function DiaxRtlxLoadExe(
+  out Session: IDiaSession;
+  const ExePath: String;
+  const SearchPath: String = 'C:\Symbols'
 ): TNtxStatus;
 
 { Symbom enumeration }
@@ -210,21 +217,38 @@ uses
 
 { PDB }
 
-function DiaxRtlxLoadPdb(
-  const PdbPath: String;
-  out Session: IDiaSession
-): TNtxStatus;
+function DiaxRtlxLoadPdb;
 var
   DataSource: IDiaDataSource;
 begin
   Result := RtlxComCreateInstance(MsdiaDllPath, CLSID_DiaSource, IDiaDataSource,
-    DataSource);
+    DataSource, 'CLSID_DiaSource');
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'IDiaDataSource::LoadDataFromPdb';
-  Result.HResult := DataSource.LoadDataFromPdb(PWideChar(PdbPath));
+  Result.HResult := DataSource.LoadDataFromPdb(PdbPath);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IDiaDataSource::OpenSession';
+  Result.HResult := DataSource.OpenSession(Session);
+end;
+
+function DiaxRtlxLoadExe;
+var
+  DataSource: IDiaDataSource;
+begin
+  Result := RtlxComCreateInstance(MsdiaDllPath, CLSID_DiaSource, IDiaDataSource,
+    DataSource, 'CLSID_DiaSource');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IDiaDataSource::LoadDataForExe';
+  Result.HResult := DataSource.LoadDataForExe(ExePath, SearchPath, nil);
 
   if not Result.IsSuccess then
     Exit;
@@ -277,8 +301,7 @@ begin
     function : TNtxStatus
     begin
       Result.Location := 'IDiaSymbol::findChildren';
-      Result.HResult := Symbol.findChildren(SymTag, PWideChar(Name),
-        CompareFlags, Enum);
+      Result.HResult := Symbol.findChildren(SymTag, Name, CompareFlags, Enum);
 
       if not Result.IsSuccess then
         Exit;
@@ -311,8 +334,7 @@ var
   Count, Fetched: Integer;
 begin
   Result.Location := 'IDiaSymbol::findChildren';
-  Result.HResult := Symbol.findChildren(SymTag, PWideChar(Name), CompareFlags,
-    Enum);
+  Result.HResult := Symbol.findChildren(SymTag, Name, CompareFlags, Enum);
 
   if not Result.IsSuccess then
     Exit;
