@@ -7,7 +7,28 @@ unit DelphiUiLib.LiteReflection.Types;
 
 interface
 
-// Including the unit automatically registers custom type formatters
+// Enables reflection for TGuid, TNtUnicodeString, TNtAnsiString, NTSTATUS,
+// HResult, TWin32Error, TNtxStatus, TRect
+procedure RttixRegisterBasicFormatters;
+
+// Enables reflection for TDateTime, TLargeInteger, TUnixTime, TULargeInteger
+procedure RttixRegisterTimeFormatters;
+
+// Enables reflection for TProcessId, TProcessId32, TThreadId, TThreadId32,
+// TClientId
+procedure RttixRegisterClientIdFormatters;
+
+// Enables reflection for PSid, TSidAndAttributes, ISid, TGroup
+procedure RttixRegisterSidFormatters;
+
+// Enables reflection for TSessionId
+procedure RttixRegisterSessionIdFormatter;
+
+// Enables reflection for TLogonId
+procedure RttixRegisterLogonIdFormatter;
+
+// Enables reflection for all known types
+procedure RttixRegisterAllFormatter;
 
 implementation
 
@@ -648,28 +669,63 @@ begin
   end;
 end;
 
-initialization
+{ Registration }
+
+procedure RttixRegisterBasicFormatters;
+begin
+  RttixRegisterCustomTypeFormatter(TypeInfo(TGuid), RttixGuidFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TNtUnicodeString), RttixNtStringFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TNtAnsiString), RttixNtStringFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(NTSTATUS), RttixStatusFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(HResult), RttixStatusFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TWin32Error), RttixStatusFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TNtxStatus), RttixNtxStatusFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TRect), RttixRectFormatter);
+end;
+
+procedure RttixRegisterTimeFormatters;
+begin
   RttixRegisterCustomTypeFormatter(TypeInfo(TDateTime), RttixDateTimeFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TLargeInteger), RttixLargeIntegerFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TUnixTime), RttixUnixTimeFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TULargeInteger), RttixULargeIntegerFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(TGuid), RttixGuidFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(TNtUnicodeString), RttixNtStringFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(TNtAnsiString), RttixNtStringFormatter);
+end;
+
+procedure RttixRegisterClientIdFormatters;
+begin
   RttixRegisterCustomTypeFormatter(TypeInfo(TProcessId), RttixClientIdFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TProcessId32), RttixClientIdFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TThreadId), RttixClientIdFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TThreadId32), RttixClientIdFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TClientId), RttixClientIdFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(NTSTATUS), RttixStatusFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(HResult), RttixStatusFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(TWin32Error), RttixStatusFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(TNtxStatus), RttixNtxStatusFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(TSessionId), RttixSessionIdFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(TLogonId), RttixLogonIdFormatter);
-  RttixRegisterCustomTypeFormatter(TypeInfo(TRect), RttixRectFormatter);
+end;
+
+procedure RttixRegisterSidFormatters;
+begin
   RttixRegisterCustomTypeFormatter(TypeInfo(PSid), RttixSidFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(ISid), RttixSidFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TSidAndAttributes), RttixGroupFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TGroup), RttixGroupFormatter);
+end;
+
+procedure RttixRegisterSessionIdFormatter;
+begin
+  RttixRegisterCustomTypeFormatter(TypeInfo(TSessionId), RttixSessionIdFormatter);
+end;
+
+procedure RttixRegisterLogonIdFormatter;
+begin
+  RttixRegisterCustomTypeFormatter(TypeInfo(TLogonId), RttixLogonIdFormatter);
+end;
+
+procedure RttixRegisterAllFormatter;
+begin
+  RttixRegisterBasicFormatters;
+  RttixRegisterTimeFormatters;
+  RttixRegisterClientIdFormatters;
+  RttixRegisterSidFormatters;
+  RttixRegisterSessionIdFormatter;
+  RttixRegisterLogonIdFormatter;
+end;
+
 end.
