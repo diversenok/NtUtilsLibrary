@@ -242,6 +242,13 @@ function RtlxJoinStrings(
   const Separator: String
 ): String;
 
+// Checks if a string matches a pattern with wildcards (must be upper case).
+// Note: the function supports strings up to 32k characters
+function RtlxIsNameInExpressionUpcased(
+  const ExpressionUpcased: String;
+  const Name: String
+): Boolean;
+
 // Checks if a string matches a pattern with wildcards.
 // Note: the function supports strings up to 32k characters
 function RtlxIsNameInExpression(
@@ -1095,6 +1102,16 @@ begin
         Inc(Cursor, Length(Separator));
       end;
     end;
+end;
+
+function RtlxIsNameInExpressionUpcased;
+var
+  ExpressionStr: TNtUnicodeString;
+  NameStr: TNtUnicodeString;
+begin
+  Result := RtlxInitUnicodeString(ExpressionStr, ExpressionUpcased).IsSuccess
+    and RtlxInitUnicodeString(NameStr, Name).IsSuccess
+    and RtlIsNameInExpression(ExpressionStr, NameStr, True, nil);
 end;
 
 function RtlxIsNameInExpression;
