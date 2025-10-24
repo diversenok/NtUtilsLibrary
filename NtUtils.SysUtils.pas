@@ -242,19 +242,15 @@ function RtlxJoinStrings(
   const Separator: String
 ): String;
 
-// Checks if a string matches a pattern with wildcards (must be upper case).
-// Note: the function supports strings up to 32k characters
-function RtlxIsNameInExpressionUpcased(
-  const ExpressionUpcased: String;
-  const Name: String
-): Boolean;
-
 // Checks if a string matches a pattern with wildcards.
-// Note: the function supports strings up to 32k characters
+// Notes:
+// - Case-insensitive search requires the expression to be upper case
+// - The function supports strings up to 32k characters
 function RtlxIsNameInExpression(
   const Expression: String;
   const Name: String;
-  CaseSensitive: Boolean = False
+  CaseSensitive: Boolean = False;
+  PerformUpcase: Boolean = True
 ): Boolean;
 
 // Format a string similar to System.SysUtils.Format but using ntdll's CRT
@@ -1104,31 +1100,32 @@ begin
     end;
 end;
 
-function RtlxIsNameInExpressionUpcased;
-var
-  ExpressionStr: TNtUnicodeString;
-  NameStr: TNtUnicodeString;
-begin
-  Result := RtlxInitUnicodeString(ExpressionStr, ExpressionUpcased).IsSuccess
-    and RtlxInitUnicodeString(NameStr, Name).IsSuccess
-    and RtlIsNameInExpression(ExpressionStr, NameStr, True, nil);
-end;
-
 function RtlxIsNameInExpression;
 var
-  ExpressionCopy: String;
+  ExpressionUpcased: String;
   ExpressionStr: TNtUnicodeString;
   NameStr: TNtUnicodeString;
 begin
-  // Case insensitive comparison requires the expression to be upper case
-  if not CaseSensitive then
-    ExpressionCopy := RtlxUpperString(Expression)
-  else
-    ExpressionCopy := Expression;
+  if (Length(ExpressionUpcased) >= MAX_UNICODE_STRING) or
+    (Length(Name) >= MAX_UNICODE_STRING) then
+    Exit(False);
 
-  Result := RtlxInitUnicodeString(ExpressionStr, ExpressionCopy).IsSuccess and
-    RtlxInitUnicodeString(NameStr, Name).IsSuccess and
-    RtlIsNameInExpression(ExpressionStr, NameStr, not CaseSensitive, nil);
+  if PerformUpcase and not CaseSensitive then
+    ExpressionUpcased := RtlxUpperString(Expression)
+  else
+    ExpressionUpcased := Expression;
+
+  {$R-}{$Q-}
+  ExpressionStr.Length := Length(ExpressionUpcased) * SizeOf(WideChar);
+  ExpressionStr.MaximumLength := ExpressionStr.Length + SizeOf(WideChar);
+  NameStr.Length := Length(Name) * SizeOf(WideChar);
+  NameStr.MaximumLength := NameStr.Length + SizeOf(WideChar);
+  {$IFDEF Q+}{$Q+}{$ENDIF}{$IFDEF R+}{$R+}{$ENDIF}
+
+  ExpressionStr.Buffer := PWideChar(ExpressionUpcased);
+  NameStr.Buffer := PWideChar(Name);
+
+  Result := RtlIsNameInExpression(ExpressionStr, NameStr, not CaseSensitive, nil);
 end;
 
 function RtlxpAllocateVarArgs(
