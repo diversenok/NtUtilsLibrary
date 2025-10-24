@@ -8,8 +8,8 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser, Ntapi.ntseapi, Ntapi.Versions,
-  NtUtils;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser, Ntapi.ntseapi, Ntapi.ShellApi,
+  Ntapi.Versions, NtUtils;
 
 const
   DEFAULT_USER_TIMEOUT = 1000; // in ms
@@ -277,6 +277,22 @@ function UsrxGetClipboardToken(
   out hxToken: IHandle;
   DesiredAccess: TTokenAccessMask
 ): TNtxStatus;
+
+// Determine the number of drag-and-drop files
+function ShlxQueryDragFileCount(
+  hDrop: HDROP
+): Cardinal;
+
+// Query a drag-and-drop filename
+function ShlxQueryDragFile(
+  hDrop: HDROP;
+  Index: Integer
+): String;
+
+// Release a drag-and-drop handle later
+function ShlxDelayedFinishDrag(
+  hDrop: HDROP
+): IDeferredOperation;
 
 implementation
 
@@ -832,6 +848,36 @@ begin
 
   if Result.IsSuccess then
     hxToken := Auto.CaptureHandle(hToken);
+end;
+
+function ShlxQueryDragFileCount;
+begin
+  Result := DragQueryFileW(hDrop, -1, nil, 0);
+end;
+
+function ShlxQueryDragFile;
+var
+  Required: Cardinal;
+begin
+  Required := DragQueryFileW(hDrop, Index, nil, 0);
+
+  if Required > 0 then
+  begin
+    SetLength(Result, Required);
+    DragQueryFileW(hDrop, Index, PWideChar(Result), Required + 1);
+  end
+  else
+    Result := '';
+end;
+
+function ShlxDelayedFinishDrag;
+begin
+  Result := Auto.Defer(
+    procedure
+    begin
+      DragFinish(hDrop);
+    end
+  );
 end;
 
 end.

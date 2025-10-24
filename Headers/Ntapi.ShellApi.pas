@@ -51,6 +51,8 @@ const
   CLSID_MMCApplication: TGuid = '{49B2791A-B1AE-4C90-9B8E-E860BA07F889}';
 
 type
+  HDROP = THandle;
+
   [FlagName(SEE_MASK_NOCLOSEPROCESS, 'Don''t Close Process')]
   [FlagName(SEE_MASK_NOASYNC, 'No Async')]
   [FlagName(SEE_MASK_FLAG_NO_UI, 'No UI')]
@@ -587,6 +589,19 @@ function SHEvaluateSystemCommandTemplate(
   [out, opt, ReleaseWith('CoTaskMemFree')] out CommandLine: PWideChar;
   [out, opt, ReleaseWith('CoTaskMemFree')] out Parameters: PWideChar
 ): HResult; stdcall external shell32;
+
+// SDK::shellapi.h
+function DragQueryFileW(
+  [in] hDrop: HDROP;
+  [in] Index: Integer;
+  [out, WritesTo] pszFile: PWideChar;
+  [in] cch: Cardinal
+): Cardinal; stdcall; external shell32;
+
+// SDK::shellapi.h
+procedure DragFinish(
+  [in] hDrop: HDROP
+); stdcall; external shell32;
 
 { WDC }
 
