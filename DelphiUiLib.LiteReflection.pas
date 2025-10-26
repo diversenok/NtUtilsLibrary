@@ -126,7 +126,8 @@ function RttixFormat(
 function RttixFormatFull(
   TypeInfo: PLiteRttiTypeInfo;
   const [ref] Instance;
-  const ExtraAttributes: TArray<PLiteRttiAttribute> = nil
+  const ExtraAttributes: TArray<PLiteRttiAttribute> = nil;
+  RequestedFormats: TRttixReflectionFormats = [rfText, rfHint]
 ): TRttixFullReflection;
 
 // Represent fields of a record type as text/hint from raw type info
@@ -815,7 +816,7 @@ var
   Formatter: IRttixTypeFormatter;
 begin
   Formatter := RttixMakeTypeFormatter(TypeInfo, ExtraAttributes);
-  Result := Formatter.Format(Instance, [rfText, rfHint]);
+  Result := Formatter.Format(Instance, RequestedFormats);
 end;
 
 function RttixFormatFields;

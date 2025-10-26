@@ -34,9 +34,9 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.winsta,
-  Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.WinUser, NtUtils, NtUtils.SysUtils,
-  NtUtils.Errors, NtUiLib.Errors, NtUtils.Synchronization, NtUtils.Processes,
-  NtUtils.Processes.Info, NtUtils.Threads, NtUtils.WinStation,
+  Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.WinUser, Ntapi.ObjBase, NtUtils,
+  NtUtils.SysUtils, NtUtils.Errors, NtUiLib.Errors, NtUtils.Synchronization,
+  NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads, NtUtils.WinStation,
   NtUtils.Lsa.Logon, NtUtils.Security.Sid, NtUtils.Lsa.Sid, DelphiUiLib.Strings,
   DelphiUtils.LiteRTTI, DelphiUiLib.LiteReflection;
 
@@ -181,6 +181,194 @@ begin
     Result.Hint := '';
     Include(Result.ValidFormats, rfHint);
   end;
+end;
+
+// Variant, TVarData
+function RttixVariantFormatter(
+  const RttixType: IRttixType;
+  const [ref] Instance;
+  RequestedFormats: TRttixReflectionFormats
+): TRttixFullReflection;
+type
+  PIntPtr = ^IntPtr;
+  PUIntPtr = ^UIntPtr;
+  PHResult = ^HResult;
+var
+  VarInstance: TVarData absolute Instance;
+  VarEnumTypeInfo: IRttixEnumType;
+  ValueType: TVarEnum;
+  KindName: String;
+  ByRef, KnownName: Boolean;
+  ReflectionType: PLiteRttiTypeInfo;
+begin
+  if (RttixType.TypeInfo <> TypeInfo(Variant)) and
+    (RttixType.TypeInfo <> TypeInfo(TVarData)) then
+  begin
+    Error(reAssertionFailed);
+    Exit;
+  end;
+
+  // Prepare type info for variant kinds enumerations
+  VarEnumTypeInfo := (RttixTypeInfo(TypeInfo(TVarEnum),
+    RttixPreserveEnumCase) as IRttixEnumType);
+
+  // Determine the packed value type
+  ValueType := TVarEnum(VarInstance.VType and
+    not (Word(VT_ARRAY) or Word(VT_BYREF)));
+
+  ByRef := BitTest(VarInstance.VType and Word(VT_BYREF));
+  KnownName := True;
+
+  // Prepare the name for the value type
+  if Word(ValueType) in VarEnumTypeInfo.ValidValues then
+  begin
+    KindName := VarEnumTypeInfo.TypeInfo.EnumerationName(Integer(ValueType));
+  end
+  else if ValueType = VT_PASCAL_STRING then
+    KindName := 'VT_PASCAL_STRING'
+  else if ValueType = VT_PASCAL_UNICODE_STRING then
+    KindName := 'VT_PASCAL_UNICODE_STRING'
+  else
+  begin
+    KnownName := False;
+    KindName := RtlxFormatString('unrecogized variant type (%u)',
+      [Cardinal(VarInstance.VType)]);
+  end;
+
+  if KnownName and ByRef then
+    KindName := KindName + ' | VT_BYREF';
+
+  if BitTest(VarInstance.VType and Word(VT_ARRAY)) then
+  begin
+    Result.ValidFormats := [rfText, rfHint];
+    Result.Text := RtlxFormatString('(VT_ARRAY of %s values)', [KindName]);
+    Result.Hint := '';
+    Exit;
+  end;
+
+  case ValueType of
+    VT_I2:
+      if ByRef then
+        ReflectionType := TypeInfo(PSmallInt)
+      else
+        ReflectionType := TypeInfo(SmallInt);
+
+    VT_I4:
+      if ByRef then
+        ReflectionType := TypeInfo(PInteger)
+      else
+        ReflectionType := TypeInfo(Integer);
+
+    VT_R4:
+      if ByRef then
+        ReflectionType := TypeInfo(PSingle)
+      else
+        ReflectionType := TypeInfo(Single);
+
+    VT_R8:
+      if ByRef then
+        ReflectionType := TypeInfo(PDouble)
+      else
+        ReflectionType := TypeInfo(Double);
+
+    VT_BSTR:
+      if ByRef then
+        ReflectionType := TypeInfo(PWideString)
+      else
+        ReflectionType := TypeInfo(WideString);
+
+    VT_BOOL:
+      if ByRef then
+        ReflectionType := TypeInfo(PLongBool)
+      else
+        ReflectionType := TypeInfo(LongBool);
+
+    VT_VARIANT:
+      if ByRef then
+        ReflectionType := TypeInfo(PVarData)
+      else
+        ReflectionType := TypeInfo(TVarData);
+
+    VT_I1:
+      if ByRef then
+        ReflectionType := TypeInfo(PShortInt)
+      else
+        ReflectionType := TypeInfo(ShortInt);
+
+    VT_UI1:
+      if ByRef then
+        ReflectionType := TypeInfo(PByte)
+      else
+        ReflectionType := TypeInfo(Byte);
+
+    VT_UI2:
+      if ByRef then
+        ReflectionType := TypeInfo(PWord)
+      else
+        ReflectionType := TypeInfo(Word);
+
+    VT_UI4:
+      if ByRef then
+        ReflectionType := TypeInfo(PCardinal)
+      else
+        ReflectionType := TypeInfo(Cardinal);
+
+    VT_I8:
+      if ByRef then
+        ReflectionType := TypeInfo(PInt64)
+      else
+        ReflectionType := TypeInfo(Int64);
+
+    VT_UI8:
+      if ByRef then
+        ReflectionType := TypeInfo(PUInt64)
+      else
+        ReflectionType := TypeInfo(UInt64);
+
+    VT_INT:
+      if ByRef then
+        ReflectionType := TypeInfo(PIntPtr)
+      else
+        ReflectionType := TypeInfo(IntPtr);
+
+    VT_UINT:
+      if ByRef then
+        ReflectionType := TypeInfo(PUIntPtr)
+      else
+        ReflectionType := TypeInfo(UIntPtr);
+
+    VT_HRESULT:
+      if ByRef then
+        ReflectionType := TypeInfo(PHResult)
+      else
+        ReflectionType := TypeInfo(HResult);
+
+    {$WARN CASE_LABEL_RANGE OFF}
+    VT_PASCAL_STRING:
+      if ByRef then
+        ReflectionType := TypeInfo(PShortString)
+      else
+        ReflectionType := TypeInfo(ShortString);
+
+    VT_PASCAL_UNICODE_STRING:
+      if ByRef then
+        ReflectionType := TypeInfo(PUnicodeString)
+      else
+        ReflectionType := TypeInfo(UnicodeString);
+    {$WARN CASE_LABEL_RANGE ON}
+  else
+    Result.ValidFormats := [rfText, rfHint];
+    Result.Text := RtlxFormatString('(%s value)', [KindName]);
+    Result.Hint := '';
+    Exit;
+  end;
+
+  // Format the underlying type
+  Result := RttixFormatFull(ReflectionType, VarInstance.VPointer);
+
+  if rfHint in RequestedFormats then
+    Result.Hint := RtlxJoinStrings([Result.Hint, BuildHint('Variant Type',
+      KindName)], #$D#$A);
 end;
 
 // TNtUnicodeString, TNtAnsiString
@@ -674,6 +862,8 @@ end;
 procedure RttixRegisterBasicFormatters;
 begin
   RttixRegisterCustomTypeFormatter(TypeInfo(TGuid), RttixGuidFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(Variant), RttixVariantFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TVarData), RttixVariantFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TNtUnicodeString), RttixNtStringFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(TNtAnsiString), RttixNtStringFormatter);
   RttixRegisterCustomTypeFormatter(TypeInfo(NTSTATUS), RttixStatusFormatter);
