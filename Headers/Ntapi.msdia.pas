@@ -472,12 +472,12 @@ type
   [FlagName(nsfUndecoratedName, 'Undecorated Name')]
   TNameSearchOptions = type Cardinal;
 
-  IDiaLineNumber = IUnknown;
-  IDiaSourceFile = IUnknown;
+  IDiaLineNumber = interface;
+  IDiaSourceFile = interface;
   IDiaInputAssemblyFile = IUnknown;
   IDiaEnumTables = IUnknown;
   IDiaEnumSourceFiles = IUnknown;
-  IDiaEnumLineNumbers = IUnknown;
+  IDiaEnumLineNumbers = interface;
   IDiaEnumInjectedSources = IUnknown;
   IDiaEnumDebugStreams = IUnknown;
   IDiaEnumInputAssemblyFiles = IUnknown;
@@ -1607,6 +1607,127 @@ type
       [in, NumberOfBytes] count: Cardinal;
       [out] out RangeValues: Cardinal;
       [out, WritesTo] pRangeValues: PDiaTagValue
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaLineNumber = interface (IUnknown)
+    ['{B388EB14-BE4D-421d-A8A1-6CF7AB057086}']
+    function get_compiland(
+      [out] out RetVal: IDiaSymbol
+    ): HResult; stdcall;
+
+    function get_sourceFile(
+      [out] out RetVal: IDiaSourceFile
+    ): HResult; stdcall;
+
+    function get_lineNumber(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_lineNumberEnd(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_columnNumber(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_columnNumberEnd(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_addressSection(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_addressOffset(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_relativeVirtualAddress(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_virtualAddress(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+
+    function get_length(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_sourceFileId(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_statement(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_compilandId(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+  end;
+  IDiaLineNumberArray = TAnysizeArray<IDiaLineNumber>;
+  PIDiaLineNumberArray = ^IDiaLineNumberArray;
+
+  IDiaEnumLineNumbers = interface (IUnknown)
+    ['{FE30E878-54AC-44f1-81BA-39DE940F6052}']
+    function get__NewEnum(
+      [out] out RetVal: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function get_Count(
+      [out] out RetVal: Integer
+    ): HResult; stdcall;
+
+    function Item(
+      [in] Index: Integer;
+      [out] LineNumber: IDiaLineNumber
+    ): HResult; stdcall;
+
+    function Next(
+      [in, NumberOfElements] celt: Integer;
+      [out, WritesTo] rgelt: PIDiaLineNumberArray;
+      [out, NumberOfElements] out celtFetched: Integer
+    ): HResult; stdcall;
+
+    function Skip(
+      [in] celt: Cardinal
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out ppenum: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSourceFile = interface (IUnknown)
+    ['{A2EF5353-F5A8-4eb3-90D2-CB526ACB3CDD}']
+    function get_uniqueId(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_fileName(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function get_checksumType(
+      [out] out RetVal: TCvSourceChecksumT
+    ): HResult; stdcall;
+
+    function get_compilands(
+      [out] out RetVal: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function get_checksum(
+      [in, NumberOfBytes] cbData: Cardinal;
+      [out, NumberOfBytes] out pcbData: Cardinal;
+      [out, WritesTo] pbData: Pointer
     ): HResult; stdcall;
   end;
 
