@@ -710,7 +710,11 @@ begin
   end;
 end;
 
-function RtlxCompareStrings;
+function RtlxCompareStringsLong(
+  const StringA: String;
+  const StringB: String;
+  CaseSensitive: Boolean = False
+): Integer;
 var
   StringAStr, StringBStr: TNtUnicodeString;
   RemainingLengthA, RemainingLengthB: Cardinal;
@@ -768,6 +772,28 @@ begin
     Inc(PByte(StringAStr.Buffer), StringAStr.Length);
     Inc(PByte(StringBStr.Buffer), StringBStr.Length);
   until False;
+end;
+
+function RtlxCompareStrings;
+var
+  StrA, StrB: TNtUnicodeString;
+begin
+  if (Length(StringA) < MAX_UNICODE_STRING) and
+    (Length(StringB) < MAX_UNICODE_STRING) then
+  begin
+    // Optimized path for strings that fit into UNICODE_STRING
+    {$R-}{$Q-}
+    StrA.Length := Length(StringA) * SizeOf(WideChar);
+    StrA.MaximumLength := StrA.Length + SizeOf(WideChar);
+    StrA.Buffer := PWideChar(StringA);
+    StrB.Length := Length(StringB) * SizeOf(WideChar);
+    StrB.MaximumLength := StrB.Length + SizeOf(WideChar);
+    StrB.Buffer := PWideChar(StringB);
+    {$IFDEF Q+}{$Q+}{$ENDIF}{$IFDEF R+}{$R+}{$ENDIF}
+    Result := RtlCompareUnicodeString(StrA, StrB, not CaseSensitive);
+  end
+  else
+    Result := RtlxCompareStringsLong(StringA, StringB, CaseSensitive);
 end;
 
 function RtlxGetStringComparer;
