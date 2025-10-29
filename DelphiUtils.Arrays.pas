@@ -23,6 +23,7 @@ type
   TEqualityCheck<T> = reference to function (const A, B: T): Boolean;
 
   TComparer<T> = reference to function (const A, B: T): Integer;
+  TIndexComparer = reference to function (const IndexA, IndexB: Integer): Integer;
   TBinaryCondition<T> = reference to function (const Entry: T): Integer;
 
   TDuplicateHandling = (dhInsert, dhOverwrite, dhSkip);
@@ -118,16 +119,28 @@ type
       Action: TFilterAction = ftKeep
     ); static;
 
-    // Sort an array using the Quick Sort algorithm
+    // Sort an array vie element comparison
     class function Sort<T>(
       const Entries: TArray<T>;
       Comparer: TComparer<T> = nil
     ): TArray<T>; static;
 
-    // Sort an array using Quick Sort
+    // Sort an array vie element comparison in-place
     class procedure SortInline<T>(
       var Entries: TArray<T>;
       Comparer: TComparer<T> = nil
+    ); static;
+
+    // Sort an array via index comparison
+    class function SortIndex<T>(
+      const Entries: TArray<T>;
+      IndexComparer: TIndexComparer = nil
+    ): TArray<T>; static;
+
+    // Sort an array via index comparison in-place
+    class procedure SortIndexInline<T>(
+      var Entries: TArray<T>;
+      IndexComparer: TIndexComparer = nil
     ); static;
 
     // Fast search for an element in a sorted array.
@@ -354,16 +367,9 @@ type
 
 { Internal Use }
 
-type
-  // An anonymous callback for sorting. Internal use.
-  TQsortContext = reference to function (
-    KeyIndex: Integer;
-    ElementIndex: Integer
-  ): Integer;
-
 // Index comparer for the legacy qsort. Internal use only.
 threadvar
-  SmartContextLegacy: TQsortContext;
+  SmartContextLegacy: TIndexComparer;
 
 // A CRT-compatible callback for sorting indexes on Win 7. Internal use.
 function SortCallbackLegacy(
@@ -1095,29 +1101,48 @@ end;
 
 function SortCallback;
 var
-  SmartContext: TQsortContext absolute context;
+  SmartContext: TIndexComparer absolute context;
 begin
   Result := SmartContext(Integer(Key^), Integer(Element^));
 end;
 
 class function TArray.Sort<T>;
 var
-  Indexes: TArray<Integer>;
-  i: Integer;
-  IndexComparer: TQsortContext;
-  Context: Pointer absolute IndexComparer;
+  IndexComparer: TIndexComparer;
 begin
   if not Assigned(Comparer) then
     Comparer := DefaultComparer<T>;
 
-  // Instead of implementing the algorithm ourselves (which can be error prone
-  // and result in an inefficient code), delegate the sorting to the CRT
-  // function from ntdll. However, since it is not aware of Delphi's data types,
-  // we cannot use it directly on the array (because it can potentially contain
-  // weak interface references which must be moved only using the built-in
-  // Delphi mechanisms). As a solution, sort an array of element indexes
-  // instead, comparing the elements on each index. Then construct the result
-  // using the new order.
+  try
+    // Prepare the anonymous function for comparing indexes via elements
+    IndexComparer := function (
+        const IndexA, IndexB: Integer
+      ): Integer
+      begin
+        Result := Comparer(Entries[IndexA], Entries[IndexB]);
+      end;
+
+    Result := SortIndex<T>(Entries, IndexComparer);
+  finally
+    // For some reason, the anonymous function (IndexComparer) doesn't want to
+    // capture ownership over the default comparer. Explicitly release the
+    // variable here as a workaround.
+    Comparer := nil;
+  end;
+end;
+
+class function TArray.SortIndex<T>;
+var
+  i: Integer;
+  Indexes: TArray<Integer>;
+  Context: Pointer absolute IndexComparer;
+begin
+  // We want to delegate sorting to the CRT function from ntdll. However, since
+  // it is not aware of Delphi's data types, we cannot use it directly on the
+  // array (because it can potentially contain weak interface references which
+  // must be moved only using the built-in Delphi mechanisms). As a solution,
+  // sort an array of element indexes instead, comparing the elements on each
+  // index. Then construct the result using the new order.
 
   // Generate the initial index list
   SetLength(Indexes, Length(Entries));
@@ -1125,49 +1150,37 @@ begin
   for i := 0 to High(Indexes) do
     Indexes[i] := i;
 
+  // Use the newer qsort_s when possible
+  if LdrxCheckDelayedImport(delayed_qsort_s).IsSuccess then
+  begin
+    // Sort the indexes passing the index comparer as a context parameter
+    qsort_s(Pointer(Indexes), Length(Indexes), SizeOf(Integer), SortCallback,
+      Context);
+  end
+  else
   try
-    // Prepare the anonymous function for comparing indexes via elements
-    IndexComparer := function (
-        KeyIndex: Integer;
-        ElementIndex: Integer
-      ): Integer
-      begin
-        Result := Comparer(Entries[KeyIndex], Entries[ElementIndex]);
-      end;
+    // Windows 7 doesn't support qsort_s, so we're forced to use the legacy
+    // qsort. However, it doesn't have the context parameter, so we need
+    // to pass the index comparer via a thread-local variable.
+    SmartContextLegacy := IndexComparer;
 
-    // Use the newer qsort_s when possible
-    if LdrxCheckDelayedImport(delayed_qsort_s).IsSuccess then
-    begin
-      // Sort the indexes passing the index comparer as a context parameter
-      qsort_s(Pointer(Indexes), Length(Indexes), SizeOf(Integer), SortCallback,
-        Context);
-    end
-    else
-    try
-      // Windows 7 doesn't support qsort_s, so we're forced to use the legacy
-      // qsort. However, it doesn't have the context parameter, so we need
-      // to pass the index comparer via a thread-local variable.
-      SmartContextLegacy := IndexComparer;
-
-      qsort(Pointer(Indexes), Length(Indexes), SizeOf(Integer),
-        SortCallbackLegacy);
-    finally
-      // Clean-up the anonymous function reference
-      SmartContextLegacy := nil;
-    end;
-
-    // Construct the sorted array
-    SetLength(Result, Length(Entries));
-
-    for i := 0 to High(Result) do
-      Result[i] := Entries[Indexes[i]];
-
+    qsort(Pointer(Indexes), Length(Indexes), SizeOf(Integer),
+      SortCallbackLegacy);
   finally
-    // For some reason, the anonymous function (IndexComparer) doesn't want to
-    // capture ownership over the default comparer. Explicitly release the
-    // variable here as a workaround.
-    Comparer := nil;
+    // Clean-up the anonymous function reference
+    SmartContextLegacy := nil;
   end;
+
+  // Construct the sorted array
+  SetLength(Result, Length(Entries));
+
+  for i := 0 to High(Result) do
+    Result[i] := Entries[Indexes[i]];
+end;
+
+class procedure TArray.SortIndexInline<T>;
+begin
+  Entries := TArray.SortIndex<T>(Entries, IndexComparer);
 end;
 
 class procedure TArray.SortInline<T>;
