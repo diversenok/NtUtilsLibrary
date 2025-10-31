@@ -272,6 +272,12 @@ function RtlxSwapEndianness(
   Value: Cardinal
 ): Cardinal;
 
+// Format a buffer as a hex string
+function RtlxBytesToHexStr(
+  Buffer: Pointer;
+  Size: Cardinal
+): String;
+
 // Convert a signed/unsigned integer to a string
 function RtlxIntToStr(
   const Value: UInt64;
@@ -1283,6 +1289,28 @@ begin
 
   if Expanded > Width then
     Width := Expanded;
+end;
+
+function RtlxBytesToHexStr;
+const
+  HEX_DIGITS: PWideChar = '0123456789ABCDEF';
+var
+  ByteCursor: PByte;
+  HexCursor: PWideChar;
+  i: Integer;
+begin
+  SetLength(Result, Size * 2);
+  HexCursor := PWideChar(Result);
+  ByteCursor := Buffer;
+
+  for i := 0 to Pred(Size) do
+  begin
+    HexCursor^ := HEX_DIGITS[ByteCursor^ shr 4];
+    Inc(HexCursor);
+    HexCursor^ := HEX_DIGITS[ByteCursor^ and $0F];
+    Inc(HexCursor);
+    Inc(ByteCursor);
+  end;
 end;
 
 function RtlxIntToStr;
