@@ -353,7 +353,7 @@ begin
 
     // Retrieve all entries
     Result.Location := 'IDiaEnumSymbols::Next';
-    Result.HResult := Enum.Next(Count, Pointer(@Children[0]), Fetched);
+    Result.HResult := Enum.Next(Count, Children[0], Fetched);
 
     // Truncate if necessary
     if Result.IsSuccess and (Fetched < Count) then

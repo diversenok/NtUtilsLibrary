@@ -472,18 +472,563 @@ type
   [FlagName(nsfUndecoratedName, 'Undecorated Name')]
   TNameSearchOptions = type Cardinal;
 
-  IDiaLineNumber = interface;
-  IDiaSourceFile = interface;
-  IDiaInputAssemblyFile = IUnknown;
-  IDiaEnumTables = IUnknown;
-  IDiaEnumSourceFiles = IUnknown;
-  IDiaEnumLineNumbers = interface;
-  IDiaEnumInjectedSources = IUnknown;
-  IDiaEnumDebugStreams = IUnknown;
-  IDiaEnumInputAssemblyFiles = IUnknown;
+  // A helper generic base for DIA enum interfaces
+  IDiaEnum<I> = interface (IUnknown)
+    function get__NewEnum(
+      [out] out RetVal: IUnknown
+    ): HResult; stdcall;
 
+    function get_Count(
+      [out] out RetVal: Integer
+    ): HResult; stdcall;
+
+    function Item(
+      [in] index: Cardinal;
+      [out] out Item: I
+    ): HResult; stdcall;
+
+    function Next(
+      [in, NumberOfElements] Count: Integer;
+      [out, WritesTo] out Elements: I;
+      [out, NumberOfElements] out Fetched: Integer
+    ): HResult; stdcall;
+
+    function Skip(
+      [in] Count: Cardinal
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out Enum: IDiaEnum<I>
+    ): HResult; stdcall;
+  end;
   IDiaEnumSymbols = interface;
-  IDiaEnumSymbolsByAddr = interface;
+
+  IDiaSession = interface;
+
+  // DIA::dia2.h
+  IDiaDataSource = interface (IUnknown)
+    ['{79F1BB5F-B66E-48e5-B6A9-1545C323CA3D}']
+
+    function get_lastError(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function LoadDataFromPdb(
+      [in] Path: WideString
+    ): HResult; stdcall;
+
+    function LoadAndValidateDataFromPdb(
+      [in] Path: WideString;
+      [in] const sig70: TGuid;
+      [in] sig: Cardinal;
+      [in] age: Cardinal
+    ): HResult; stdcall;
+
+    function LoadDataForExe(
+      [in] executable: WideString;
+      [in, opt] searchPath: WideString;
+      [in, opt] const Callback: IUnknown
+    ): HResult; stdcall;
+
+    function LoadDataFromIStream(
+      [in] const Stream: IStream
+    ): HResult; stdcall;
+
+    function OpenSession(
+      [out] out Session: IDiaSession
+    ): HResult; stdcall;
+
+    function LoadDataFromCodeViewInfo(
+      [in] executable: WideString;
+      [in] searchPath: WideString;
+      [in, NumberOfBytes] cbCvInfo: Cardinal;
+      [in, ReadsFrom] pbCvInfo: Pointer;
+      [in] const Callback: IUnknown
+    ): HResult; stdcall;
+
+    function LoadDataFromMiscInfo(
+      [in] executable: WideString;
+      [in] searchPath: WideString;
+      [in] timeStampExe: TUnixTime;
+      [in] timeStampDbg: TUnixTime;
+      [in, Bytes] sizeOfExe: Cardinal;
+      [in, NumberOfBytes] cbMiscInfo: Cardinal;
+      [in, ReadsFrom] pbMiscInfo: Pointer;
+      [in] const Callback: IUnknown
+    ): HResult; stdcall;
+  end;
+
+  IDiaSymbol = interface;
+  IDiaSourceFile = interface;
+  IDiaInputAssemblyFile = interface;
+  IDiaLineNumber = interface;
+  IDiaInjectedSource = IInterface;
+  IDiaSegment = IInterface;
+  IDiaSectionContrib = IInterface;
+  IDiaFrameData = IInterface;
+
+  // DIA::dia2.h
+  IDiaEnumSymbols = interface (IDiaEnum<IDiaSymbol>)
+    ['{CAB72C48-443B-48f5-9B0B-42F0820AB29A}']
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumSymbolsByAddr = interface (IUnknown)
+    ['{624B7D9C-24EA-4421-9D06-3B577471C1FA}']
+
+    function symbolByAddr(
+      [in] isect: Cardinal;
+      [in] offset: Cardinal;
+      [out] out Symbol: IDiaSymbol
+    ): HResult; stdcall;
+
+    function symbolByRVA(
+      [in] relativeVirtualAddress: Cardinal;
+      [out] out Symbol: IDiaSymbol
+    ): HResult; stdcall;
+
+    function symbolByVA(
+      [in] virtualAddress: UInt64;
+      [out] out Symbol: IDiaSymbol
+    ): HResult; stdcall;
+
+    function Next(
+      [in, NumberOfElements] celt: Cardinal;
+      [out, WritesTo] rgelt: &IDiaSymbol;
+      [out, NumberOfElements] out celtFetched: Cardinal
+    ): HResult; stdcall;
+
+    function Prev(
+      [in, NumberOfElements] celt: Cardinal;
+      [out, WritesTo] rgelt: &IDiaSymbol;
+      [out, NumberOfElements] out celtFetched: Cardinal
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out enum: IDiaEnumSymbolsByAddr
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumSourceFiles = interface (IDiaEnum<IDiaSourceFile>)
+    ['{10F3DBD9-664F-4469-B808-9471C7A50538}']
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumInputAssemblyFiles = interface (IDiaEnum<IDiaSourceFile>)
+    ['{1C7FF653-51F7-457E-8419-B20F57EF7E4D}']
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumLineNumbers = interface (IDiaEnum<IDiaLineNumber>)
+    ['{FE30E878-54AC-44f1-81BA-39DE940F6052}']
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumInjectedSources = interface (IDiaEnum<IDiaInjectedSource>)
+    ['{D5612573-6925-4468-8883-98CDEC8C384A}']
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumSegments = interface (IDiaEnum<IDiaSegment>)
+    ['{E8368CA9-01D1-419d-AC0C-E31235DBDA9F}']
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumSectionContribs = interface (IDiaEnum<IDiaSectionContrib>)
+    ['{1994DEB2-2C82-4b1d-A57F-AFF424D54A68}']
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumFrameData = interface (IDiaEnum<IDiaFrameData>)
+    ['{9FC77A4B-3C1C-44ed-A798-6C1DEEA53E1F}']
+    function frameByRVA(
+      [in] RelativeVirtualAddress: Cardinal;
+      [out] out Frame: IDiaFrameData
+    ): HResult; stdcall;
+
+    function frameByVA(
+      [in] VirtualAddress: UInt64;
+      [out] out Frame: IDiaFrameData
+    ): HResult; stdcall;
+  end;
+
+  IDiaEnumDebugStreamData = IInterface;
+
+  // DIA::dia2.h
+  IDiaEnumDebugStreams = interface (IDiaEnum<IDiaEnumDebugStreamData>)
+    ['{08CBB41E-47A6-4f87-92F1-1C9C87CED044}']
+  end;
+
+  IDiaAddressMap = IInterface;
+  IDiaEnumTables = IUnknown;
+
+  // DIA::dia2.h
+  IDiaSession = interface (IUnknown)
+    ['{2F609EE1-D1C8-4E24-8288-3326BADCD211}']
+    function get_loadAddress(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+
+    function put_loadAddress(
+      [in] NewVal: UInt64
+    ): HResult; stdcall;
+
+    function get_globalScope(
+      [out] out RetVal: IDiaSymbol
+    ): HResult; stdcall;
+
+    function getEnumTables(
+      [out] out EnumTables: IDiaEnumTables
+    ): HResult; stdcall;
+
+    function getSymbolsByAddr(
+      [out] out EnumbyAddr: IDiaEnumSymbolsByAddr
+    ): HResult; stdcall;
+
+    function findChildren(
+      [in, opt] const parent: IDiaSymbol;
+      [in] symtag: TSymTagEnum;
+      [in, opt] name: WideString;
+      [in] compareFlags: TNameSearchOptions;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findChildrenEx(
+      [in, opt] const parent: IDiaSymbol;
+      [in] symtag: TSymTagEnum;
+      [in, opt] name: WideString;
+      [in] compareFlags: TNameSearchOptions;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findChildrenExByAddr(
+      [in, opt] const parent: IDiaSymbol;
+      [in] symtag: TSymTagEnum;
+      [in, opt] name: WideString;
+      [in] compareFlags: TNameSearchOptions;
+      [in] isect: Cardinal;
+      [in] offset: Cardinal;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findChildrenExByVA(
+      [in, opt] const parent: IDiaSymbol;
+      [in] symtag: TSymTagEnum;
+      [in, opt] name: WideString;
+      [in] compareFlags: TNameSearchOptions;
+      [in] va: UInt64;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findChildrenExByRVA(
+      [in, opt] const parent: IDiaSymbol;
+      [in] symtag: TSymTagEnum;
+      [in, opt] name: WideString;
+      [in] compareFlags: TNameSearchOptions;
+      [in] rva: Cardinal;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findSymbolByAddr(
+      [in] isect: Cardinal;
+      [in] offset: Cardinal;
+      [in] symtag: TSymTagEnum;
+      [out] out Symbol: IDiaSymbol
+    ): HResult; stdcall;
+
+    function findSymbolByRVA(
+      [in] rva: Cardinal;
+      [in] symtag: TSymTagEnum;
+      [out] out Symbol: IDiaSymbol
+    ): HResult; stdcall;
+
+    function findSymbolByVA(
+      [in] va: UInt64;
+      [in] symtag: TSymTagEnum;
+      [out] out Symbol: IDiaSymbol
+    ): HResult; stdcall;
+
+    function findSymbolByToken(
+      [in] token: Cardinal;
+      [in] symtag: TSymTagEnum;
+      [out] out Symbol: IDiaSymbol
+    ): HResult; stdcall;
+
+    function symsAreEquiv(
+      [in] const symbolA: IDiaSymbol;
+      [in] const symbolB: IDiaSymbol
+    ): HResult; stdcall;
+
+    function symbolById(
+      [in] id: Cardinal;
+      [out] out Symbol: IDiaSymbol
+    ): HResult; stdcall;
+
+    function findSymbolByRVAEx(
+      [in] rva: Cardinal;
+      [in] symtag: TSymTagEnum;
+      [out] out Symbol: IDiaSymbol;
+      [out] out displacement: Integer
+    ): HResult; stdcall;
+
+    function findSymbolByVAEx(
+      [in] va: UInt64;
+      [in] symtag: TSymTagEnum;
+      [out] out Symbol: IDiaSymbol;
+      [out] out displacement: Integer
+    ): HResult; stdcall;
+
+    function findFile(
+      [in] const Compiland: IDiaSymbol;
+      [in] name: WideString;
+      [in] compareFlags: TNameSearchOptions;
+      [out] out Resul: IDiaEnumSourceFiles
+    ): HResult; stdcall;
+
+    function findFileById(
+      [in] uniqueId: Cardinal;
+      [out] out Result: IDiaSourceFile
+    ): HResult; stdcall;
+
+    function findLines(
+      [in] const Compiland: IDiaSymbol;
+      [in] const _file: IDiaSourceFile;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findLinesByAddr(
+      [in] seg: Cardinal;
+      [in] offset: Cardinal;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findLinesByRVA(
+      [in] rva: Cardinal;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findLinesByVA(
+      [in] va: UInt64;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findLinesByLinenum(
+      [in] const Compiland: IDiaSymbol;
+      [in] const _file: IDiaSourceFile;
+      [in] linenum: Cardinal;
+      [in] column: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findInjectedSource(
+      [in] srcFile: WideString;
+      [out] out Result: IDiaEnumInjectedSources
+    ): HResult; stdcall;
+
+    function getEnumDebugStreams(
+      [out] out EnumDebugStreams: IDiaEnumDebugStreams
+    ): HResult; stdcall;
+
+    function findInlineFramesByAddr(
+      [in] parent: IDiaSymbol;
+      [in] isect: Cardinal;
+      [in] offset: Cardinal;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findInlineFramesByRVA(
+      [in] parent: IDiaSymbol;
+      [in] rva: Cardinal;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findInlineFramesByVA(
+      [in] parent: IDiaSymbol;
+      [in] va: UInt64;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findInlineeLines(
+      [in] parent: IDiaSymbol;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findInlineeLinesByAddr(
+      [in] parent: IDiaSymbol;
+      [in] isect: Cardinal;
+      [in] offset: Cardinal;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findInlineeLinesByRVA(
+      [in] parent: IDiaSymbol;
+      [in] rva: Cardinal;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findInlineeLinesByVA(
+      [in] parent: IDiaSymbol;
+      [in] va: UInt64;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findInlineeLinesByLinenum(
+      [in] const Compiland: IDiaSymbol;
+      [in] const _file: IDiaSourceFile;
+      [in] linenum: Cardinal;
+      [in] column: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findInlineesByName(
+      [in] name: WideString;
+      [in] option: Cardinal;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findAcceleratorInlineeLinesByLinenum(
+      [in] const parent: IDiaSymbol;
+      [in] const _file: IDiaSourceFile;
+      [in] linenum: Cardinal;
+      [in] column: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findSymbolsForAcceleratorPointerTag(
+      [in] const parent: IDiaSymbol;
+      [in] tagValue: Cardinal;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findSymbolsByRVAForAcceleratorPointerTag(
+      [in] const parent: IDiaSymbol;
+      [in] tagValue: Cardinal;
+      [in] rva: Cardinal;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findAcceleratorInlineesByName(
+      [in] name: WideString;
+      [in] option: Cardinal;
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function addressForVA(
+      [in] va: UInt64;
+      [out] out ISect:Cardinal;
+      [out] out Offset: Cardinal
+    ): HResult; stdcall;
+
+    function addressForRVA(
+      [in] rva: Cardinal;
+      [out] out ISect: Cardinal;
+      [out] out Offset: Cardinal
+    ): HResult; stdcall;
+
+    function findILOffsetsByAddr(
+      [in] isect: Cardinal;
+      [in] offset: Cardinal;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findILOffsetsByRVA(
+      [in] rva: Cardinal;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findILOffsetsByVA(
+      [in] va: UInt64;
+      [in] length: Cardinal;
+      [out] out Result: IDiaEnumLineNumbers
+    ): HResult; stdcall;
+
+    function findInputAssemblyFiles(
+      [out] out Result: IDiaEnumInputAssemblyFiles
+    ): HResult; stdcall;
+
+    function findInputAssembly(
+      [in] index: Cardinal;
+      [out] out Resul: IDiaInputAssemblyFile
+    ): HResult; stdcall;
+
+    function findInputAssemblyById(
+      [in] uniqueId: Cardinal;
+      [out] out Resul: IDiaInputAssemblyFile
+    ): HResult; stdcall;
+
+    function getFuncMDTokenMapSize(
+      [out] out cb: Cardinal
+    ): HResult; stdcall;
+
+    function getFuncMDTokenMap(
+      [in, NumberOfBytes] cb: Cardinal;
+      [out, NumberOfBytes] out pcb: Cardinal;
+      [out, WritesTo] pb: Pointer
+    ): HResult; stdcall;
+
+    function getTypeMDTokenMapSize(
+      [out] out cb: Cardinal
+    ): HResult; stdcall;
+
+    function getTypeMDTokenMap(
+      [in, NumberOfBytes] cb: Cardinal;
+      [out, NumberOfBytes] out pcb: Cardinal;
+      [out, WritesTo] pb: Pointer
+    ): HResult; stdcall;
+
+    function getNumberOfFunctionFragments_VA(
+      [in] vaFunc: UInt64;
+      [in] cbFunc: Cardinal;
+      [out] out NumFragments: Cardinal
+    ): HResult; stdcall;
+
+    function getNumberOfFunctionFragments_RVA(
+      [in] rvaFunc: Cardinal;
+      [in] cbFunc: Cardinal;
+      [out] out NumFragments: Cardinal
+    ): HResult; stdcall;
+
+    function getFunctionFragments_VA(
+      [in] vaFunc: UInt64;
+      [in] cbFunc: Cardinal;
+      [in, NumberOfElements] cFragments: Cardinal;
+      [out, WritesTo] pVaFragment: PUInt64;
+      [out, WritesTo] pLenFragment: PCardinal
+    ): HResult; stdcall;
+
+    function getFunctionFragments_RVA(
+      [in] rvaFunc: Cardinal;
+      [in] cbFunc: Cardinal;
+      [in, NumberOfElements] cFragments: Cardinal;
+      [out, WritesTo] pRvaFragment: PCardinal;
+      [out, WritesTo] pLenFragment: PCardinal
+    ): HResult; stdcall;
+
+    function getExports(
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function getHeapAllocationSites(
+      [out] out Result: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function findInputAssemblyFile(
+      [in] const Symbol: IDiaSymbol;
+      [out] out Result: IDiaInputAssemblyFile
+    ): HResult; stdcall;
+  end;
 
   // DIA::dia2.h
   IDiaSymbol = interface (IUnknown)
@@ -1611,6 +2156,62 @@ type
   end;
 
   // DIA::dia2.h
+  IDiaSourceFile = interface (IUnknown)
+    ['{A2EF5353-F5A8-4eb3-90D2-CB526ACB3CDD}']
+    function get_uniqueId(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_fileName(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function get_checksumType(
+      [out] out RetVal: TCvSourceChecksumT
+    ): HResult; stdcall;
+
+    function get_compilands(
+      [out] out RetVal: IDiaEnumSymbols
+    ): HResult; stdcall;
+
+    function get_checksum(
+      [in, NumberOfBytes] cbData: Cardinal;
+      [out, NumberOfBytes] out pcbData: Cardinal;
+      [out, WritesTo] pbData: Pointer
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaInputAssemblyFile = interface (IUnknown)
+    ['{3BFE56B0-390C-4863-9430-1F3D083B7684}']
+    function get_uniqueId(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_index(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_timestamp(
+      [out] out RetVal: TUnixTime
+    ): HResult; stdcall;
+
+    function get_pdbAvailableAtILMerge(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_fileName(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function get_version(
+      [in, NumberOfBytes] cbData: Cardinal;
+      [out, NumberOfBytes] out pcbData: Cardinal;
+      [out, WritesTo] Data: Pointer
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
   IDiaLineNumber = interface (IUnknown)
     ['{B388EB14-BE4D-421d-A8A1-6CF7AB057086}']
     function get_compiland(
@@ -1667,558 +2268,6 @@ type
 
     function get_compilandId(
       [out] out RetVal: Cardinal
-    ): HResult; stdcall;
-  end;
-  IDiaLineNumberArray = TAnysizeArray<IDiaLineNumber>;
-  PIDiaLineNumberArray = ^IDiaLineNumberArray;
-
-  IDiaEnumLineNumbers = interface (IUnknown)
-    ['{FE30E878-54AC-44f1-81BA-39DE940F6052}']
-    function get__NewEnum(
-      [out] out RetVal: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function get_Count(
-      [out] out RetVal: Integer
-    ): HResult; stdcall;
-
-    function Item(
-      [in] Index: Integer;
-      [out] LineNumber: IDiaLineNumber
-    ): HResult; stdcall;
-
-    function Next(
-      [in, NumberOfElements] celt: Integer;
-      [out, WritesTo] rgelt: PIDiaLineNumberArray;
-      [out, NumberOfElements] out celtFetched: Integer
-    ): HResult; stdcall;
-
-    function Skip(
-      [in] celt: Cardinal
-    ): HResult; stdcall;
-
-    function Reset(
-    ): HResult; stdcall;
-
-    function Clone(
-      [out] out ppenum: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-  end;
-
-  // DIA::dia2.h
-  IDiaSourceFile = interface (IUnknown)
-    ['{A2EF5353-F5A8-4eb3-90D2-CB526ACB3CDD}']
-    function get_uniqueId(
-      [out] out RetVal: Cardinal
-    ): HResult; stdcall;
-
-    function get_fileName(
-      [out] out RetVal: WideString
-    ): HResult; stdcall;
-
-    function get_checksumType(
-      [out] out RetVal: TCvSourceChecksumT
-    ): HResult; stdcall;
-
-    function get_compilands(
-      [out] out RetVal: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function get_checksum(
-      [in, NumberOfBytes] cbData: Cardinal;
-      [out, NumberOfBytes] out pcbData: Cardinal;
-      [out, WritesTo] pbData: Pointer
-    ): HResult; stdcall;
-  end;
-
-  // DIA::dia2.h
-  IDiaSession = interface (IUnknown)
-    ['{2F609EE1-D1C8-4E24-8288-3326BADCD211}']
-    function get_loadAddress(
-      [out] out RetVal: UInt64
-    ): HResult; stdcall;
-
-    function put_loadAddress(
-      [in] NewVal: UInt64
-    ): HResult; stdcall;
-
-    function get_globalScope(
-      [out] out RetVal: IDiaSymbol
-    ): HResult; stdcall;
-
-    function getEnumTables(
-      [out] out EnumTables: IDiaEnumTables
-    ): HResult; stdcall;
-
-    function getSymbolsByAddr(
-      [out] out EnumbyAddr: IDiaEnumSymbolsByAddr
-    ): HResult; stdcall;
-
-    function findChildren(
-      [in, opt] const parent: IDiaSymbol;
-      [in] symtag: TSymTagEnum;
-      [in, opt] name: WideString;
-      [in] compareFlags: TNameSearchOptions;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findChildrenEx(
-      [in, opt] const parent: IDiaSymbol;
-      [in] symtag: TSymTagEnum;
-      [in, opt] name: WideString;
-      [in] compareFlags: TNameSearchOptions;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findChildrenExByAddr(
-      [in, opt] const parent: IDiaSymbol;
-      [in] symtag: TSymTagEnum;
-      [in, opt] name: WideString;
-      [in] compareFlags: TNameSearchOptions;
-      [in] isect: Cardinal;
-      [in] offset: Cardinal;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findChildrenExByVA(
-      [in, opt] const parent: IDiaSymbol;
-      [in] symtag: TSymTagEnum;
-      [in, opt] name: WideString;
-      [in] compareFlags: TNameSearchOptions;
-      [in] va: UInt64;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findChildrenExByRVA(
-      [in, opt] const parent: IDiaSymbol;
-      [in] symtag: TSymTagEnum;
-      [in, opt] name: WideString;
-      [in] compareFlags: TNameSearchOptions;
-      [in] rva: Cardinal;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findSymbolByAddr(
-      [in] isect: Cardinal;
-      [in] offset: Cardinal;
-      [in] symtag: TSymTagEnum;
-      [out] out Symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function findSymbolByRVA(
-      [in] rva: Cardinal;
-      [in] symtag: TSymTagEnum;
-      [out] out Symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function findSymbolByVA(
-      [in] va: UInt64;
-      [in] symtag: TSymTagEnum;
-      [out] out Symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function findSymbolByToken(
-      [in] token: Cardinal;
-      [in] symtag: TSymTagEnum;
-      [out] out Symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function symsAreEquiv(
-      [in] const symbolA: IDiaSymbol;
-      [in] const symbolB: IDiaSymbol
-    ): HResult; stdcall;
-
-    function symbolById(
-      [in] id: Cardinal;
-      [out] out Symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function findSymbolByRVAEx(
-      [in] rva: Cardinal;
-      [in] symtag: TSymTagEnum;
-      [out] out Symbol: IDiaSymbol;
-      [out] out displacement: Integer
-    ): HResult; stdcall;
-
-    function findSymbolByVAEx(
-      [in] va: UInt64;
-      [in] symtag: TSymTagEnum;
-      [out] out Symbol: IDiaSymbol;
-      [out] out displacement: Integer
-    ): HResult; stdcall;
-
-    function findFile(
-      [in] const Compiland: IDiaSymbol;
-      [in] name: WideString;
-      [in] compareFlags: TNameSearchOptions;
-      [out] out Resul: IDiaEnumSourceFiles
-    ): HResult; stdcall;
-
-    function findFileById(
-      [in] uniqueId: Cardinal;
-      [out] out Result: IDiaSourceFile
-    ): HResult; stdcall;
-
-    function findLines(
-      [in] const Compiland: IDiaSymbol;
-      [in] const _file: IDiaSourceFile;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findLinesByAddr(
-      [in] seg: Cardinal;
-      [in] offset: Cardinal;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findLinesByRVA(
-      [in] rva: Cardinal;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findLinesByVA(
-      [in] va: UInt64;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findLinesByLinenum(
-      [in] const Compiland: IDiaSymbol;
-      [in] const _file: IDiaSourceFile;
-      [in] linenum: Cardinal;
-      [in] column: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findInjectedSource(
-      [in] srcFile: WideString;
-      [out] out Result: IDiaEnumInjectedSources
-    ): HResult; stdcall;
-
-    function getEnumDebugStreams(
-      [out] out EnumDebugStreams: IDiaEnumDebugStreams
-    ): HResult; stdcall;
-
-    function findInlineFramesByAddr(
-      [in] parent: IDiaSymbol;
-      [in] isect: Cardinal;
-      [in] offset: Cardinal;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findInlineFramesByRVA(
-      [in] parent: IDiaSymbol;
-      [in] rva: Cardinal;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findInlineFramesByVA(
-      [in] parent: IDiaSymbol;
-      [in] va: UInt64;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findInlineeLines(
-      [in] parent: IDiaSymbol;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findInlineeLinesByAddr(
-      [in] parent: IDiaSymbol;
-      [in] isect: Cardinal;
-      [in] offset: Cardinal;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findInlineeLinesByRVA(
-      [in] parent: IDiaSymbol;
-      [in] rva: Cardinal;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findInlineeLinesByVA(
-      [in] parent: IDiaSymbol;
-      [in] va: UInt64;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findInlineeLinesByLinenum(
-      [in] const Compiland: IDiaSymbol;
-      [in] const _file: IDiaSourceFile;
-      [in] linenum: Cardinal;
-      [in] column: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findInlineesByName(
-      [in] name: WideString;
-      [in] option: Cardinal;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findAcceleratorInlineeLinesByLinenum(
-      [in] const parent: IDiaSymbol;
-      [in] const _file: IDiaSourceFile;
-      [in] linenum: Cardinal;
-      [in] column: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findSymbolsForAcceleratorPointerTag(
-      [in] const parent: IDiaSymbol;
-      [in] tagValue: Cardinal;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findSymbolsByRVAForAcceleratorPointerTag(
-      [in] const parent: IDiaSymbol;
-      [in] tagValue: Cardinal;
-      [in] rva: Cardinal;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findAcceleratorInlineesByName(
-      [in] name: WideString;
-      [in] option: Cardinal;
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function addressForVA(
-      [in] va: UInt64;
-      [out] out ISect:Cardinal;
-      [out] out Offset: Cardinal
-    ): HResult; stdcall;
-
-    function addressForRVA(
-      [in] rva: Cardinal;
-      [out] out ISect: Cardinal;
-      [out] out Offset: Cardinal
-    ): HResult; stdcall;
-
-    function findILOffsetsByAddr(
-      [in] isect: Cardinal;
-      [in] offset: Cardinal;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findILOffsetsByRVA(
-      [in] rva: Cardinal;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findILOffsetsByVA(
-      [in] va: UInt64;
-      [in] length: Cardinal;
-      [out] out Result: IDiaEnumLineNumbers
-    ): HResult; stdcall;
-
-    function findInputAssemblyFiles(
-      [out] out Result: IDiaEnumInputAssemblyFiles
-    ): HResult; stdcall;
-
-    function findInputAssembly(
-      [in] index: Cardinal;
-      [out] out Resul: IDiaInputAssemblyFile
-    ): HResult; stdcall;
-
-    function findInputAssemblyById(
-      [in] uniqueId: Cardinal;
-      [out] out Resul: IDiaInputAssemblyFile
-    ): HResult; stdcall;
-
-    function getFuncMDTokenMapSize(
-      [out] out cb: Cardinal
-    ): HResult; stdcall;
-
-    function getFuncMDTokenMap(
-      [in, NumberOfBytes] cb: Cardinal;
-      [out, NumberOfBytes] out pcb: Cardinal;
-      [out, WritesTo] pb: Pointer
-    ): HResult; stdcall;
-
-    function getTypeMDTokenMapSize(
-      [out] out cb: Cardinal
-    ): HResult; stdcall;
-
-    function getTypeMDTokenMap(
-      [in, NumberOfBytes] cb: Cardinal;
-      [out, NumberOfBytes] out pcb: Cardinal;
-      [out, WritesTo] pb: Pointer
-    ): HResult; stdcall;
-
-    function getNumberOfFunctionFragments_VA(
-      [in] vaFunc: UInt64;
-      [in] cbFunc: Cardinal;
-      [out] out NumFragments: Cardinal
-    ): HResult; stdcall;
-
-    function getNumberOfFunctionFragments_RVA(
-      [in] rvaFunc: Cardinal;
-      [in] cbFunc: Cardinal;
-      [out] out NumFragments: Cardinal
-    ): HResult; stdcall;
-
-    function getFunctionFragments_VA(
-      [in] vaFunc: UInt64;
-      [in] cbFunc: Cardinal;
-      [in, NumberOfElements] cFragments: Cardinal;
-      [out, WritesTo] pVaFragment: PUInt64;
-      [out, WritesTo] pLenFragment: PCardinal
-    ): HResult; stdcall;
-
-    function getFunctionFragments_RVA(
-      [in] rvaFunc: Cardinal;
-      [in] cbFunc: Cardinal;
-      [in, NumberOfElements] cFragments: Cardinal;
-      [out, WritesTo] pRvaFragment: PCardinal;
-      [out, WritesTo] pLenFragment: PCardinal
-    ): HResult; stdcall;
-
-    function getExports(
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function getHeapAllocationSites(
-      [out] out Result: IDiaEnumSymbols
-    ): HResult; stdcall;
-
-    function findInputAssemblyFile(
-      [in] const Symbol: IDiaSymbol;
-      [out] out Result: IDiaInputAssemblyFile
-    ): HResult; stdcall;
-  end;
-  IDiaSymbolArray = TAnysizeArray<IDiaSymbol>;
-  PIDiaSymbolArray = ^IDiaSymbolArray;
-
-  // DIA::dia2.h
-  IDiaEnumSymbols = interface (IUnknown)
-    ['{CAB72C48-443B-48f5-9B0B-42F0820AB29A}']
-
-    function get__NewEnum(
-      [out] out RetVal: IUnknown
-    ): HResult; stdcall;
-
-    function get_Count(
-      [out] out pRetVal: Integer
-    ): HResult; stdcall;
-
-    function Item(
-      [in] index: Cardinal;
-      [out] out symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function Next(
-      [in, NumberOfElements] celt: Integer;
-      [out, WritesTo] rgelt: PIDiaSymbolArray;
-      [out, NumberOfElements] out celtFetched: Integer
-    ): HResult; stdcall;
-
-    function Skip(
-      [in] celt: Cardinal
-    ): HResult; stdcall;
-
-    function Reset(
-    ): HResult; stdcall;
-
-    function Clone(
-      [out] out ppenum: IDiaEnumSymbols
-    ): HResult; stdcall;
-  end;
-
-  // DIA::dia2.h
-  IDiaEnumSymbolsByAddr = interface (IUnknown)
-    ['{624B7D9C-24EA-4421-9D06-3B577471C1FA}']
-
-    function symbolByAddr(
-      [in] isect: Cardinal;
-      [in] offset: Cardinal;
-      [out] out Symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function symbolByRVA(
-      [in] relativeVirtualAddress: Cardinal;
-      [out] out Symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function symbolByVA(
-      [in] virtualAddress: UInt64;
-      [out] out Symbol: IDiaSymbol
-    ): HResult; stdcall;
-
-    function Next(
-      [in, NumberOfElements] celt: Cardinal;
-      [out, WritesTo] rgelt: PIDiaSymbolArray;
-      [out, NumberOfElements] out celtFetched: Cardinal
-    ): HResult; stdcall;
-
-    function Prev(
-      [in, NumberOfElements] celt: Cardinal;
-      [out, WritesTo] rgelt: PIDiaSymbolArray;
-      [out, NumberOfElements] out celtFetched: Cardinal
-    ): HResult; stdcall;
-
-    function Clone(
-      [out] out enum: IDiaEnumSymbolsByAddr
-    ): HResult; stdcall;
-  end;
-
-  // DIA::dia2.h
-  IDiaDataSource = interface (IUnknown)
-    ['{79F1BB5F-B66E-48e5-B6A9-1545C323CA3D}']
-
-    function get_lastError(
-      [out] out RetVal: WideString
-    ): HResult; stdcall;
-
-    function LoadDataFromPdb(
-      [in] Path: WideString
-    ): HResult; stdcall;
-
-    function LoadAndValidateDataFromPdb(
-      [in] Path: WideString;
-      [in] const sig70: TGuid;
-      [in] sig: Cardinal;
-      [in] age: Cardinal
-    ): HResult; stdcall;
-
-    function LoadDataForExe(
-      [in] executable: WideString;
-      [in, opt] searchPath: WideString;
-      [in, opt] const Callback: IUnknown
-    ): HResult; stdcall;
-
-    function LoadDataFromIStream(
-      [in] const Stream: IStream
-    ): HResult; stdcall;
-
-    function OpenSession(
-      [out] out Session: IDiaSession
-    ): HResult; stdcall;
-
-    function LoadDataFromCodeViewInfo(
-      [in] executable: WideString;
-      [in] searchPath: WideString;
-      [in, NumberOfBytes] cbCvInfo: Cardinal;
-      [in, ReadsFrom] pbCvInfo: Pointer;
-      [in] const Callback: IUnknown
-    ): HResult; stdcall;
-
-    function LoadDataFromMiscInfo(
-      [in] executable: WideString;
-      [in] searchPath: WideString;
-      [in] timeStampExe: TUnixTime;
-      [in] timeStampDbg: TUnixTime;
-      [in, Bytes] sizeOfExe: Cardinal;
-      [in, NumberOfBytes] cbMiscInfo: Cardinal;
-      [in, ReadsFrom] pbMiscInfo: Pointer;
-      [in] const Callback: IUnknown
     ): HResult; stdcall;
   end;
 
