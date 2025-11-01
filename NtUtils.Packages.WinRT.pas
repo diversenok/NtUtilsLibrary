@@ -62,6 +62,7 @@ var
   Iterable: IIterable<IPackage>;
   Iterator: IIterator<IPackage>;
   Package: IPackage;
+  UserSidString: String;
   SidString: IHString;
   HasCurrent: Boolean;
 begin
@@ -90,7 +91,12 @@ begin
     // Prepare the user SID
     if Assigned(UserSid) then
     begin
-      Result := RoxCreateString(RtlxSidToString(UserSid), SidString);
+      Result := RtlxSidToString(UserSid, UserSidString);
+
+      if not Result.IsSuccess then
+        Exit;
+
+      Result := RoxCreateString(UserSidString, SidString);
 
       if not Result.IsSuccess then
         Exit;

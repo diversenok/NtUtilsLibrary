@@ -159,6 +159,12 @@ function RtlxLookupSidInCustomProviders(
 
 // Convert a SID to its SDDL representation
 function RtlxSidToString(
+  const Sid: ISid;
+  out SDDL: String
+): TNtxStatus;
+
+// Convert a SID to its SDDL representation
+function RtlxSidToStringNoError(
   const Sid: ISid
 ): String;
 
@@ -579,8 +585,21 @@ end;
 
 function RtlxSidToString;
 var
-  SDDL: TNtUnicodeString;
+  SddlStr: TNtUnicodeString;
   Buffer: array [0 .. SECURITY_MAX_SID_STRING_CHARACTERS - 1] of WideChar;
+begin
+  SddlStr.Length := 0;
+  SddlStr.MaximumLength := SizeOf(Buffer);
+  SddlStr.Buffer := Buffer;
+
+  Result.Location := 'RtlConvertSidToUnicodeString';
+  Result.Status := RtlConvertSidToUnicodeString(SddlStr, Sid.Data, False);
+
+  if Result.IsSuccess then
+    SDDL := SddlStr.ToString;
+end;
+
+function RtlxSidToStringNoError;
 begin
   // Since SDDL permits hexadecimals, we can use them to represent some SIDs
   // in a more user-friendly way.
@@ -599,13 +618,7 @@ begin
           RtlxIntToHex(RtlxSubAuthoritySid(SID, 1), 4));
   end;
 
-  SDDL.Length := 0;
-  SDDL.MaximumLength := SizeOf(Buffer);
-  SDDL.Buffer := Buffer;
-
-  if NT_SUCCESS(RtlConvertSidToUnicodeString(SDDL, Sid.Data, False)) then
-    Result := SDDL.ToString
-  else
+  if not RtlxSidToString(Sid, Result).IsSuccess then
     Result := '(invalid SID)';
 end;
 

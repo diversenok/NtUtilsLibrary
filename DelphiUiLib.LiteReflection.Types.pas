@@ -786,7 +786,7 @@ begin
     if SidValid and Lookup.IsValid then
       Result.Text := Lookup.FullName
     else if SidValid then
-      Result.Text := RtlxSidToString(Sid)
+      Result.Text := RtlxSidToStringNoError(Sid)
     else
       Result.Text := '(invalid)';
 
@@ -797,7 +797,7 @@ begin
   begin
     if SidValid and Lookup.IsValid then
       Result.Hint := BuildHint([
-        THintSection.New('SID', RtlxSidToString(Sid)),
+        THintSection.New('SID', RtlxSidToStringNoError(Sid)),
         THintSection.New('SID Type', RttixFormat(TypeInfo(TSidNameUse),
           Lookup.SidType))
       ])

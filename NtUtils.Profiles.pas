@@ -186,7 +186,12 @@ begin
     Exit;
 
   if Assigned(Sid) then
-    UserSidString := RtlxSidToString(Sid)
+  begin
+    Result := RtlxSidToString(Sid, UserSidString);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
   else
     UserSidString := '';
 
@@ -264,15 +269,24 @@ end;
 function RtlxIsProfileLoaded;
 var
   hxKey: IHandle;
+  UserSidString: String;
 begin
-  Result := NtxOpenKey(hxKey, REG_PATH_USER + '\' + RtlxSidToString(UserSid),
-    0).Status <> STATUS_OBJECT_NAME_NOT_FOUND;
+  Result := RtlxSidToString(UserSid, UserSidString).IsSuccess and
+    (NtxOpenKey(hxKey, REG_PATH_USER + '\' + UserSidString, 0).Status <>
+    STATUS_OBJECT_NAME_NOT_FOUND);
 end;
 
 function RtlxOpenProfileListKey;
+var
+  UserSidString: String;
 begin
-  Result := NtxOpenKey(hxProfileListKey, PROFILE_PATH + '\' + RtlxSidToString(
-    UserSid), KEY_QUERY_VALUE);
+  Result := RtlxSidToString(UserSid, UserSidString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxOpenKey(hxProfileListKey, PROFILE_PATH + '\' + UserSidString,
+    KEY_QUERY_VALUE);
 end;
 
 function RtlxQueryProfilePath;

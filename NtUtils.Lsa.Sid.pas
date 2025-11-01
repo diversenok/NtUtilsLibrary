@@ -162,7 +162,7 @@ begin
   else if IsValid and (UserName <> '') then
     Result := UserName
   else
-    Result := RtlxSidToString(SID);
+    Result := RtlxSidToStringNoError(SID);
 end;
 
 function TTranslatedName.IsValid;

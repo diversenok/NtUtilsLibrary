@@ -181,7 +181,11 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SDDL := RtlxSidToString(Sid);
+  Result := RtlxSidToString(Sid, SDDL);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'UMgrQueryUserContextFromSid';
   Result.HResult := UMgrQueryUserContextFromSid(PWideChar(SDDL), ContextToken);
 end;
@@ -266,8 +270,12 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxSidToString(Sid, SDDL);
+
+  if not Result.IsSuccess then
+    Exit;
+
   hToken := 0;
-  SDDL := RtlxSidToString(Sid);
   Result.Location := 'UMgrQueryUserTokenFromSid';
   Result.HResult := UMgrQueryUserTokenFromSid(PWideChar(SDDL), hToken);
 

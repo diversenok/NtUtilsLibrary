@@ -159,8 +159,15 @@ begin
     Exit;
 
   // Prepare strings
-  UserSidString := RtlxSidToString(UserSid);
-  AppContainerSidString := RtlxSidToString(AppContainerSid);
+  Result := RtlxSidToString(UserSid, UserSidString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxSidToString(AppContainerSid, AppContainerSidString);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Buffer := Auto.AllocateDynamic(INITIAL_SIZE);
   repeat

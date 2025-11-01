@@ -121,8 +121,9 @@ function RtlxEnumerateAppContainerMonikers(
 
 // Construct the path to the registry storage of an AppContainer
 function RtlxQueryStoragePathAppContainer(
-  const Info: TRtlxAppContainerInfo
-): String;
+  const Info: TRtlxAppContainerInfo;
+  out Path: String
+): TNtxStatus;
 
 { AppPackage }
 
@@ -401,8 +402,13 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxSidToString(User, Path);
+
+  if not Result.IsSuccess then
+    Exit;
+
   // Repository root
-  Path := REG_PATH_USER + '\' + RtlxSidToString(User) + APPCONTAINER_REPOSITORY;
+  Path := REG_PATH_USER + '\' + Path + APPCONTAINER_REPOSITORY;
 
   // Repository section
   if RepositorySection = arStorage then
@@ -468,6 +474,7 @@ var
   hxKey: IHandle;
   AppContainerType: TAppContainerSidType;
   ParentSid: ISid;
+  SidString, ParentSidString: String;
 begin
   Info := Default(TRtlxAppContainerInfo);
   Info.Sid := Sid;
@@ -504,15 +511,30 @@ begin
     if not Result.IsSuccess then
       Exit;
 
+    Result := RtlxSidToString(Sid, SidString);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result := RtlxSidToString(ParentSid, ParentSidString);
+
+    if not Result.IsSuccess then
+      Exit;
+
     // Open the mapping of the child SID
     Result := RtlxOpenAppContainerRepository(hxKey, User, arMappings,
-      RtlxSidToString(ParentSid), True, RtlxSidToString(Sid), KEY_QUERY_VALUE);
+      ParentSidString, True, SidString, KEY_QUERY_VALUE);
   end
   else
   begin
+    Result := RtlxSidToString(Sid, SidString);
+
+    if not Result.IsSuccess then
+      Exit;
+
     // Open the mapping of the SID as a parent
     Result := RtlxOpenAppContainerRepository(hxKey, User, arMappings,
-      RtlxSidToString(Sid), False, '', KEY_QUERY_VALUE);
+      SidString, False, '', KEY_QUERY_VALUE);
   end;
 
   if not Result.IsSuccess then
@@ -547,23 +569,27 @@ function RtlxEnumerateAppContainerSIDs;
 var
   hxKey: IHandle;
   SubKeys: TArray<TNtxRegKey>;
-  ParentSddl: String;
+  ParentSidString: String;
   ExpectedType: TAppContainerSidType;
 begin
   if Assigned(ParentSid) then
   begin
-    ParentSddl := RtlxSidToString(ParentSid);
+    Result := RtlxSidToString(ParentSid, ParentSidString);
+
+    if not Result.IsSuccess then
+      Exit;
+
     ExpectedType := ChildAppContainerSidType;
   end
   else
   begin
-    ParentSddl := '';
+    ParentSidString := '';
     ExpectedType := ParentAppContainerSidType;
   end;
 
   // Open the AppContainer mapping repository
   Result := RtlxOpenAppContainerRepository(hxKey, User, arMappings,
-    ParentSddl, Assigned(ParentSid), '', KEY_ENUMERATE_SUB_KEYS);
+    ParentSidString, Assigned(ParentSid), '', KEY_ENUMERATE_SUB_KEYS);
 
   if not Result.IsSuccess then
     Exit;
@@ -614,18 +640,23 @@ end;
 
 function RtlxQueryStoragePathAppContainer;
 var
-  ParentMoniker: String;
+  UserSidString, ParentMoniker: String;
 begin
   if Info.IsChild then
     ParentMoniker := Info.ParentMoniker
   else
     ParentMoniker := Info.Moniker;
 
-  Result := REG_PATH_USER + '\' + RtlxSidToString(Info.User) +
-    APPCONTAINER_REPOSITORY + APPCONTAINER_STORAGE + '\' + ParentMoniker;
+  Result := RtlxSidToString(Info.User, UserSidString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Path := REG_PATH_USER + '\' + UserSidString + APPCONTAINER_REPOSITORY +
+    APPCONTAINER_STORAGE + '\' + ParentMoniker;
 
   if Info.IsChild then
-    Result := Result + '\' + APPCONTAINER_CHILDREN + '\' + Info.Moniker;
+    Path := Path + '\' + APPCONTAINER_CHILDREN + '\' + Info.Moniker;
 end;
 
 { AppPackage }
