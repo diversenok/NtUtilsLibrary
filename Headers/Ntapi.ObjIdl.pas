@@ -213,6 +213,27 @@ type
   end;
 
   // SDK::objidl.h
+  IEnumUnknown = interface (IUnknown)
+    ['{00000100-0000-0000-C000-000000000046}']
+    function Next(
+      [in, NumberOfElements] Count: Integer;
+      [out] out Elements: IUnknown;
+      [out, opt] Fetched: PInteger
+    ): HResult; stdcall;
+
+    function Skip(
+      [in, NumberOfElements] Count: Integer
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out Enum: IEnumUnknown
+    ): HResult; stdcall;
+  end;
+
+  // SDK::objidl.h
   [SDKName('ISequentialStream')]
   ISequentialStream = interface(IUnknown)
     ['{0c733a30-2a1c-11ce-ade5-00aa0044773d}']

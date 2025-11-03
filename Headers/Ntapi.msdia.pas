@@ -418,6 +418,17 @@ type
   );
 
   // DIA::cvconst.h
+  [SDKName('StackFrameTypeEnum')]
+  [NamingStyle(nsSnakeCase, 'FrameType')]
+  TStackFrameTypeEnum = (
+    FrameTypeFPO = 0,
+    FrameTypeTrap = 1,
+    FrameTypeTSS = 2,
+    FrameTypeStandard = 3,
+    FrameTypeFrameData = 4
+  );
+
+  // DIA::cvconst.h
   [SDKName('CV_HLSLMemorySpace_e')]
   [NamingStyle(nsSnakeCase, 'CV_HLSL_MEMSPACE')]
   TCvHlslMemorySpaceE = (
@@ -483,7 +494,7 @@ type
     ): HResult; stdcall;
 
     function Item(
-      [in] index: Cardinal;
+      [in] Index: Cardinal;
       [out] out Item: I
     ): HResult; stdcall;
 
@@ -565,10 +576,10 @@ type
   IDiaSourceFile = interface;
   IDiaInputAssemblyFile = interface;
   IDiaLineNumber = interface;
-  IDiaInjectedSource = IInterface;
-  IDiaSegment = IInterface;
-  IDiaSectionContrib = IInterface;
-  IDiaFrameData = IInterface;
+  IDiaInjectedSource = interface;
+  IDiaSegment = interface;
+  IDiaSectionContrib = interface;
+  IDiaFrameData = interface;
 
   // DIA::dia2.h
   IDiaEnumSymbols = interface (IDiaEnum<IDiaSymbol>)
@@ -656,7 +667,46 @@ type
     ): HResult; stdcall;
   end;
 
-  IDiaEnumDebugStreamData = IInterface;
+  IDiaEnumDebugStreamData = interface (IUnknown)
+    ['{486943E8-D187-4a6b-A3C4-291259FFF60D}']
+    function get__NewEnum(
+      [out] out RetVal: IUnknown
+    ): HResult; stdcall;
+
+    function get_Count(
+      [out] out RetVal: Integer
+    ): HResult; stdcall;
+
+    function get_name(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function Item(
+      [in] Index: Integer;
+      [in, NumberOfBytes] cbData: Cardinal;
+      [out, NumberOfBytes] out pcbData: Cardinal;
+      [out, WritesTo] Data: Pointer
+    ): HResult; stdcall;
+
+    function Next(
+      [in] Elements: Integer;
+      [in, NumberOfBytes] cbData: Cardinal;
+      [out, NumberOfBytes] out pcbData: Cardinal;
+      [out, WritesTo] Data: Pointer;
+      [out] out Fetched: Cardinal
+    ): HResult; stdcall;
+
+    function Skip(
+      [in, NumberOfElements] Elements: Cardinal
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out Enum: IDiaEnumDebugStreamData
+    ): HResult; stdcall;
+  end;
 
   // DIA::dia2.h
   IDiaEnumDebugStreams = interface (IDiaEnum<IDiaEnumDebugStreamData>)
@@ -664,7 +714,7 @@ type
   end;
 
   IDiaAddressMap = IInterface;
-  IDiaEnumTables = IUnknown;
+  IDiaEnumTables = interface;
 
   // DIA::dia2.h
   IDiaSession = interface (IUnknown)
@@ -2269,6 +2319,292 @@ type
     function get_compilandId(
       [out] out RetVal: Cardinal
     ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSectionContrib = interface (IUnknown)
+    ['{0CF4B60E-35B1-4c6c-BDD8-854B9C8E3857}']
+    function get_compiland(
+      [out] out RetVal: IDiaSymbol
+    ): HResult; stdcall;
+
+    function get_addressSection(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_addressOffset(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_relativeVirtualAddress(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_virtualAddress(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+
+    function get_length(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_notPaged(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_code(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_initializedData(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_uninitializedData(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_remove(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_comdat(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_discardable(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_notCached(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_share(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_execute(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_read(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_write(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_dataCrc(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_relocationsCrc(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_compilandId(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_code16bit(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaSegment = interface (IUnknown)
+    ['{0775B784-C75B-4449-848B-B7BD3159545B}']
+    function get_frame(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_offset(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_length(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_read(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_write(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_execute(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_addressSection(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_relativeVirtualAddress(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_virtualAddress(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaInjectedSource = interface (IUnknown)
+    ['{AE605CDC-8105-4a23-B710-3259F1E26112}']
+    function get_crc(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_length(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+
+    function get_filename(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function get_objectFilename(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function get_virtualFilename(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function get_sourceCompression(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_source(
+      [in, NumberOfBytes] cbData: Cardinal;
+      [out, NumberOfBytes] out pcbData: Cardinal;
+      [out, WritesTo] pbData: Pointer
+    ): HResult; stdcall;
+  end;
+
+  IDiaStackWalkFrame = IUnknown;
+
+  // DIA::dia2.h
+  IDiaFrameData = interface (IUnknown)
+    ['{A39184B7-6A36-42de-8EEC-7DF9F3F59F33}']
+    function get_addressSection(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_addressOffset(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_relativeVirtualAddress(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_virtualAddress(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+
+    function get_lengthBlock(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_lengthLocals(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_lengthParams(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_maxStack(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_lengthProlog(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_lengthSavedRegisters(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_program(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function get_systemExceptionHandling(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_cplusplusExceptionHandling(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_functionStart(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_allocatesBasePointer(
+      [out] out RetVal: LongBool
+    ): HResult; stdcall;
+
+    function get_type(
+      [out] out RetVal: TStackFrameTypeEnum
+    ): HResult; stdcall;
+
+    function get_functionParent(
+      [out] out RetVal: IDiaFrameData
+    ): HResult; stdcall;
+
+    function execute(
+      [in] Frame: IDiaStackWalkFrame
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaImageData = interface (IUnknown)
+    ['{C8E40ED2-A1D9-4221-8692-3CE661184B44}']
+    function get_relativeVirtualAddress(
+      [out] out RetVal: Cardinal
+    ): HResult; stdcall;
+
+    function get_virtualAddress(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+
+    function get_imageBase(
+      [out] out RetVal: UInt64
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaTable = interface (IEnumUnknown)
+    ['{4A59FB77-ABAC-469b-A30B-9ECC85BFEF14}']
+    function get__NewEnum(
+      [out] out RetVal: IUnknown
+    ): HResult; stdcall;
+
+    function get_name(
+      [out] out RetVal: WideString
+    ): HResult; stdcall;
+
+    function get_Count(
+      [out] out RetVal: Integer
+    ): HResult; stdcall;
+
+    function Item(
+      [in] Index: Integer;
+      [out] out Element: IUnknown
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumTables = interface (IDiaEnum<IDiaTable>)
+    ['{C65C2B0A-1150-4d7a-AFCC-E05BF3DEE81E}']
   end;
 
 implementation
