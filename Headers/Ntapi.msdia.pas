@@ -43,6 +43,19 @@ const
   E_PDB_SYMSRV_BAD_CACHE_PATH = $806D0018;
   E_PDB_SYMSRV_CACHE_FULL = $806D0019;
   E_PDB_OBJECT_DISPOSED = $806D001A;
+  E_PDB_IFC_RECORD_MISSING_DESIGNATOR = $806D001C;
+  E_PDB_IFC_RECORD_MISSING_REFERENCE = $806D001D;
+  E_PDB_IFC_FAILED_TO_LOAD = $806D001E;
+  E_PDB_IFC_FAILED_TO_LOAD_MISMATCH_HASH = $806D001F;
+  E_PDB_IFC_DEBUG_STREAM_FAILED_OPEN = $806D0020;
+  E_PDB_IFC_DEBUG_STREAM_EMPTY = $806D0021;
+  E_PDB_IFC_DEBUG_STREAM_HASH_MISMATCH = $806D0022;
+  E_DIA_INPROLOG = $806D0064;
+  E_DIA_SYNTAX = $806D0065;
+  E_DIA_FRAME_ACCESS = $806D0066;
+  E_DIA_VALUE = $806D0067;
+  E_DIA_COFF_ACCESS = $806D00C8;
+  E_DIA_COMP_PDB_ACCESS = $806D00C9;
 
   // DIA::dia2.h - name search options
   nsfCaseSensitive = $01;
@@ -154,7 +167,7 @@ type
   [SDKName('CV_access_e')]
   [NamingStyle(nsCamelCase, 'CV_'), MinValue(1)]
   TCvAccessE = (
-    [Reserved] CV_reserverd = 0,
+    [Reserved] CV_none = 0,
     CV_private = 1,
     CV_protected = 2,
     CV_public = 3
@@ -239,27 +252,27 @@ type
     btVoid = 1,
     btChar = 2,
     btWChar = 3,
-    [Reserved] btReserved4 = 4,
-    [Reserved] btReserved5 = 5,
+    btSignedChar = 4, // unofficial name
+    btUnsignedChar = 5, // unofficial name
     btInt = 6,
     btUInt = 7,
     btFloat = 8,
     btBCD = 9,
     btBool = 10,
-    [Reserved] btReserved11,
-    [Reserved] btReserved12,
+    btShort, // unofficial name
+    btUnsignedShort, // unofficial name
     btLong = 13,
     btULong = 14,
-    [Reserved] btReserved15,
-    [Reserved] btReserved16,
-    [Reserved] btReserved17,
-    [Reserved] btReserved18,
-    [Reserved] btReserved19,
-    [Reserved] btReserved20,
-    [Reserved] btReserved21,
-    [Reserved] btReserved22,
-    [Reserved] btReserved23,
-    [Reserved] btReserved24,
+    btInt8 = 15, // unofficial name
+    btInt16 = 16, // unofficial name
+    btInt32 = 17, // unofficial name
+    btInt64 = 18, // unofficial name
+    btInt128 = 19, // unofficial name
+    btUnsignedInt8 = 20, // unofficial name
+    btUnsignedInt16 = 21, // unofficial name
+    btUnsignedInt32 = 22, // unofficial name
+    btUnsignedInt64 = 23, // unofficial name
+    btUnsignedInt128 = 24, // unofficial name
     btCurrency = 25,
     btDate = 26,
     btVariant = 27,
@@ -518,6 +531,7 @@ type
   IDiaEnumSymbols = interface;
 
   IDiaSession = interface;
+  IDiaEnumNamedStreams = IUnknown;
 
   // DIA::dia2.h
   IDiaDataSource = interface (IUnknown)
@@ -569,6 +583,71 @@ type
       [in, NumberOfBytes] cbMiscInfo: Cardinal;
       [in, ReadsFrom] pbMiscInfo: Pointer;
       [in] const Callback: IUnknown
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaDataSourceEx = interface (IDiaDataSource)
+    ['{1a21eb69-962a-4bc4-8bd3-681797d38b23}']
+    function loadDataFromPdbEx(
+      [in] PdbPath: WideString;
+      [in] PdbPrefetching: LongBool
+    ): HResult; stdcall;
+
+    function loadAndValidateDataFromPdbEx(
+      [in] PdbPath: WideString;
+      [in] const sig70: TGuid;
+      [in] sig: Cardinal;
+      [in] age: Cardinal;
+      [in] PdbPrefetching: LongBool
+    ): HResult; stdcall;
+
+    function loadDataForExeEx(
+      [in] executable: WideString;
+      [in, opt] searchPath: WideString;
+      [in, opt] const Callback: IUnknown;
+      [in] PdbPrefetching: LongBool
+    ): HResult; stdcall;
+
+    function loadDataFromIStreamEx(
+      [in] const Stream: IStream;
+      [in] PdbPrefetching: LongBool
+    ): HResult; stdcall;
+
+    function getStreamSize(
+      [in] stream: WideString;
+      [out] out pcb: UInt64
+    ): HResult; stdcall;
+
+    function getStreamRawData(
+      [in] stream: WideString;
+      [in] cbOffset: UInt64;
+      [in, NumberOfBytes] cbRead: UInt64;
+      [out, NumberOfBytes] out pcbRead: UInt64;
+      [out, WritesTo] pbData: Pointer
+    ): HResult; stdcall;
+
+    function setPfnMiniPDBErrorCallback2(
+      [in] pvContext: Pointer;
+      [in] pfn: Pointer
+    ): HResult; stdcall;
+
+    function ValidatePdb(
+      [in] pdbPath: WideString;
+      [in] const sig70: TGuid;
+      [in] sig: Cardinal;
+      [in] age: Cardinal;
+      [out] out Stripped: LongBool
+    ): HResult; stdcall;
+  end;
+
+  // DIA::dia2.h
+  IDiaDataSourceEx2 = interface (IDiaDataSourceEx)
+    ['{D240C8DD-1A0F-456E-80A6-4F1D06BF5DF4}']
+    function findNamedStreams(
+      [in] name: WideString;
+      [in] compareFlags: TNameSearchOptions;
+      [out] out Result: IDiaEnumNamedStreams
     ): HResult; stdcall;
   end;
 
@@ -1077,6 +1156,25 @@ type
     function findInputAssemblyFile(
       [in] const Symbol: IDiaSymbol;
       [out] out Result: IDiaInputAssemblyFile
+    ): HResult; stdcall;
+  end;
+
+  IDiaEnumSourceLink = interface;
+
+  // DIA::dia2.h
+  IDiaSessionEx = interface (IDiaSession)
+    ['{cd24eed5-5fea-4742-a320-6254c920e78b}']
+    function isFastLinkPDB(
+      [out] out FastLinkPDB: LongBool
+    ): HResult; stdcall;
+
+    function isPortablePDB(
+      [out] out PortablePDB: LongBool
+    ): HResult; stdcall;
+
+    function getSourceLinkInfo(
+      [in] Parent: IDiaSymbol;
+      [out] out Enum: IDiaEnumSourceLink
     ): HResult; stdcall;
   end;
 
@@ -2605,6 +2703,35 @@ type
   // DIA::dia2.h
   IDiaEnumTables = interface (IDiaEnum<IDiaTable>)
     ['{C65C2B0A-1150-4d7a-AFCC-E05BF3DEE81E}']
+  end;
+
+  // DIA::dia2.h
+  IDiaEnumSourceLink = interface (IUnknown)
+    ['{45cd1eb3-5c6c-43e3-b20a-a4d8035de4e2}']
+    function Count(
+      [out] out Count: Cardinal
+    ): HResult; stdcall;
+
+    function SizeOfNext(
+      [out] out Size: Cardinal
+    ): HResult; stdcall;
+
+    function Next(
+      [in, NumberOfBytes] cb: Cardinal;
+      [out, NumberOfBytes] out pcb: Cardinal;
+      [out, WritesTo] pb: Pointer
+    ): HResult; stdcall;
+
+    function Skip(
+      [in] Count: Cardinal
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out Enum: IDiaEnumSourceLink
+    ): HResult; stdcall;
   end;
 
 implementation

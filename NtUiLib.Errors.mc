@@ -17890,6 +17890,97 @@ Language = Neutral
 E_PDB_OBJECT_DISPOSED
 .
 
+MessageId = 0x001C ; // HRESULT(0x806D001C)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_IFC_RECORD_MISSING_DESIGNATOR
+.
+
+MessageId = 0x001D ; // HRESULT(0x806D001D)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_IFC_RECORD_MISSING_REFERENCE
+.
+
+MessageId = 0x001E ; // HRESULT(0x806D001E)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_IFC_FAILED_TO_LOAD
+.
+
+MessageId = 0x001F ; // HRESULT(0x806D001F)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_IFC_FAILED_TO_LOAD_MISMATCH_HASH
+.
+
+MessageId = 0x0020 ; // HRESULT(0x806D0020)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_IFC_DEBUG_STREAM_FAILED_OPEN
+.
+
+MessageId = 0x0021 ; // HRESULT(0x806D0021)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_IFC_DEBUG_STREAM_EMPTY
+.
+
+MessageId = 0x0022 ; // HRESULT(0x806D0022)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_PDB_IFC_DEBUG_STREAM_HASH_MISMATCH
+.
+
+MessageId = 0x0064 ; // HRESULT(0x806D0064)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_DIA_INPROLOG
+.
+
+MessageId = 0x0065 ; // HRESULT(0x806D0065)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_DIA_SYNTAX
+.
+
+MessageId = 0x0066 ; // HRESULT(0x806D0066)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_DIA_FRAME_ACCESS
+.
+
+MessageId = 0x0067 ; // HRESULT(0x806D0067)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_DIA_VALUE
+.
+
+MessageId = 0x00C8 ; // HRESULT(0x806D00C8)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_DIA_COFF_ACCESS
+.
+
+MessageId = 0x00C9 ; // HRESULT(0x806D00C9)
+Severity = Warning
+Facility = HRESULT_PDB
+Language = Neutral
+E_DIA_COMP_PDB_ACCESS
+.
+
 ; /* Error */
 
 MessageId = 0x0001 ; // HRESULT(0xC0000001) // fake enty
