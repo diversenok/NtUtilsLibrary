@@ -356,11 +356,13 @@ begin
       Break;
     end;
 
-  if not HasNonEnumFlags then
-    Exit('');
-
   Value := BitwiseType.ReadInstance(Instance);
+  Result := BuildHint('Value', UiLibUIntToHex(Value, BitwiseType.MinDigits or
+    NUMERIC_WIDTH_ROUND_TO_GROUP));
 
+  if not HasNonEnumFlags then
+    Exit;
+ 
   SetLength(Checkboxes, Length(BitwiseType.Flags));
 
   for i := 0 to High(BitwiseType.Flags) do
@@ -370,8 +372,7 @@ begin
         BitwiseType.Suffix) + '  ';
 
   Result := 'Flags:  '#$D#$A + RtlxJoinStrings(Checkboxes, #$D#$A) +
-    #$D#$A'Value:  '#$D#$A'  ' + UiLibUIntToHex(Value, BitwiseType.MinDigits or
-    NUMERIC_WIDTH_ROUND_TO_GROUP) + '  ';
+    #$D#$A + Result;
 end;
 
 function RttixFormatDigits(
