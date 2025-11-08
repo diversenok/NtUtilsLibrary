@@ -337,7 +337,7 @@ begin
     // %I64u bytes
     IntValue := Bytes;
     Digits := 0;
-    Units := ' bytes';
+    Units := ' Bytes';
   end
   else if (Bytes < BYTES_PER_KB * 10) and (Bytes mod BYTES_PER_KB <> 0) then
   begin
