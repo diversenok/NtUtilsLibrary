@@ -87,10 +87,18 @@ function RttixMakeTypeFormatterForType(
   [opt] const RttixType: IRttixType
 ): IRttixTypeFormatter;
 
-// Prepare formatters for representing fields of a specific record type
-// or a record pointer type
+// Prepare formatters for representing fields of a specific record
+// or record pointer type from its type info
 function RttixMakeFieldFormatters(
-  TypeInfo: PLiteRttiTypeInfo;
+  [opt] TypeInfo: PLiteRttiTypeInfo;
+  Options: TRttixFieldReflectionOptions = [];
+  const ExtraAttributes: TArray<PLiteRttiAttribute> = nil
+): TArray<IRttixFieldFormatter>;
+
+// Prepare formatters for representing fields of a specific record
+// or record pointer type from its RTTI info
+function RttixMakeFieldFormattersForType(
+  [opt] const RttixType: IRttixType;
   Options: TRttixFieldReflectionOptions = [];
   const ExtraAttributes: TArray<PLiteRttiAttribute> = nil
 ): TArray<IRttixFieldFormatter>;
@@ -722,18 +730,29 @@ begin
 end;
 
 function RttixMakeFieldFormatters;
+begin
+  if not Assigned(TypeInfo) then
+    Exit(nil);
+
+  Result := RttixMakeFieldFormattersForType(RttixTypeInfo(TypeInfo,
+    ExtraAttributes), Options, ExtraAttributes);
+end;
+
+function RttixMakeFieldFormattersForType;
 var
-  ScopingType, NestedType: IRttixType;
+  NestedType: IRttixType;
   RecordType: IRttixRecordType;
   PointerDepth: Integer;
   Fields: TArray<IRttixField>;
   i: Integer;
 begin
-  ScopingType := RttixTypeInfo(TypeInfo, ExtraAttributes);
+  if not Assigned(RttixType) then
+    Exit(nil);
+
   PointerDepth := 0;
 
   // Determine the pointer depth and extract the nested record type
-  NestedType := ScopingType;
+  NestedType := RttixType;
   while Assigned(NestedType) and (NestedType.SubKind = rtkPointer) do
   begin
     NestedType := (NestedType as IRttixPointerType).ReferncedType;
@@ -758,7 +777,7 @@ begin
   SetLength(Result, Length(Fields));
 
   for i := 0 to High(Fields) do
-    Result[i] := TRttixFieldFormatter.Create(ScopingType, RecordType,
+    Result[i] := TRttixFieldFormatter.Create(RttixType, RecordType,
       PointerDepth, Fields[i]);
 end;
 
