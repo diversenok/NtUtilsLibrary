@@ -275,7 +275,8 @@ function RtlxSwapEndianness(
 // Format a buffer as a hex string
 function RtlxBytesToHexStr(
   Buffer: Pointer;
-  Size: Cardinal
+  Size: Cardinal;
+  InsertSpaces: Boolean = False
 ): String;
 
 // Convert a signed/unsigned integer to a string
@@ -1299,17 +1300,27 @@ var
   HexCursor: PWideChar;
   i: Integer;
 begin
-  SetLength(Result, Size * 2);
+  if InsertSpaces and (Size > 0) then
+    SetLength(Result, Size * 3 - 1)
+  else
+    SetLength(Result, Size * 2);
+
   HexCursor := PWideChar(Result);
   ByteCursor := Buffer;
 
-  for i := 0 to Pred(Size) do
+  for i := 0 to Pred(Integer(Size)) do
   begin
     HexCursor^ := HEX_DIGITS[ByteCursor^ shr 4];
     Inc(HexCursor);
     HexCursor^ := HEX_DIGITS[ByteCursor^ and $0F];
     Inc(HexCursor);
     Inc(ByteCursor);
+
+    if InsertSpaces and (i < Pred(Integer(Size))) then
+    begin
+      HexCursor^ := ' ';
+      Inc(HexCursor);
+    end;
   end;
 end;
 
