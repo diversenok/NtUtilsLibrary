@@ -254,6 +254,8 @@ function RttixFormatEnum(
 ): String;
 var
   Value: Cardinal;
+  TypeName: String;
+  Size: TIntegerSize;
 begin
   Value := EnumType.ReadInstance(Instance);
 
@@ -267,7 +269,24 @@ begin
     );
   end
   else
-    Result := UiLibUIntToDec(Value) + ' (out of bound)';
+  begin
+    TypeName := EnumType.SDKName;
+
+    if TypeName = '' then
+      TypeName := EnumType.TypeInfo.Name;
+
+    case EnumType.Size of
+      SizeOf(Byte):     Size := isByte;
+      SizeOf(Word):     Size := isWord;
+      SizeOf(Cardinal): Size := isCardinal;
+    else
+      Size := isCardinal;
+      Error(reAssertionFailed);
+    end;
+
+    Result := '(' + TypeName + ' of ' + RtlxIntToDec(Value, Size, isSigned, 0,
+      npSpace) + ')';
+  end;
 end;
 
 function RttixFormatEnumHint(
