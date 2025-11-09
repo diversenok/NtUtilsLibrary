@@ -533,6 +533,52 @@ type
   end;
   PXFixupDataArm64 = ^TXFixupDataArm64;
 
+  {$MINENUMSIZE 1}
+  // SDK::winnt.h
+  [NamingStyle(nsSnakeCase)]
+  TFpoDataFrame = (
+    FRAME_FPO = 0,
+    FRAME_TRAP = 1,
+    FRAME_TSS = 2,
+    FRAME_NONFPO = 3
+  );
+  {$MINENUMSIZE 4}
+
+  // SDK::winnt.h
+  [SDKName('FPO_DATA')]
+  TFpoData = record
+    [Hex] OffsetStart: Cardinal;
+    [Bytes] ProcSize: Cardinal;
+    [Bytes] Locals: Cardinal;
+    [Bytes] Params: Word;
+    [Bytes] Prolog: Byte;
+    [Hex] BitField: Byte;
+  end;
+  PFpoData = ^TFpoData;
+
+  // MS-PDB::cvinfo.h
+  [SDKName('FRAMEDATA')]
+  TFrameData = record
+    [Hex] RvaStart: Cardinal;
+    [Bytes] Block: Cardinal;
+    [Bytes] Locals: Cardinal;
+    [Bytes] Params: Cardinal;
+    [Bytes] StkMax: Cardinal;
+    FrameFunc: Cardinal;
+    [Bytes] Prolog: Word;
+    [Bytes] SavedRegs: Word;
+    [Hex] BitField: Cardinal;
+  end;
+  PFrameData = ^TFrameData;
+
+  // MS-PDB::dbi.h
+  [SDKName('OMAP_DATA')]
+  TOmapData = record
+    [Hex] Rva: Cardinal;
+    [Hex] RvaTo: Cardinal;
+  end;
+  POmapData = ^TOmapData;
+
   // DIA::dia2.h
   [SDKName('NameSearchOptions')]
   [FlagName(nsfCaseSensitive, 'Case-sensitive')]
