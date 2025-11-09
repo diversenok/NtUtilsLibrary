@@ -487,6 +487,52 @@ type
   end;
   PDiaTagValue = ^TDiaTagValue;
 
+  // MS-PDB::cvinfo.h
+  [SDKName('XFIXUP_DATA')]
+  TXFixupData = record
+   &Type: Word;
+   [Hex] Extra: Word;
+   [Hex] RVA: Cardinal;
+   [Hex] RVATarget: Cardinal;
+  end;
+  PXFixupData = ^TXFixupData;
+
+  [InheritsFrom(System.TypeInfo(TXFixupData))]
+  TXFixupDataI386 = record
+   &Type: TImageRelocationI386;
+   [Hex] Extra: Word;
+   [Hex] RVA: Cardinal;
+   [Hex] RVATarget: Cardinal;
+  end;
+  PXFixupDataI386 = ^TXFixupDataI386;
+
+  [InheritsFrom(System.TypeInfo(TXFixupData))]
+  TXFixupDataAmd64 = record
+   &Type: TImageRelocationAmd64;
+   [Hex] Extra: Word;
+   [Hex] RVA: Cardinal;
+   [Hex] RVATarget: Cardinal;
+  end;
+  PXFixupDataAmd64 = ^TXFixupDataAmd64;
+
+  [InheritsFrom(System.TypeInfo(TXFixupData))]
+  TXFixupDataArm = record
+   &Type: TImageRelocationArm;
+   [Hex] Extra: Word;
+   [Hex] RVA: Cardinal;
+   [Hex] RVATarget: Cardinal;
+  end;
+  PXFixupDataArm = ^TXFixupDataArm;
+
+  [InheritsFrom(System.TypeInfo(TXFixupData))]
+  TXFixupDataArm64 = record
+   &Type: TImageRelocationArm64;
+   [Hex] Extra: Word;
+   [Hex] RVA: Cardinal;
+   [Hex] RVATarget: Cardinal;
+  end;
+  PXFixupDataArm64 = ^TXFixupDataArm64;
+
   // DIA::dia2.h
   [SDKName('NameSearchOptions')]
   [FlagName(nsfCaseSensitive, 'Case-sensitive')]

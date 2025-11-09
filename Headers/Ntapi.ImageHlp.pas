@@ -359,6 +359,7 @@ type
     function GetDataDirectory(Index: TImageDirectoryEntry): TImageDataDirectory;
     property DataDirectory[Index: TImageDirectoryEntry]: TImageDataDirectory read GetDataDirectory;
   end;
+  PImageOptionalHeader = ^TImageOptionalHeader;
 
   TImageSectionName = array [0 .. IMAGE_SIZEOF_SHORT_NAME - 1] of AnsiChar;
 
@@ -486,10 +487,10 @@ type
   end;
   PImageResourceDataEntry = ^TImageResourceDataEntry;
 
-  // SDK::winnt.h
+  // SDK::winnt.h - base relocation types
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'IMAGE_REL_BASED')]
-  TImageRelocationType = (
+  TImageRelocationBased = (
     IMAGE_REL_BASED_ABSOLUTE = 0,
     IMAGE_REL_BASED_HIGH = 1,
     IMAGE_REL_BASED_LOW = 2,
@@ -504,10 +505,148 @@ type
   );
   {$MINENUMSIZE 4}
 
+  // SDK::winnt.h - I386 relocation types
+  {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'IMAGE_REL_I386')]
+  [ValidValues([0..2, 6..7, 9..13, 20])]
+  TImageRelocationI386 = (
+    IMAGE_REL_I386_ABSOLUTE = 0,
+    IMAGE_REL_I386_DIR16 = 1,
+    IMAGE_REL_I386_REL16 = 2,
+    [Reserved] IMAGE_REL_I386_RESERVED3,
+    [Reserved] IMAGE_REL_I386_RESERVED4,
+    [Reserved] IMAGE_REL_I386_RESERVED5,
+    IMAGE_REL_I386_DIR32 = 6,
+    IMAGE_REL_I386_DIR32NB = 7,
+    [Reserved] IMAGE_REL_I386_RESERVED8,
+    IMAGE_REL_I386_SEG12 = 9,
+    IMAGE_REL_I386_SECTION = 10,
+    IMAGE_REL_I386_SECREL = 11,
+    IMAGE_REL_I386_TOKEN = 12,
+    IMAGE_REL_I386_SECREL7 = 13,
+    [Reserved] IMAGE_REL_I386_RESERVED14,
+    [Reserved] IMAGE_REL_I386_RESERVED15,
+    [Reserved] IMAGE_REL_I386_RESERVED16,
+    [Reserved] IMAGE_REL_I386_RESERVED17,
+    [Reserved] IMAGE_REL_I386_RESERVED18,
+    [Reserved] IMAGE_REL_I386_RESERVED19,
+    IMAGE_REL_I386_REL32 = 20
+  );
+  {$MINENUMSIZE 4}
+
+  // SDK::winnt.h - AMD64 relocation types
+  {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'IMAGE_REL_AMD64')]
+  [ValidValues([0..25, 32..47])]
+  TImageRelocationAmd64 = (
+    IMAGE_REL_AMD64_ABSOLUTE = 0,
+    IMAGE_REL_AMD64_ADDR64 = 1,
+    IMAGE_REL_AMD64_ADDR32 = 2,
+    IMAGE_REL_AMD64_ADDR32NB = 3,
+    IMAGE_REL_AMD64_REL32 = 4,
+    IMAGE_REL_AMD64_REL32_1 = 5,
+    IMAGE_REL_AMD64_REL32_2 = 6,
+    IMAGE_REL_AMD64_REL32_3 = 7,
+    IMAGE_REL_AMD64_REL32_4 = 8,
+    IMAGE_REL_AMD64_REL32_5 = 9,
+    IMAGE_REL_AMD64_SECTION = 10,
+    IMAGE_REL_AMD64_SECREL = 11,
+    IMAGE_REL_AMD64_SECREL7 = 12,
+    IMAGE_REL_AMD64_TOKEN = 13,
+    IMAGE_REL_AMD64_SREL32 = 14,
+    IMAGE_REL_AMD64_PAIR = 15,
+    IMAGE_REL_AMD64_SSPAN32 = 16,
+    IMAGE_REL_AMD64_EHANDLER = 17,
+    IMAGE_REL_AMD64_IMPORT_BR = 18,
+    IMAGE_REL_AMD64_IMPORT_CALL = 19,
+    IMAGE_REL_AMD64_CFG_BR = 20,
+    IMAGE_REL_AMD64_CFG_BR_REX = 21,
+    IMAGE_REL_AMD64_CFG_CALL = 22,
+    IMAGE_REL_AMD64_INDIR_BR = 23,
+    IMAGE_REL_AMD64_INDIR_BR_REX = 24,
+    IMAGE_REL_AMD64_INDIR_CALL = 25,
+    [Reserved] IMAGE_REL_AMD64_RESERVED26,
+    [Reserved] IMAGE_REL_AMD64_RESERVED27,
+    [Reserved] IMAGE_REL_AMD64_RESERVED28,
+    [Reserved] IMAGE_REL_AMD64_RESERVED29,
+    [Reserved] IMAGE_REL_AMD64_RESERVED30,
+    [Reserved] IMAGE_REL_AMD64_RESERVED31,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_RAX = 32,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_RCX = 33,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_RDX = 34,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_RBX = 35,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_RSP = 36,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_RBP = 37,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_RSI = 38,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_RDI = 39,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_R8 = 40,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_R9 = 41,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_R10 = 42,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_R11 = 43,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_R12 = 44,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_R13 = 45,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_R14 = 46,
+    IMAGE_REL_AMD64_INDIR_BR_SWITCHTABLE_R15 = 47
+  );
+  {$MINENUMSIZE 4}
+
+  // SDK::winnt.h - ARM relocation types
+  {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'IMAGE_REL_ARM')]
+  [ValidValues([0..9, 14..18, 20..21])]
+  TImageRelocationArm = (
+    IMAGE_REL_ARM_ABSOLUTE = 0,
+    IMAGE_REL_ARM_ADDR32 = 1,
+    IMAGE_REL_ARM_ADDR32NB = 2,
+    IMAGE_REL_ARM_BRANCH24 = 3,
+    IMAGE_REL_ARM_BRANCH11 = 4,
+    IMAGE_REL_ARM_TOKEN = 5,
+    IMAGE_REL_ARM_GPREL12 = 6,
+    IMAGE_REL_ARM_GPREL7 = 7,
+    IMAGE_REL_ARM_BLX24 = 8,
+    IMAGE_REL_ARM_BLX11 = 9,
+    [Reserved] IMAGE_REL_ARM_RESERVED10,
+    [Reserved] IMAGE_REL_ARM_RESERVED11,
+    [Reserved] IMAGE_REL_ARM_RESERVED12,
+    [Reserved] IMAGE_REL_ARM_RESERVED13,
+    IMAGE_REL_ARM_SECTION = 14,
+    IMAGE_REL_ARM_SECREL = 15,
+    IMAGE_REL_ARM_MOV32A = 16,
+    IMAGE_REL_ARM_MOV32T = 17,
+    IMAGE_REL_ARM_BRANCH20T = 18,
+    [Reserved] IMAGE_REL_ARM_RESERVED19,
+    IMAGE_REL_ARM_BRANCH24T = 20,
+    IMAGE_REL_ARM_BLX23T = 21
+  );
+  {$MINENUMSIZE 4}
+
+  // SDK::winnt.h - ARM64 relocation types
+  {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'IMAGE_REL_ARM64')]
+  TImageRelocationArm64 = (
+    IMAGE_REL_ARM64_ABSOLUTE = 0,
+    IMAGE_REL_ARM64_ADDR32 = 1,
+    IMAGE_REL_ARM64_ADDR32NB = 2,
+    IMAGE_REL_ARM64_BRANCH26 = 3,
+    IMAGE_REL_ARM64_PAGEBASE_REL21 = 4,
+    IMAGE_REL_ARM64_REL21 = 5,
+    IMAGE_REL_ARM64_PAGEOFFSET_12A = 6,
+    IMAGE_REL_ARM64_PAGEOFFSET_12L = 7,
+    IMAGE_REL_ARM64_SECREL = 8,
+    IMAGE_REL_ARM64_SECREL_LOW12A = 9,
+    IMAGE_REL_ARM64_SECREL_HIGH12A = 10,
+    IMAGE_REL_ARM64_SECREL_LOW12L = 11,
+    IMAGE_REL_ARM64_TOKEN = 12,
+    IMAGE_REL_ARM64_SECTION = 13,
+    IMAGE_REL_ARM64_ADDR64 = 14,
+    IMAGE_REL_ARM64_BRANCH19 = 15
+  );
+  {$MINENUMSIZE 4}
+
   // Helper type for unpacking relocations
   TImageRelocationTypeOffset = record
     TypeOffset: Word;
-    function &Type: TImageRelocationType;
+    function &Type: TImageRelocationBased;
     function Offset: Word;
     function SpansOnNextPage: Boolean;
   end;
@@ -858,7 +997,7 @@ end;
 
 function TImageRelocationTypeOffset.&Type;
 begin
-  Result := TImageRelocationType(TypeOffset shr IMAGE_RELOCATION_TYPE_SHIFT);
+  Result := TImageRelocationBased(TypeOffset shr IMAGE_RELOCATION_TYPE_SHIFT);
 end;
 
 end.
