@@ -1565,11 +1565,12 @@ begin
   // Lazily process the fields
   if not FImmediateFieldsInitialized then
   begin
-    // The only attribute we propagate from records to all fields is [DontFollow]
+    // We don't want to propagate most attributes from the record to the fields
     ExtraAttributes := nil;
 
     for Attribute in FAttributes do
-      if Attribute.IsDontFollowAttribute then
+      if Attribute.IsDontFollowAttribute or
+        Attribute.IsNamingStyleAttribute then
       begin
         ExtraAttributes := [Attribute];
         Break;

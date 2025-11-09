@@ -99,8 +99,7 @@ function RttixMakeFieldFormatters(
 // or record pointer type from its RTTI info
 function RttixMakeFieldFormattersForType(
   [opt] const RttixType: IRttixType;
-  Options: TRttixFieldReflectionOptions = [];
-  const ExtraAttributes: TArray<PLiteRttiAttribute> = nil
+  Options: TRttixFieldReflectionOptions = []
 ): TArray<IRttixFieldFormatter>;
 
 // An attribute indicating that reflection should preserve constant names
@@ -735,7 +734,7 @@ begin
     Exit(nil);
 
   Result := RttixMakeFieldFormattersForType(RttixTypeInfo(TypeInfo,
-    ExtraAttributes), Options, ExtraAttributes);
+    ExtraAttributes), Options);
 end;
 
 function RttixMakeFieldFormattersForType;
