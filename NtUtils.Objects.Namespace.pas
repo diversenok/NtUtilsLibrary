@@ -72,7 +72,7 @@ function NtxQueryDirectory(
 // Retrieve information about multiple named objects in a directory
 function NtxQueryDirectoryBulk(
   [Access(DIRECTORY_QUERY)] const hxDirectory: IHandle;
-  Index: Cardinal;
+  var Index: Cardinal;
   out Entries: TArray<TNtxDirectoryEntry>;
   [NumberOfBytes] BlockSize: Cardinal = 4000
 ): TNtxStatus;
