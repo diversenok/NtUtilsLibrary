@@ -8,7 +8,8 @@ unit NtUiLib.AutoCompletion.Namespace;
 interface
 
 uses
-  DelphiApi.Reflection, NtUtils, NtUtils.Objects, NtUiLib.AutoCompletion;
+  DelphiApi.Reflection, NtUtils, NtUtils.Objects, NtUiLib.AutoCompletion,
+  DelphiUtils.LiteRTTI.Base;
 
 type
   [NamingStyle(nsCamelCase, 'ot')]
@@ -31,7 +32,9 @@ type
     otKeyedEvent,
     otIoCompletion,
     otPartition,
-    otRegistryTransaction
+    otRegistryTransaction,
+    otWindowStation,
+    otDesktop
   );
 
   TNamespaceObjectTypes = set of TNamespaceObjectType;
@@ -65,7 +68,7 @@ function RtlxQueryNamespaceEntry(
 [Result: MayReturnNil]
 function RtlxGetNamespaceAccessMaskType(
   KnownType: TNamespaceObjectType
-): Pointer;
+): PLiteRttiTypeInfo;
 
 // Allocate an object namespace suggestions provider for use with
 // ShlxEnableSuggestions
@@ -78,11 +81,11 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntobapi, Ntapi.ntregapi,
   Ntapi.ntmmapi, Ntapi.ntexapi, Ntapi.ntpsapi, Ntapi.nttmapi, Ntapi.ntpebteb,
-  Ntapi.ntioapi.fsctl, Ntapi.Versions,
+  Ntapi.ntioapi.fsctl, Ntapi.WinUser, Ntapi.Versions,
   NtUtils.SysUtils, NtUtils.Objects.Namespace, NtUtils.Objects.Snapshots,
   NtUtils.Files.Open, NtUtils.Files.Directories, NtUtils.Files.Operations,
   NtUtils.Registry, NtUtils.Sections, NtUtils.Synchronization, NtUtils.Jobs,
-  NtUtils.Memory, NtUtils.Transactions;
+  NtUtils.Memory, NtUtils.Transactions, NtUtils.NtUser;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -116,10 +119,11 @@ end;
 { Known types }
 
 const
-  TypeNames: array [TNamespaceObjectType] of String = (
+  TYPE_NAMES: array [TNamespaceObjectType] of String = (
     '', 'SymbolicLink', 'Directory', 'Device', 'File', 'File', 'File', 'Key',
     'Section', 'Event', 'Semaphore', 'Mutant', 'Timer', 'Job', 'Session',
-    'KeyedEvent', 'IoCompletion', 'Partition', 'RegistryTransaction'
+    'KeyedEvent', 'IoCompletion', 'Partition', 'RegistryTransaction',
+    'WindowStation', 'Desktop'
   );
 
 function RtlxGetNamespaceAccessMaskType;
@@ -143,6 +147,8 @@ begin
     otIoCompletion:        Result := TypeInfo(TIoCompletionAccessMask);
     otPartition:           Result := TypeInfo(TPartitionAccessMask);
     otRegistryTransaction: Result := TypeInfo(TTmTxAccessMask);
+    otWindowStation:       Result := TypeInfo(TWinStaAccessMask);
+    otDesktop:             Result := TypeInfo(TDesktopAccessMask);
   else
     Result := nil;
   end;
@@ -171,6 +177,8 @@ begin
     otIoCompletion: Result := NtxOpenIoCompletion(hxObject, 0, TrimmedPath);
     otPartition:    Result := NtxOpenPartition(hxObject, 0, TrimmedPath);
     otRegistryTransaction: Result := NtxOpenRegistryTransaction(hxObject, 0, TrimmedPath);
+    otWindowStation: Result := NtxOpenWindowStation(hxObject, 0, TrimmedPath);
+    otDesktop:       Result := NtxOpenDesktop(hxObject, 0, TrimmedPath);
   else
     // File types are determined independently
     Result.Location := 'RtlxTestObjectType';
@@ -257,11 +265,11 @@ function MakeNamespaceEntry(
 ): TNamespaceEntry;
 begin
   Result.Name := Name;
-  Result.FullPath := TrimLastBackslash(Root) + '\' + Name;
+  Result.FullPath := RtlxCombinePaths(Root, Name);
   Result.KnownType := KnownType;
 
   if TypeName = '' then
-    Result.TypeName := TypeNames[KnownType];
+    Result.TypeName := TYPE_NAMES[KnownType];
 end;
 
 function LookupObjectType(
@@ -274,7 +282,7 @@ begin
   // everything, except for files and pipes (which exist inside devices)
 
   for Result in NT_NAMESPACE_KNOWN_TYPES - NT_NAMESPACE_NESTED_FILE_TYPES do
-    if TypeNames[Result] = TypeName then
+    if TYPE_NAMES[Result] = TypeName then
       Exit;
 
   Result := otUnknown;
@@ -282,21 +290,27 @@ end;
 
 function IsSessionsDirectory(
   const Root: String;
-  SessionId: PCardinal = nil
+  out RemainingPath: String;
+  out SessionId: Cardinal
 ): Boolean;
 const
   SESSIONS_PREFIX = '\Sessions\';
 var
-  SessionIdStr: String;
-  SessionIdValue: Cardinal;
+  SessionIdStr, Path: String;
 begin
-  SessionIdStr := Root;
+  Path := Root;
+  Result := RtlxPrefixStripString(SESSIONS_PREFIX, Path);
 
-  Result := RtlxPrefixStripString(SESSIONS_PREFIX, SessionIdStr) and
-    RtlxStrToUInt(SessionIdStr, SessionIdValue, nsDecimal, [], False, []);
+  if not Result then
+    Exit;
 
-  if Result and Assigned(SessionId) then
-    SessionId^ := SessionIdValue;
+  if not RtlxSplitPathOnFirst(Path, SessionIdStr, RemainingPath) then
+  begin
+    SessionIdStr := Path;
+    RemainingPath := '';
+  end;
+
+  Result := RtlxStrToUInt(SessionIdStr, SessionId, nsDecimal, [], False, []);
 end;
 
 function MergeSuggestions(
@@ -478,6 +492,10 @@ begin
   // Always include directories and symlinks to make objects discoverable
   SupportedTypes := SupportedTypes + [otDirectory, otSymlink];
 
+  // Desktops are only discoverable via window stations
+  if otDesktop in SupportedTypes then
+    Include(SupportedTypes, otWindowStation);
+
   Result := NtxOpenDirectory(hxDirectory, DIRECTORY_QUERY, Root);
 
   if not Result.IsSuccess then
@@ -524,39 +542,91 @@ begin
       Objects := MergeSuggestions(Objects, InheritedObjects);
 end;
 
-function RtlxpCollectSessionDirectories(
+function RtlxpCollectForWindowStation(
   const Root: String;
   out Objects: TArray<TNamespaceEntry>
 ): TNtxStatus;
 var
-  i, j: Integer;
+  hxWinSta: IHandle;
+  Desktops: TArray<String>;
+  i: Integer;
 begin
-  Result.Location := 'RtlxpCollectSessionDirectories';
-  Result.Status := STATUS_MORE_ENTRIES;
+  Result := NtxOpenWindowStation(hxWinSta, WINSTA_ENUMDESKTOPS, Root);
 
-  Objects := [
-    RtlxQueryNamespaceEntry(Root + '\Windows', [otSymlink, otDirectory]),
-    RtlxQueryNamespaceEntry(Root + '\DosDevices', [otSymlink, otDirectory]),
-    RtlxQueryNamespaceEntry(Root + '\BaseNamedObjects', [otSymlink, otDirectory]),
-    RtlxQueryNamespaceEntry(Root + '\AppContainerNamedObjects', [otSymlink, otDirectory])
-  ];
+  if not Result.IsSuccess then
+    Exit;
 
-  // Remove non-existing entries
-  j := 0;
-  for i := 0 to High(Objects) do
-    if Objects[i].KnownType <> otUnknown then
-    begin
-      if i <> j then
-        Objects[j] := Objects[i];
-      Inc(j);
-    end;
+  Result := NtxEnumerateDesktops(hxWinSta, Desktops);
 
-  SetLength(Objects, j);
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Objects, Length(Desktops));
+
+  for i := 0 to High(Desktops) do
+    Objects[i] := MakeNamespaceEntry(Root, Desktops[i], otDesktop);
+end;
+
+function RtlxpCollectSessionDirectories(
+  const Root: String;
+  SessionId: Cardinal;
+  const PerSessionPath: String;
+  out Objects: TArray<TNamespaceEntry>
+): TNtxStatus;
+var
+  i, j: Integer;
+  WindowStations: TArray<String>;
+begin
+  if PerSessionPath = '' then
+  begin
+    // Suggest known per-session directories
+    Result.Location := 'RtlxpCollectSessionDirectories';
+    Result.Status := STATUS_MORE_ENTRIES;
+
+    Objects := [
+      RtlxQueryNamespaceEntry(Root + '\Windows', [otSymlink, otDirectory]),
+      RtlxQueryNamespaceEntry(Root + '\DosDevices', [otSymlink, otDirectory]),
+      RtlxQueryNamespaceEntry(Root + '\BaseNamedObjects', [otSymlink, otDirectory]),
+      RtlxQueryNamespaceEntry(Root + '\AppContainerNamedObjects', [otSymlink, otDirectory])
+    ];
+
+    // Remove non-existing entries
+    j := 0;
+    for i := 0 to High(Objects) do
+      if Objects[i].KnownType <> otUnknown then
+      begin
+        if i <> j then
+          Objects[j] := Objects[i];
+        Inc(j);
+      end;
+
+    SetLength(Objects, j);
+  end
+  else if (SessionId = RtlGetCurrentPeb.SessionID) and
+    RtlxEqualStrings(PerSessionPath, 'Windows\WindowStations') then
+  begin
+    // Suggest window stations
+    Result := NtxEnumerateWindowStations(WindowStations);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    SetLength(Objects, Length(WindowStations));
+
+    for i := 0 to High(WindowStations) do
+      Objects[i] := MakeNamespaceEntry(Root, WindowStations[i], otWindowStation);
+  end
+  else
+  begin
+    Result.Location := 'RtlxpCollectSessionDirectories';
+    Result.Status := STATUS_NOT_SUPPORTED;
+  end;
 end;
 
 function RtlxEnumerateNamespaceEntries;
 var
-  TrimmedRoot: String;
+  TrimmedRoot, RemainingSessionPath: String;
+  SessionId: Cardinal;
 begin
   // Enumerate the root of the namespace manually by adding the "\" entry
   if Root = '' then
@@ -580,8 +650,9 @@ begin
 
     // In case of failing on per-session directories, at least add known entries
     if (Result.Status = STATUS_ACCESS_DENIED) and
-      IsSessionsDirectory(TrimmedRoot) then
-      Result := RtlxpCollectSessionDirectories(TrimmedRoot, Suggestions);
+      IsSessionsDirectory(TrimmedRoot, RemainingSessionPath, SessionId) then
+      Result := RtlxpCollectSessionDirectories(TrimmedRoot, SessionId,
+        RemainingSessionPath, Suggestions);
 
     if IsMatchingTypeStatus(Result) then
       Exit;
@@ -611,6 +682,15 @@ begin
     if IsMatchingTypeStatus(Result) then
       Exit;
   end;
+
+  // Enumerate desktops under window stations
+  if otDesktop in SupportedTypes then
+  begin
+    Result := RtlxpCollectForWindowStation(TrimmedRoot, Suggestions);
+
+    if IsMatchingTypeStatus(Result) then
+      Exit;
+  end;
 end;
 
 function RtlxQueryNamespaceEntry;
@@ -629,7 +709,7 @@ begin
 
   if FullPath = '\' then
   begin
-    Result.TypeName := TypeNames[otDirectory];
+    Result.TypeName := TYPE_NAMES[otDirectory];
     Result.KnownType := otDirectory;
     Exit;
   end;
@@ -652,7 +732,7 @@ begin
 
     if IsMatchingTypeStatus(Status) then
     begin
-      Result.TypeName := TypeNames[i];
+      Result.TypeName := TYPE_NAMES[i];
       Result.KnownType := i;
       Exit;
     end;
@@ -663,7 +743,7 @@ begin
     // Check if the object is a file and if so, which kind
     Result.KnownType := RtlxTestFileTypes(FullPath, TrimmedFullPath,
       SupportedTypes);
-    Result.TypeName := TypeNames[Result.KnownType];
+    Result.TypeName := TYPE_NAMES[Result.KnownType];
   end;
 end;
 
