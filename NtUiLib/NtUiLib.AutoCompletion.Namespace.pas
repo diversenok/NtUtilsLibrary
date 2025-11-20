@@ -273,7 +273,8 @@ begin
 end;
 
 function LookupObjectType(
-  const TypeName: String
+  const TypeName: String;
+  SupportedTypes: TNamespaceObjectTypes
 ): TNamespaceObjectType;
 const
   NT_NAMESPACE_NESTED_FILE_TYPES = [otFileDirectory, otFile, otNamedPipe];
@@ -281,7 +282,7 @@ begin
   // Check all type names appearing directly in the object namespace, i.e.,
   // everything, except for files and pipes (which exist inside devices)
 
-  for Result in NT_NAMESPACE_KNOWN_TYPES - NT_NAMESPACE_NESTED_FILE_TYPES do
+  for Result in SupportedTypes - [otUnknown] - NT_NAMESPACE_NESTED_FILE_TYPES do
     if TYPE_NAMES[Result] = TypeName then
       Exit;
 
@@ -512,7 +513,7 @@ begin
 
   for i := 0 to High(Entries) do
   begin
-    ObjectTypes[i] := LookupObjectType(Entries[i].TypeName);
+    ObjectTypes[i] := LookupObjectType(Entries[i].TypeName, SupportedTypes);
 
     if ObjectTypes[i] in SupportedTypes then
       Inc(Count);
@@ -693,9 +694,42 @@ begin
   end;
 end;
 
+function RtlxFindNameInDirectory(
+  const DirectoryName: String;
+  const ChildName: String;
+  out TypeName: String
+): TNtxStatus;
+var
+  hxDirectory: IHandle;
+  Block: TArray<TNtxDirectoryEntry>;
+  Index: Cardinal;
+  i: Integer;
+begin
+  Result := NtxOpenDirectory(hxDirectory, DIRECTORY_QUERY, DirectoryName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Enumerate directory content in blocks
+  Index := 0;
+  while NtxQueryDirectoryBulk(hxDirectory, Index, Block).HasEntry(Result) do
+    for i := 0 to High(Block) do
+      if RtlxEqualStrings(ChildName, Block[i].Name) then
+      begin
+        TypeName := Block[i].TypeName;
+        Exit;
+      end;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RtlxFindNameInDirectory';
+  Result.Status := STATUS_NOT_FOUND;
+end;
+
 function RtlxQueryNamespaceEntry;
 var
-  TrimmedFullPath: String;
+  ParentName, TrimmedChildName, TrimmedFullPath: String;
   Status: TNtxStatus;
   i: TNamespaceObjectType;
 begin
@@ -716,13 +750,31 @@ begin
 
   SupportedTypes := SupportedTypes - [otUnknown];
 
-  // Most types don't support the trailing back slash
+  // Most types don't support the trailing back slash; we can ignore it there
   TrimmedFullPath := TrimLastBackslash(FullPath);
 
   // For symlinks, we use this back slash as an indicator that the caller
   // wants to open the target instead of the symlink itself.
   if (otSymlink in SupportedTypes) and (FullPath[High(FullPath)] = '\') then
     SupportedTypes := SupportedTypes - [otSymlink];
+
+  // If we can get the type from the parent directory, use it
+  if RtlxSplitPathOnLast(TrimmedFullPath, ParentName, TrimmedChildName) and
+    RtlxFindNameInDirectory(RtlxStringOrDefault(ParentName, '\'),
+    TrimmedChildName, Result.TypeName).IsSuccess then
+  begin
+    Result.KnownType := LookupObjectType(Result.TypeName, SupportedTypes);
+
+    if Result.KnownType = otSymlink then
+    begin
+      // If the result is a symlink and we need to follow it, we are not done
+      Result.KnownType := otUnknown;
+      Result.TypeName := '';
+    end;
+
+    if Result.KnownType <> otUnknown then
+      Exit;
+  end;
 
   // Check all non-file types
   for i in SupportedTypes - NT_NAMESPACE_FILE_TYPES do
