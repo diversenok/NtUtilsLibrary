@@ -302,7 +302,7 @@ begin
 
   // Split or use as-is
   if Assigned(Root) or (RootMode <> rmUseClosestParent) or not
-    RtlxSplitPath(Path, ParentName, ChildName) then
+    RtlxSplitPathOnLast(Path, ParentName, ChildName) then
   begin
     ParentName := '';
     ChildName := Path;

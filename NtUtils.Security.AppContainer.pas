@@ -264,7 +264,7 @@ var
   ParentMoniker, ChildMoniker: String;
   ParentSid: ISid;
 begin
-  if RtlxSplitPath(FullMoniker, ParentMoniker, ChildMoniker) then
+  if RtlxSplitPathOnLast(FullMoniker, ParentMoniker, ChildMoniker) then
   begin
     // Construct parent SID first
     Result := RtlxDeriveParentAppContainerSid(ParentMoniker, ParentSid);

@@ -391,8 +391,16 @@ function RtlxStringToGuid(
 
 // Paths
 
-// Split the path into the parent (directory) and child (filename) components
-function RtlxSplitPath(
+// Split the path into the parent-most directory and the rest of the path
+function RtlxSplitPathOnFirst(
+  const Path: String;
+  out ParentName: String;
+  out ChildName: String;
+  const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
+): Boolean;
+
+// Split the path into the last parent (directory) and child filename components
+function RtlxSplitPathOnLast(
   const Path: String;
   out ParentName: String;
   out ChildName: String;
@@ -1665,7 +1673,22 @@ begin
   Result.Status := RtlGUIDFromString(GuidStr, Guid);
 end;
 
-function RtlxSplitPath;
+function RtlxSplitPathOnFirst;
+var
+  i: Integer;
+begin
+  for i := Low(Path) to High(Path) do
+    if Path[i] = PathSeparator then
+    begin
+      ParentName := Copy(Path, 1, i - Low(Path));
+      ChildName := Copy(Path, i + Low(Path), Length(Path));
+      Exit(True);
+    end;
+
+  Result := False;
+end;
+
+function RtlxSplitPathOnLast;
 var
   i: Integer;
 begin

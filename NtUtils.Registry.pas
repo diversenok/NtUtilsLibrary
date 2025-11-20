@@ -508,7 +508,7 @@ begin
   // Did we fail due to a missing parent key?
   if not (kcRecursive in CreationBehavior) or
     (Result.Status <> STATUS_OBJECT_NAME_NOT_FOUND) or
-    not RtlxSplitPath(Name, ParentName, ChildName) then
+    not RtlxSplitPathOnLast(Name, ParentName, ChildName) then
     Exit;
 
   // Do not adjust parent's security unless explicitly told to
@@ -578,7 +578,7 @@ begin
   // Did we fail due to a missing parent key?
   if not (kcRecursive in CreationBehavior) or
     (Result.Status <> STATUS_OBJECT_NAME_NOT_FOUND) or
-    not RtlxSplitPath(Name, ParentName, ChildName) then
+    not RtlxSplitPathOnLast(Name, ParentName, ChildName) then
     Exit;
 
   // Do not adjust parent's security unless explicitly told to
