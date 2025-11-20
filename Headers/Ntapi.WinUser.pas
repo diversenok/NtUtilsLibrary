@@ -1,8 +1,7 @@
 unit Ntapi.WinUser;
 
 {
-  This file provides definitions for User and GDI functions.
-  See SDK::WinUser.h for sources.
+  This file provides definitions for User and GDI functions
 }
 
 interface
@@ -21,7 +20,7 @@ var
   delayed_user32: TDelayedLoadDll = (DllName: user32);
 
 const
-  // Desktop access masks
+  // SDK::WinUser.h - desktop access masks
   DESKTOP_READOBJECTS = $0001;
   DESKTOP_CREATEWINDOW = $0002;
   DESKTOP_CREATEMENU = $0004;
@@ -34,10 +33,10 @@ const
 
   DESKTOP_ALL_ACCESS = $01FF or STANDARD_RIGHTS_REQUIRED;
 
-  // Desktop open options
+  // SDK::WinUser.h - desktop open options
   DF_ALLOWOTHERACCOUNTHOOK = $1;
 
-  // Window station access masks
+  // SDK::WinUser.h - window station access masks
   WINSTA_ENUMDESKTOPS = $0001;
   WINSTA_READATTRIBUTES = $0002;
   WINSTA_ACCESSCLIPBOARD = $0004;
@@ -50,38 +49,43 @@ const
 
   WINSTA_ALL_ACCESS = $037F or STANDARD_RIGHTS_REQUIRED;
 
-  // Window station flags
+  // SDK::WinUser.h - window station flags
   WSF_VISIBLE = $01;
 
-  // Special windows
+  // SDK::WinUser.h - special windows
   HWND_DESKTOP = THwnd(0);
   HWND_BROADCAST = THwnd($ffff);
   HWND_MESSAGE = THwnd(-3);
 
-  // Insert after HWNDs
+  // SDK::WinUser.h - insert after HWNDs
   HWND_TOP = THwnd(0);
   HWND_BOTTOM = THwnd(1);
   HWND_TOPMOST = THwnd(-1);
   HWND_NOTOPMOST = THwnd(-2);
 
-  // Window message values
+  // SDK::WinUser.h - child window from point flags
+  CWP_SKIPINVISIBLE = $0001;
+  CWP_SKIPDISABLED = $0002;
+  CWP_SKIPTRANSPARENT = $0004;
+
+  // SDK::WinUser.h - window message values
   WM_GETTEXT = $000D;
   WM_GETTEXTLENGTH = $000E;
   WM_APP = $8000;
 
-  // Flags for SendMessageTimeoutW
+  // SDK::WinUser.h - send message timeout flags
   SMTO_NORMAL = $0000;
   SMTO_BLOCK = $0001;
   SMTO_ABORTIFHUNG = $0002;
   SMTO_NOTIMEOUTIFNOTHUNG = $0008;
   SMTO_ERRORONEXIT = $0020;
 
-  // Window display affinity values
+  // SDK::WinUser.h - window display affinity values
   WDA_NONE = $00;
   WDA_MONITOR = $01;
   WDA_EXCLUDEFROMCAPTURE = $11; // Win10 20H1+
 
-  // Message box flags
+  // SDK::WinUser.h - message box flags
   MB_OK                = $00000000;
   MB_OKCANCEL          = $00000001;
   MB_ABORTRETRYIGNORE  = $00000002;
@@ -117,7 +121,7 @@ const
   MB_MODEMASK = $00003000;
   MB_MISCMASK = $0000C000;
 
-  // GUI thread flags
+  // SDK::WinUser.h - GUI thread flags
   GUI_CARETBLINKING = $00000001;
   GUI_INMOVESIZE = $00000002;
   GUI_INMENUMODE = $00000004;
@@ -125,7 +129,7 @@ const
   GUI_POPUPMENUMODE = $00000010;
   GUI_16BITTASK = $00000020;
 
-  // Built-in icons
+  // SDK::WinUser.h - Built-in icons
   IDI_APPLICATION = MAKEINTRESOURCE(32512);
   IDI_ERROR = MAKEINTRESOURCE(32513);
   IDI_QUESTION = MAKEINTRESOURCE(32514);
@@ -134,7 +138,7 @@ const
   IDI_WINLOGO = MAKEINTRESOURCE(32517);
   IDI_SHIELD = MAKEINTRESOURCE(32518);
 
-  // SetWindowPos flags
+  // SDK::WinUser.h - set window position flags
   SWP_NOSIZE = $0001;
   SWP_NOMOVE = $0002;
   SWP_NOZORDER = $0004;
@@ -149,7 +153,7 @@ const
   SWP_DEFERERASE = $2000;
   SWP_ASYNCWINDOWPOS = $4000;
 
-  // Class styles
+  // SDK::WinUser.h - class styles
   CS_VREDRAW = $0001;
   CS_HREDRAW = $0002;
   CS_DBLCLKS = $0008;
@@ -164,7 +168,7 @@ const
   CS_IME = $00010000;
   CS_DROPSHADOW = $00020000;
 
-  // Window styles
+  // SDK::WinUser.h - window styles
   WS_TABSTOP = $00010000;
   WS_MINIMIZEBOX = $00020000;
   WS_SIZEBOX = $00040000;
@@ -182,7 +186,7 @@ const
   WS_CHILD = $40000000;
   WS_POPUP = $80000000;
 
-  // Extended window styles
+  // SDK::WinUser.h - extended window styles
   WS_EX_DLGMODALFRAME = $00000001;
   WS_EX_NOPARENTNOTIFY = $00000004;
   WS_EX_TOPMOST = $00000008;
@@ -213,10 +217,14 @@ const
 
 type
   THwnd = Ntapi.WinNt.THwnd;
+
+  // SDK::windef.h
+  [SDKName('HBITMAP'), Hex]
   THBitmap = type NativeUInt;
 
-  [SDKName('HICON')]
-  [Hex] THIcon = type NativeUInt;
+  // SDK::windef.h
+  [SDKName('HICON'), Hex]
+  THIcon = type NativeUInt;
   PHIcon = ^THIcon;
 
   WPARAM = NativeUInt;
@@ -253,6 +261,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TWinstaAccessMask = type TAccessMask;
 
+  // SDK::WinUser.h - show window flags
   {$MINENUMSIZE 2}
   {$SCOPEDENUMS ON}
   [NamingStyle(nsSnakeCase, 'SW')]
@@ -273,6 +282,7 @@ type
   {$SCOPEDENUMS OFF}
   {$MINENUMSIZE 4}
 
+  // SDK::WinUser.h - show window flags
   {$SCOPEDENUMS ON}
   [NamingStyle(nsSnakeCase, 'SW')]
   TShowMode32 = (
@@ -291,6 +301,7 @@ type
   );
   {$SCOPEDENUMS OFF}
 
+  // SDK::WinUser.h
   [SDKName('DESKTOPENUMPROCW')]
   [SDKName('WINSTAENUMPROCW')]
   TStringEnumProcW = function (
@@ -298,6 +309,7 @@ type
     [in, opt] var Context
   ): LongBool; stdcall;
 
+  // SDK::WinUser.h
   [NamingStyle(nsSnakeCase, 'UOI'), MinValue(1)]
   TUserObjectInfoClass = (
     [Reserved] UOI_RESERVED = 0,
@@ -307,9 +319,10 @@ type
     UOI_USER_SID = 4,  // q: PSid
     UOI_HEAP_SIZE = 5, // q: Cardinal
     UOI_IO = 6,        // q: LongBool
-    UOI_TIMER_PROC_EXCEPTION_SUPPRESSION = 7
+    UOI_TIMER_PROC_EXCEPTION_SUPPRESSION = 7 // s: LongBool
   );
 
+  // SDK::WinUser.h
   [SDKName('USEROBJECTFLAGS')]
   TUserObjectFlags = record
     Inherit: LongBool;
@@ -318,6 +331,7 @@ type
   end;
   PUserObjectFlags = ^TUserObjectFlags;
 
+  // SDK::WinUser.h
   [SDKName('WNDENUMPROC')]
   TWndEnumProc = function (
     [in] hwnd: THwnd;
@@ -331,6 +345,13 @@ type
     Top: Integer;
     Right: Integer;
     Bottom: Integer;
+  end;
+
+  // SDK::windef.h
+  [SDKName('POINT')]
+  TPoint = record
+    x, y: Integer;
+    constructor Create(x, y: Integer);
   end;
 
   // SDK::WinUser.h
@@ -355,6 +376,7 @@ type
   );
 
   // SDK::WinUser.h
+  [NamingStyle(nsSnakeCase, 'GCLP')]
   TClassLongIndex = (
     GCLP_MENUNAME = -8,       // q, s:
     GCLP_HBRBACKGROUND = -10, // q, s: HBRUSH
@@ -369,7 +391,6 @@ type
     GCLP_HICONSM = -34        // q, s: HICON
   );
 
-  // Class property -26
   [FlagName(CS_VREDRAW, 'Vertical Redraw')]
   [FlagName(CS_HREDRAW, 'Horizontal Redraw')]
   [FlagName(CS_DBLCLKS, 'Double-click')]
@@ -386,6 +407,7 @@ type
   TClassStyle = type Cardinal;
 
   // SDK::WinUser.h
+  [NamingStyle(nsSnakeCase, 'GWLP')]
   TWindowLongIndex = (
     GWLP_WNDPROC = -4,    // q, s: Pointer
     GWLP_HINSTANCE = -6,  // q, s: Pointer
@@ -396,7 +418,6 @@ type
     GWLP_ID = -12         // q, s:
   );
 
-  // Window property -16
   [FlagName(WS_TABSTOP, 'Tab Stop')]
   [FlagName(WS_MINIMIZEBOX, 'Minimize Box') ]
   [FlagName(WS_SIZEBOX, 'Size Box')]
@@ -415,7 +436,6 @@ type
   [FlagName(WS_POPUP, 'Popup')]
   TWindowStyle = type Cardinal;
 
-  // Window property -20
   [FlagName(WS_EX_DLGMODALFRAME, 'Dialog Modal Frame')]
   [FlagName(WS_EX_NOPARENTNOTIFY, 'No Parent Notify')]
   [FlagName(WS_EX_TOPMOST, 'Topmost')]
@@ -454,6 +474,11 @@ type
   [FlagName(SWP_DEFERERASE, 'Defer Erase')]
   [FlagName(SWP_ASYNCWINDOWPOS, 'Async Window Pos')]
   TSetWindowPosFlags = type Cardinal;
+
+  [FlagName(CWP_SKIPINVISIBLE, 'Skip Invisible')]
+  [FlagName(CWP_SKIPDISABLED, 'Skip Disabled')]
+  [FlagName(CWP_SKIPTRANSPARENT, 'Skip Transparent')]
+  TChildWindowFromPointFlags = type Cardinal;
 
   [SubEnum(MB_TYPEMASK, MB_OK, 'OK')]
   [SubEnum(MB_TYPEMASK, MB_OKCANCEL, 'OK & Cancel')]
@@ -590,6 +615,15 @@ type
   end;
   PWindowCompositionAttribData = ^TWindowCompositionAttribData;
 
+  // SDK::WinUser.h - get/set icon codes
+  [NamingStyle(nsSnakeCase, 'ICON')]
+  TIconType = (
+    ICON_SMALL = 0,
+    ICON_BIG = 1,
+    ICON_SMALL2 = 2
+  );
+
+  // SDK::WinUser.h
   [NamingStyle(nsSnakeCase, 'ID'), ValidValues([1..11])]
   TMessageResponse = (
     [Reserved] IDNONE = 0,
@@ -623,6 +657,7 @@ type
   [FlagName(GUI_16BITTASK, '16-bit Task')]
   TGuiThreadFlags = type Cardinal;
 
+  // SDK::WinUser.h
   [SDKName('GUITHREADINFO')]
   TGuiThreadInfo = record
     [RecordSize] Size: Cardinal;
@@ -638,6 +673,7 @@ type
 
 // Desktops
 
+// SDK::WinUser.h
 [SetsLastError]
 [Result: ReleaseWith('CloseDesktop')]
 function CreateDesktopW(
@@ -649,6 +685,7 @@ function CreateDesktopW(
   [in, opt] SA: PSecurityAttributes
 ): THandle; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 [Result: ReleaseWith('CloseDesktop')]
 function OpenDesktopW(
@@ -658,6 +695,7 @@ function OpenDesktopW(
   [in] DesiredAccess: TDesktopAccessMask
 ): THandle; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function EnumDesktopsW(
   [in, Access(WINSTA_ENUMDESKTOPS)] hWinStation: THandle;
@@ -665,21 +703,25 @@ function EnumDesktopsW(
   [in, opt] var Context
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function SwitchDesktop(
   [in, Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function SetThreadDesktop(
   [in] hDesktop: THandle
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function CloseDesktop(
   [in] hDesktop: THandle
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetThreadDesktop(
   [in] ThreadId: TThreadId32
@@ -687,6 +729,7 @@ function GetThreadDesktop(
 
 // Window Stations
 
+// SDK::WinUser.h
 [SetsLastError]
 [Result: ReleaseWith('CloseWindowStation')]
 function CreateWindowStationW(
@@ -696,6 +739,7 @@ function CreateWindowStationW(
   [in, opt] SA: PSecurityAttributes
 ): THandle; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 [Result: ReleaseWith('CloseWindowStation')]
 function OpenWindowStationW(
@@ -704,22 +748,26 @@ function OpenWindowStationW(
   [in] DesiredAccess: TWinStaAccessMask
 ): THandle; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function EnumWindowStationsW(
   [in] EnumFunc: TStringEnumProcW;
   [in, opt] var Context
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function CloseWindowStation(
   [in] hWinStation: THandle
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function SetProcessWindowStation(
   [in] hWinStation: THandle
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetProcessWindowStation(
 ): THandle; stdcall; external user32;
@@ -747,6 +795,7 @@ function SetWindowStationUser(
 
 // User objects
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetUserObjectInformationW(
   [in] hObj: THandle;
@@ -756,6 +805,7 @@ function GetUserObjectInformationW(
   [out, opt, NumberOfBytes] LengthNeeded: PCardinal
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function SetUserObjectInformationW(
   [in] hObj: THandle;
@@ -766,16 +816,19 @@ function SetUserObjectInformationW(
 
 // Windows
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetDesktopWindow(
 ): THwnd; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function EnumWindows(
   [in] EnumFunc: TWndEnumProc;
   [in, opt] var Context
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function EnumDesktopWindows(
   [in, opt, Access(DESKTOP_READOBJECTS)] hDesktop: THandle;
@@ -783,6 +836,7 @@ function EnumDesktopWindows(
   [in, opt] var Context
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function EnumChildWindows(
   [in, opt] hWndParent: THwnd;
@@ -790,28 +844,33 @@ function EnumChildWindows(
   [in, opt] var Context
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetWindow(
   [in, opt] hWnd: THwnd;
   [in] Cmd: TGetWindowCmd
 ): THwnd; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetAncestor(
   [in] hWnd: THwnd;
   [in] Flags: TGetAncestorCmd
 ): THwnd; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetTopWindow(
   [in, opt] hWnd: THwnd
 ): THwnd; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function IsWindowVisible(
   [in] hWnd: THwnd
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 [Result: NumberOfElements]
 function GetClassNameW(
@@ -820,12 +879,14 @@ function GetClassNameW(
   [in, NumberOfElements] nMaxCount: Cardinal
 ): Cardinal; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 [Result: NumberOfElements]
 function GetWindowTextLengthW(
   [in] hWnd: THwnd
 ): Cardinal; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 [Result: NumberOfElements]
 function GetWindowTextW(
@@ -834,12 +895,14 @@ function GetWindowTextW(
   [in, NumberOfElements] nMaxCount: Cardinal
 ): Cardinal; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetClassLongPtrW(
   [in] hWnd: THwnd;
   [in] Index: TClassLongIndex
 ): UIntPtr; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function SetClassLongPtrW(
   [in] hWnd: THwnd;
@@ -847,12 +910,14 @@ function SetClassLongPtrW(
   [in] NewLong: UIntPtr
 ): UIntPtr; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetWindowLongPtrW(
   [in] hWnd: THwnd;
   [in] Index: TWindowLongIndex
 ): UIntPtr; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function SetWindowLongPtrW(
   [in] hWnd: THwnd;
@@ -860,6 +925,7 @@ function SetWindowLongPtrW(
   [in] NewLong: UIntPtr
 ): UIntPtr; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 [MinOSVersion(OsWin10RS1)]
 function GetDpiForWindow(
@@ -871,18 +937,21 @@ var delayed_GetDpiForWindow: TDelayedLoadFunction = (
   FunctionName: 'GetDpiForWindow';
 );
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetClientRect(
   [in] hWnd: THwnd;
   [out] out Rect: TRect
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetWindowRect(
   [in] hWnd: THwnd;
   [out] out Rect: TRect
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function SetWindowPos(
   [in] hWnd: THwnd;
@@ -894,11 +963,12 @@ function SetWindowPos(
   [in] Flags: TSetWindowPosFlags
 ): LongBool; stdcall; external user32;
 
+// private
 [SetsLastError]
 [MinOSVersion(OsWin8)]
 function GetWindowBand(
   [in] hWnd: THwnd;
-  [out] out Band: TZBandId
+  [out] out BandId: TZBandId
 ): LongBool; stdcall; external user32 delayed;
 
 var delayed_GetWindowBand: TDelayedLoadFunction = (
@@ -906,12 +976,14 @@ var delayed_GetWindowBand: TDelayedLoadFunction = (
   FunctionName: 'GetWindowBand';
 );
 
+// private
 [SetsLastError]
 function GetWindowCompositionAttribute(
   [in] hWnd: THwnd;
   [in, out] var cad: TWindowCompositionAttribData
 ): LongBool; stdcall; external user32;
 
+// private
 [SetsLastError]
 function SetWindowCompositionAttribute(
   [in] hWnd: THwnd;
@@ -920,6 +992,7 @@ function SetWindowCompositionAttribute(
 
 // Other
 
+// SDK::WinUser.h
 [SetsLastError]
 function MessageBoxW(
   [in, opt] hWnd: THwnd;
@@ -933,6 +1006,7 @@ var delayed_MessageBoxW: TDelayedLoadFunction = (
   FunctionName: 'MessageBoxW';
 );
 
+// SDK::WinUser.h
 [SetsLastError]
 function SendMessageTimeoutW(
   [in] hWnd: THwnd;
@@ -944,34 +1018,40 @@ function SendMessageTimeoutW(
   [out, opt] out dwResult: NativeInt
 ): NativeInt; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function WaitForInputIdle(
   [in] hProcess: THandle;
   [in] Milliseconds: Cardinal
 ): Cardinal; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetWindowDisplayAffinity(
   [in] hWnd: THwnd;
   [out] out Affinity: Cardinal
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function SetWindowDisplayAffinity(
   [in] hWnd: THwnd;
   [in] Affinity: Cardinal
 ): LongBool; stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetWindowThreadProcessId(
   [in] hWnd: THwnd;
   [out, opt] out ProcessId: TProcessId32
 ): TThreadId32; stdcall; external user32;
 
+// SDK::WinUser.h
 function DestroyIcon(
   [in] Icon: THIcon
 ): LongBool stdcall; external user32;
 
+// SDK::WinUser.h
 [SetsLastError]
 function GetGUIThreadInfo(
   [in] ThreadId: TThreadId32;
@@ -996,5 +1076,11 @@ implementation
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+constructor TPoint.Create;
+begin
+  Self.x := x;
+  Self.y := y;
+end;
 
 end.

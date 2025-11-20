@@ -344,6 +344,7 @@ System unit                                                                     
 [NtUtils.Manifests](./NtUtils.Manifests.pas)                                                     | Fusion/SxS manifest builder
 [NtUtils.Memory](./NtUtils.Memory.pas)                                                           | Memory operations
 [NtUtils.MiniDumps](./NtUtils.MiniDumps.pas)                                                     | Minidump format parsing
+[NtUtils.NtUser](./NtUtils.NtUser.pas)                                                           | Win32k syscalls
 [NtUtils.Objects](./NtUtils.Objects.pas)                                                         | Kernel objects and handles
 [NtUtils.Objects.Snapshots](./NtUtils.Objects.Snapshots.pas)                                     | Handle snapshotting
 [NtUtils.Objects.Namespace](./NtUtils.Objects.Namespace.pas)                                     | NT object namespace
