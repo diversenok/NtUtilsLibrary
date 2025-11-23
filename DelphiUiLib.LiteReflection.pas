@@ -359,7 +359,7 @@ begin
   if Length(Matched) > 0 then
     Result := RtlxJoinStrings(Matched, ', ')
   else
-    Result := '(none)';
+    Result := '(None)';
 end;
 
 function RttixFormatBitwiseHint(
