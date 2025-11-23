@@ -17,11 +17,13 @@ const
   MrmCoreR = 'MrmCoreR.dll';
   ActivationManager = 'ActivationManager.dll';
   AppXDeploymentClient = 'AppXDeploymentClient.dll';
+  srpapi = 'srpapi.dll';
 
 var
   delayed_MrmCoreR: TDelayedLoadDll = (DllName: MrmCoreR);
   delayed_ActivationManager: TDelayedLoadDll = (DllName: ActivationManager);
   delayed_AppXDeploymentClient: TDelayedLoadDll = (DllName: AppXDeploymentClient);
+  delayed_srpapi: TDelayedLoadDll = (DllName: srpapi);
 
 const
   // SDK::appmodel.h - information flags
@@ -1558,6 +1560,31 @@ function ResourceManagerQueueGetString(
 var delayed_ResourceManagerQueueGetString: TDelayedLoadFunction = (
   Dll: @delayed_MrmCoreR;
   FunctionName: 'ResourceManagerQueueGetString';
+);
+
+// SRP
+
+// private
+[MinOSVersion(OsWin10TH1)]
+procedure AppIDFreeAttributeString(
+  [in, opt] SourceString: PWideChar
+); stdcall; external srpapi delayed;
+
+var delayed_AppIDFreeAttributeString: TDelayedLoadFunction = (
+  Dll: @delayed_srpapi;
+  FunctionName: 'AppIDFreeAttributeString';
+);
+
+// private
+[MinOSVersion(OsWin10RS1)]
+function SrpGetAppxFqbnFromPackageFullName(
+  [in] PackageFullName: PWideChar;
+  [out, ReleaseWith('AppIDFreeAttributeString')] out AppxFqbn: PWideChar
+): NTSTATUS; stdcall; external srpapi delayed;
+
+var delayed_SrpGetAppxFqbnFromPackageFullName: TDelayedLoadFunction = (
+  Dll: @delayed_srpapi;
+  FunctionName: 'SrpGetAppxFqbnFromPackageFullName';
 );
 
 implementation

@@ -190,6 +190,13 @@ function PkgxQueryCapabilitiesByFullName(
   out Capabilities: TArray<TGroup>
 ): TNtxStatus;
 
+// Query package FQBN
+[MinOSVersion(OsWin10RS1)]
+function SrpxQueryFqbnByFullName(
+  const FullName: String;
+  out Fqbn: String
+): TNtxStatus;
+
 { Enumerating by name }
 
 // Retrieve the list of packages in a family
@@ -941,6 +948,40 @@ begin
     if not Result.IsSuccess then
       Exit;
   end;
+end;
+
+function SrpxDelayedFreeAppidAttributeString(
+  [in] Buffer: PWideChar
+): IAutoReleasable;
+begin
+  Result := Auto.Defer(
+    procedure
+    begin
+      if LdrxCheckDelayedImport(delayed_AppIDFreeAttributeString).IsSuccess then
+        AppIDFreeAttributeString(Buffer);
+    end
+  );
+end;
+
+function SrpxQueryFqbnByFullName;
+var
+  Buffer: PWideChar;
+  BufferDeallocator: IAutoReleasable;
+begin
+  Result := LdrxCheckDelayedImport(delayed_SrpGetAppxFqbnFromPackageFullName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'SrpGetAppxFqbnFromPackageFullName';
+  Result.Status := SrpGetAppxFqbnFromPackageFullName(PWideChar(FullName),
+    Buffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := SrpxDelayedFreeAppidAttributeString(Buffer);
+  Fqbn := String(Buffer);
 end;
 
 { Enumerating by name }
