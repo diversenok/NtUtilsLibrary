@@ -70,9 +70,10 @@ function NtxQueryDirectory(
 ): TNtxStatus;
 
 // Retrieve information about multiple named objects in a directory
+// Note: don't forget to advance the index if calling in a loop
 function NtxQueryDirectoryBulk(
   [Access(DIRECTORY_QUERY)] const hxDirectory: IHandle;
-  var Index: Cardinal;
+  Index: Cardinal;
   out Entries: TArray<TNtxDirectoryEntry>;
   [NumberOfBytes] BlockSize: Cardinal = 4000
 ): TNtxStatus;
@@ -334,6 +335,7 @@ var
   BufferCursor: PObjectDirectoryInformation;
   Count: Cardinal;
 begin
+  // Note: the helper function ensures it will return at least a single entry
   Result := NtxQueryDirectoryRaw(hxDirectory, Index, Buffer, False, BlockSize);
 
   if not Result.IsSuccess then

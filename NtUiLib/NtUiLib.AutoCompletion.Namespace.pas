@@ -713,12 +713,18 @@ begin
   // Enumerate directory content in blocks
   Index := 0;
   while NtxQueryDirectoryBulk(hxDirectory, Index, Block).HasEntry(Result) do
+  begin
+    // Try to find our name
     for i := 0 to High(Block) do
       if RtlxEqualStrings(ChildName, Block[i].Name) then
       begin
         TypeName := Block[i].TypeName;
         Exit;
       end;
+
+    // Advance the search
+    Inc(Index, Length(Block));
+  end;
 
   if not Result.IsSuccess then
     Exit;
