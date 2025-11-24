@@ -66,7 +66,9 @@ function LdrxCheckDelayedImport(
 // Get base address of a loaded dll
 function LdrxGetDllHandle(
   const DllName: String;
-  out DllBase: PDllBase
+  out DllBase: PDllBase;
+  SearchFlags: TLdrDllPathFlags = 0;
+  const SearchPath: String = ''
 ): TNtxStatus;
 
 // Unload a dll
@@ -77,13 +79,19 @@ function LdrxUnloadDll(
 // Load a dll
 function LdrxLoadDll(
   const DllName: String;
-  [out, opt] outDllBase: PPDllBase = nil
+  [out, opt] outDllBase: PPDllBase = nil;
+  Characteristics: TLdrDllCharacteristics = 0;
+  SearchFlags: TLdrDllPathFlags = 0;
+  SearchPath: String = ''
 ): TNtxStatus;
 
 // Load a dll and unload it later
 function LdrxLoadDllAuto(
   const DllName: String;
-  out Module: IPointer
+  out Module: IPointer;
+  Characteristics: TLdrDllCharacteristics = 0;
+  SearchFlags: TLdrDllPathFlags = 0;
+  const SearchPath: String = ''
 ): TNtxStatus;
 
 // Get a function address
@@ -296,10 +304,39 @@ end;
 
 { DLL Operations }
 
+function LdrxpPrepareSearchPath(
+  SearchFlags: TLdrDllPathFlags;
+  const SearchPath: String;
+  out DllPath: PWideChar
+): TNtxStatus;
+begin
+  if (SearchFlags <> 0) and (SearchPath <> '') then
+  begin
+    Result.Location := 'LdrxpPrepareSearchPath';
+    Result.Status := STATUS_INVALID_PARAMETER_MIX;
+    Exit;
+  end;
+
+  if SearchFlags <> 0 then
+    DllPath := PWideChar(SearchFlags or LDR_PATH_IS_FLAGS)
+  else if SearchPath <> '' then
+    DllPath := PWideChar(SearchPath)
+  else
+    DllPath := nil;
+
+  Result := NtxSuccess;
+end;
+
 function LdrxGetDllHandle;
 var
   DllNameStr: TNtUnicodeString;
+  DllPath: PWideChar;
 begin
+  Result := LdrxpPrepareSearchPath(SearchFlags, SearchPath, DllPath);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result := RtlxInitUnicodeString(DllNameStr, DllName);
 
   if not Result.IsSuccess then
@@ -307,7 +344,7 @@ begin
 
   Result.Location := 'LdrGetDllHandle';
   Result.LastCall.Parameter := DllName;
-  Result.Status := LdrGetDllHandle(nil, nil, DllNameStr, DllBase);
+  Result.Status := LdrGetDllHandle(DllPath, nil, DllNameStr, DllBase);
 end;
 
 function LdrxUnloadDll;
@@ -332,8 +369,14 @@ end;
 function LdrxLoadDll;
 var
   DllNameStr: TNtUnicodeString;
+  DllPath: PWideChar;
   DllBase: PDllBase;
 begin
+  Result := LdrxpPrepareSearchPath(SearchFlags, SearchPath, DllPath);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result := RtlxInitUnicodeString(DllNameStr, DllName);
 
   if not Result.IsSuccess then
@@ -341,7 +384,7 @@ begin
 
   Result.Location := 'LdrLoadDll';
   Result.LastCall.Parameter := DllName;
-  Result.Status := LdrLoadDll(nil, nil, DllNameStr, DllBase);
+  Result.Status := LdrLoadDll(DllPath, @Characteristics, DllNameStr, DllBase);
 
   if Result.IsSuccess and Assigned(outDllBase) then
     outDllBase^ := DllBase;
@@ -351,7 +394,8 @@ function LdrxLoadDllAuto;
 var
   DllBase: PDllBase;
 begin
-  Result := LdrxLoadDll(DllName, @DllBase);
+  Result := LdrxLoadDll(DllName, @DllBase, Characteristics, SearchFlags,
+    SearchPath);
 
   if Result.IsSuccess then
     Module := TAutoDll.Capture(DllBase);

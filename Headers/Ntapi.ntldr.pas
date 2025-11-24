@@ -13,6 +13,23 @@ uses
   Ntapi.Versions, DelphiApi.Reflection;
 
 const
+  // PHNT::ntldr.h - load libary DLL characteristics
+  LDR_DONT_RESOLVE_DLL_REFERENCES = $00000002;
+  LDR_PACKAGED_LIBRARY = $00000004; // Win 8+
+  LDR_REQUIRE_SIGNED_TARGET = $00800000; // Win 10 RS1+
+  LDR_OS_INTEGRITY_CONTINUITY = $80000000; // Win 10 RS2+
+
+  // PHNT::ntldr.h - load libary search path flags
+  LDR_PATH_IS_FLAGS = $00000001;
+  LDR_PATH_WITH_ALTERED_SEARCH_PATH = $00000008;
+  LDR_PATH_SEARCH_DLL_LOAD_DIR = $00000100;
+  LDR_PATH_SEARCH_APPLICATION_DIR = $00000200;
+  LDR_PATH_SEARCH_USER_DIRS = $00000400;
+  LDR_PATH_SEARCH_SYSTEM32 = $00000800;
+  LDR_PATH_SEARCH_DEFAULT_DIRS = $00001000;
+  LDR_PATH_SAFE_CURRENT_DIRS = $00002000;
+  LDR_PATH_SEARCH_SYSTEM32_NO_FORWARDER = $00004000;
+
   // PHNT::ntldr.h - module flags
   LDRP_PACKAGED_BINARY = $00000001;
   LDRP_STATIC_LINK = $00000002;
@@ -60,6 +77,24 @@ type
     Right: PRtlBalancedNode;
     ParentValue: NativeUInt;
   end;
+
+  [FlagName(LDR_DONT_RESOLVE_DLL_REFERENCES, 'Don''t Resolve DLL Reference')]
+  [FlagName(LDR_PACKAGED_LIBRARY, 'Packaged Libary')]
+  [FlagName(LDR_REQUIRE_SIGNED_TARGET, 'Require Signed Target')]
+  [FlagName(LDR_OS_INTEGRITY_CONTINUITY, 'OS Integrity Continuity')]
+  TLdrDllCharacteristics = type Cardinal;
+  PLdrDllCharacteristics = ^TLdrDllCharacteristics;
+
+  [FlagName(LDR_PATH_IS_FLAGS, 'Is Flags')]
+  [FlagName(LDR_PATH_WITH_ALTERED_SEARCH_PATH, 'With Altered Search Path')]
+  [FlagName(LDR_PATH_SEARCH_DLL_LOAD_DIR, 'Search DLL Load Directory')]
+  [FlagName(LDR_PATH_SEARCH_APPLICATION_DIR, 'Search Application Directory')]
+  [FlagName(LDR_PATH_SEARCH_USER_DIRS, 'Search User Directories')]
+  [FlagName(LDR_PATH_SEARCH_SYSTEM32, 'Search System32')]
+  [FlagName(LDR_PATH_SEARCH_DEFAULT_DIRS, 'Search Default Directories')]
+  [FlagName(LDR_PATH_SAFE_CURRENT_DIRS, 'Safe Current Directory')]
+  [FlagName(LDR_PATH_SEARCH_SYSTEM32_NO_FORWARDER, 'Search System32 No Forwarders')]
+  TLdrDllPathFlags = type NativeUInt;
 
   // PHNT::ntldr.h
   [NamingStyle(nsCamelCase, 'LoadReason')]
@@ -410,8 +445,8 @@ type
 
 // PHNT::ntldr.h
 function LdrLoadDll(
-  [in, opt] DllPath: PWideChar;
-  [in, opt] DllCharacteristics: PCardinal;
+  [in, opt] DllPath: PWideChar; // or TLdrDllPathFlags
+  [in, opt] DllCharacteristics: PLdrDllCharacteristics;
   [in] const DllName: TNtUnicodeString;
   [out] out DllBase: PDllBase
 ): NTSTATUS; stdcall; external ntdll;
@@ -423,8 +458,8 @@ function LdrUnloadDll(
 
 // PHNT::ntldr.h
 function LdrGetDllHandle(
-  [in, opt] DllPath: PWideChar;
-  [in, opt] DllCharacteristics: PCardinal;
+  [in, opt] DllPath: PWideChar; // or TLdrDllPathFlags
+  [in, opt] DllCharacteristics: PLdrDllCharacteristics;
   [in] const DllName: TNtUnicodeString;
   [out] out DllBase: PDllBase
 ): NTSTATUS; stdcall; external ntdll;
