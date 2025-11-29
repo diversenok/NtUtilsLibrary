@@ -66,27 +66,42 @@ function WerxSetSilentProcessExitKey(
   out Reverter: IDeferredOperation
 ): TNtxStatus;
 var
-  hxKey: IHandle;
-  Disposition: TRegDisposition;
+  hxBaseKey, hxKey: IHandle;
+  BaseKeyDisposition, ImageKeyDisposition: TRegDisposition;
   RestoreMonitorProcess, RestoreReportingMode: Boolean;
   OldMonitorProcess, OldReportingMode: TNtxRegValue;
 begin
-  // Create or open the application's silent process exit key
+  // Create or open the silent process exit root key
   Result := NtxCreateKey(
-    hxKey,
-    RtlxCombinePaths(WER_SILENT_PROCESS_EXIT_KEY, ImageName),
-    KEY_QUERY_VALUE or KEY_SET_VALUE or _DELETE,
+    hxBaseKey,
+    WER_SILENT_PROCESS_EXIT_KEY,
+    KEY_CREATE_SUB_KEY or _DELETE,
     REG_OPTION_VOLATILE,
     nil,
     '',
     0,
-    @Disposition
+    @BaseKeyDisposition
   );
 
   if not Result.IsSuccess then
     Exit;
 
-  if Disposition = REG_OPENED_EXISTING_KEY then
+  // Create or open the application's silent process exit key
+  Result := NtxCreateKey(
+    hxKey,
+    ImageName,
+    KEY_QUERY_VALUE or KEY_SET_VALUE or _DELETE,
+    REG_OPTION_VOLATILE,
+    AttributeBuilder.UseRoot(hxBaseKey),
+    '',
+    0,
+    @ImageKeyDisposition
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if ImageKeyDisposition = REG_OPENED_EXISTING_KEY then
   begin
     // Backup the previous monitor process value
     Result := NtxQueryValueKey(hxKey, WER_SILENT_PROCESS_EXIT_MONITOR_PROCESS,
@@ -129,10 +144,17 @@ begin
   Reverter := Auto.Defer(
     procedure
     begin
-      case Disposition of
+      case ImageKeyDisposition of
         REG_CREATED_NEW_KEY:
-          // Undo creation
+        begin
+          // Undo image key creation
           NtxDeleteKey(hxKey);
+          hxKey := nil;
+
+          // Undo base key creation
+          if BaseKeyDisposition = REG_CREATED_NEW_KEY then
+            NtxDeleteKey(hxBaseKey);
+        end;
 
         REG_OPENED_EXISTING_KEY:
         begin
