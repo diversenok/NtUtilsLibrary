@@ -220,12 +220,16 @@ type
 
   // SDK::windef.h
   [SDKName('HBITMAP'), Hex]
-  THBitmap = type NativeUInt;
+  THBitmap = type THandle;
 
   // SDK::windef.h
   [SDKName('HICON'), Hex]
-  THIcon = type NativeUInt;
+  THIcon = type THandle;
   PHIcon = ^THIcon;
+
+  // SDK::windef.h
+  [SDKName('HHOOK'), Hex]
+  THHook = type THandle;
 
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
@@ -480,6 +484,31 @@ type
   [FlagName(CWP_SKIPTRANSPARENT, 'Skip Transparent')]
   TChildWindowFromPointFlags = type Cardinal;
 
+  // SDK::WinUser.h - hook IDs
+  [NamingStyle(nsSnakeCase, 'WH')]
+  THookId = (
+    WH_JOURNALRECORD = 0,
+    WH_JOURNALPLAYBACK = 1,
+    WH_KEYBOARD = 2,
+    WH_GETMESSAGE = 3,
+    WH_CALLWNDPROC = 4,
+    WH_CBT = 5,
+    WH_SYSMSGFILTER = 6,
+    WH_MOUSE = 7,
+    WH_HARDWARE = 8,
+    WH_DEBUG = 9,
+    WH_SHELL = 10,
+    WH_FOREGROUNDIDLE = 11,
+    WH_CALLWNDPROCRET = 12,
+    WH_KEYBOARD_LL = 13,
+    WH_MOUSE_LL = 14
+  );
+
+const
+  // SDK::WinUser.h
+  WH_MSGFILTER = THookId(-1);
+
+type
   [SubEnum(MB_TYPEMASK, MB_OK, 'OK')]
   [SubEnum(MB_TYPEMASK, MB_OKCANCEL, 'OK & Cancel')]
   [SubEnum(MB_TYPEMASK, MB_ABORTRETRYIGNORE, 'Abort & Retry & Ignore')]
@@ -989,6 +1018,29 @@ function SetWindowCompositionAttribute(
   [in] hWnd: THwnd;
   [in] const cad: TWindowCompositionAttribData
 ): LongBool; stdcall; external user32;
+
+// SDK::WinUser.h
+[SetsLastError]
+function RegisterWindowMessageW(
+  [in] lpString: PWideChar
+): Cardinal; stdcall; external user32;
+
+// SDK::WinUser.h
+[SetsLastError]
+function UnhookWindowsHookEx(
+  [in] Hook: THHook
+): LongBool; stdcall; external user32;
+
+// SDK::WinUser.h
+[MayReturnNil]
+[SetsLastError]
+[Result: ReleaseWith('UnhookWindowsHookEx')]
+function SetWindowsHookExW(
+  [in] idHook: THookId;
+  [in] lpfn: Pointer;
+  [in, opt] hmod: Pointer;
+  [in, opt] ThreadId: TThreadId32
+): THHook; stdcall; external user32;
 
 // Other
 

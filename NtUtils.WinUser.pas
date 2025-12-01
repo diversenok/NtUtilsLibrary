@@ -15,6 +15,7 @@ const
   DEFAULT_USER_TIMEOUT = 1000; // in ms
 
 type
+  IHook = IHandle;
   TGuiThreadInfo = Ntapi.WinUser.TGuiThreadInfo;
 
   THwndAndParent = record
@@ -268,6 +269,21 @@ function UsrxSendMessage(
 function UsrxGetWindowText(
   Control: THwnd;
   out Text: String
+): TNtxStatus;
+
+// Retrieves a global identifier for a named window message
+function UsrxRegisterWindowMessage(
+  out MessageAtom: Cardinal;
+  const Name: String
+): TNtxStatus;
+
+// Install window hook
+function UsrxSetWindowsHook(
+  out hxHook: IHook;
+  HookId: THookId;
+  [in] HookFunction: Pointer;
+  [opt] Module: Pointer;
+  [opt] ThreadId: TThreadId32 = 0
 ): TNtxStatus;
 
 { Other }
@@ -829,6 +845,37 @@ begin
   until CopiedLength < Pred(BufferLength);
 
   SetString(Text, PWideChar(xMemory.Data), CopiedLength);
+end;
+
+function UsrxRegisterWindowMessage;
+begin
+  Result.Location := 'RegisterWindowMessageW';
+  MessageAtom := RegisterWindowMessageW(PWideChar(Name));
+  Result.Win32Result := MessageAtom <> 0;
+end;
+
+type
+  TUserAutoHook = class (TCustomAutoHandle)
+    destructor Destroy; override;
+  end;
+
+destructor TUserAutoHook.Destroy;
+begin
+  if (FHandle <> 0) and not FDiscardOwnership then
+    UnhookWindowsHookEx(FHandle);
+end;
+
+function UsrxSetWindowsHook;
+var
+  Hook: THHook;
+begin
+  Result.Location := 'SetWindowsHookExW';
+  Result.LastCall.UsesInfoClass(HookId, icPerform);
+  Hook := SetWindowsHookExW(HookId, HookFunction, Module, ThreadId);
+  Result.Win32Result := Hook <> 0;
+
+  if Result.IsSuccess then
+    HxHook := TUserAutoHook.Capture(Hook);
 end;
 
 { Other }
