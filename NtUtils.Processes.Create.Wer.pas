@@ -60,6 +60,9 @@ const
     '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options';
   WER_IFEO_GLOBAL_FLAGS = 'GlobalFlag';
 
+  // MSDN
+  LAUNCH_MONITORPROCESS = $01;
+
 function WerxSetSilentProcessExitKey(
   const ImageName: String;
   const MonitorProcess: String;
@@ -128,7 +131,7 @@ begin
 
   // Set the reporting mode
   Result := NtxSetValueKeyUInt32(hxKey, WER_SILENT_PROCESS_EXIT_REPORTING_MODE,
-    1);
+    LAUNCH_MONITORPROCESS);
 
   if not Result.IsSuccess then
     Exit;
