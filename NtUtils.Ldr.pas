@@ -94,10 +94,17 @@ function LdrxLoadDllAuto(
   const SearchPath: String = ''
 ): TNtxStatus;
 
-// Get a function address
+// Get a function address by name
 function LdrxGetProcedureAddress(
   [in] DllBase: PDllBase;
   const ProcedureName: AnsiString;
+  out Address: Pointer
+): TNtxStatus;
+
+// Get a function address by ordinal
+function LdrxGetProcedureAddressByOrdinal(
+  [in] DllBase: PDllBase;
+  ProcedureNumber: Cardinal;
   out Address: Pointer
 ): TNtxStatus;
 
@@ -413,6 +420,13 @@ begin
   Result.Location := 'LdrGetProcedureAddress';
   Result.LastCall.Parameter := String(ProcedureName);
   Result.Status := LdrGetProcedureAddress(DllBase, @ProcedureNameStr, 0, Address);
+end;
+
+function LdrxGetProcedureAddressByOrdinal;
+begin
+  Result.Location := 'LdrGetProcedureAddress';
+  Result.LastCall.Parameter := '#' + RtlxIntToDec(ProcedureNumber);
+  Result.Status := LdrGetProcedureAddress(DllBase, nil, ProcedureNumber, Address);
 end;
 
 { Resources }
