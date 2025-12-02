@@ -11,6 +11,9 @@ interface
 uses
   Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ntuser, Ntapi.WinUser, NtUtils;
 
+type
+  IHook = IHandle;
+
 { Window Stations }
 
 // Get a per-session directory where window stations reside
@@ -110,6 +113,17 @@ function NtxIsGuiThread(
 ): Boolean;
 
 { Misc }
+
+// Install a window hook
+function NtxSetWindowsHookEx(
+  out hxHook: IHook;
+  FilterType: THookId;
+  FilterProc: Pointer;
+  const LibraryName: String;
+  ModuleBase: Pointer;
+  ThreadId: TThreadId32 = 0;
+  Flags: THookFlags = 0
+): TNtxStatus;
 
 // Lock the workstation and switch to the logon screen
 function NtxLockWorkstation(
@@ -394,6 +408,43 @@ begin
 end;
 
 { Misc }
+
+type
+  TNtxAutoWindowHook = class (TCustomAutoHandle)
+    destructor Destroy; override;
+  end;
+
+destructor TNtxAutoWindowHook.Destroy;
+begin
+  if (FHandle <> 0) and LdrxCheckDelayedImport(
+    delayed_NtUserUnhookWindowsHookEx).IsSuccess then
+    NtUserUnhookWindowsHookEx(FHandle);
+end;
+
+function NtxSetWindowsHookEx;
+var
+  LibStr: TNtUnicodeString;
+  hHook: THHook;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserSetWindowsHookEx);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(LibStr, LibraryName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserSetWindowsHookEx';
+  Result.LastCall.UsesInfoClass(FilterType, icPerform);
+  hHook := NtUserSetWindowsHookEx(ModuleBase, LibStr, ThreadId, FilterType,
+    FilterProc, Flags);
+  Result.Win32Result := hHook <> 0;
+
+  if Result.IsSuccess then
+    hxHook := TNtxAutoWindowHook.Capture(hHook);
+end;
 
 function NtxLockWorkstation;
 begin

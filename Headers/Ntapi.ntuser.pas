@@ -19,6 +19,10 @@ const
   // rev, thread desktop flags
   TDF_PROTECT_HANDLE = $00000001;
 
+  // private - hook flags
+  HF_ANSI = $0002;
+  HF_EXTENDED_TIMEOUT = $0040; // rev // Win 10 21H1+
+
 var
   delayed_win32u: TDelayedLoadDll = (DllName: win32u);
 
@@ -72,6 +76,11 @@ type
     ProcessId: TProcessId32;
     ThreadId: TThreadId32;
   end;
+
+  [NamingStyle(nsSnakeCase, 'HF')]
+  [FlagName(HF_ANSI, 'HF_ANSI')]
+  [FlagName(HF_EXTENDED_TIMEOUT, 'HF_EXTENDED_TIMEOUT')]
+  THookFlags = type Cardinal;
 
 { Window Stations }
 
@@ -562,6 +571,37 @@ var delayed_NtUserCheckWindowThreadDesktop: TDelayedLoadFunction = (
 );
 
 { Misc }
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserUnhookWindowsHookEx(
+  [in] hhk: THHook
+): LongBool; stdcall; external win32u delayed;
+
+var delayed_NtUserUnhookWindowsHookEx: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserUnhookWindowsHookEx';
+);
+
+// private
+[MayReturnNil]
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+[Result: ReleaseWith('NtUserUnhookWindowsHookEx')]
+function NtUserSetWindowsHookEx(
+  [in] hmod: Pointer;
+  [in] const Lib: TNtUnicodeString;
+  [in, opt] Thread: TThreadId32;
+  [in] FilterType: THookId;
+  [in] FilterProc: Pointer;
+  [in] Flags: THookFlags
+): THHook; stdcall; external win32u delayed;
+
+var delayed_NtUserSetWindowsHookEx: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserSetWindowsHookEx';
+);
 
 // private
 [SetsLastError]
