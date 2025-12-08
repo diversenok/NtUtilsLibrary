@@ -241,6 +241,11 @@ function NtxEnumerateUsingProcessesFile(
   out PIDs: TArray<TProcessId>
 ): TNtxStatus;
 
+// Enumerate processes that are using ntdll
+function NtxEnumerateProcessesByNtdll(
+  out PIDs: TArray<TProcessId>
+): TNtxStatus;
+
 { Extended Attributes }
 
 // Query a single extended attribute by name
@@ -297,7 +302,7 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Ldr, NtUtils.Files.Open,
-  NtUtils.Synchronization;
+  NtUtils.Synchronization, NtUtils.Memory;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -758,6 +763,47 @@ begin
 
   for i := 0 to High(PIDs) do
     PIDs[i] := xMemory.Data.ProcessIdList{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+end;
+
+var
+  NtdllHandleInitialized: TRtlRunOnce;
+  NtdllHandle: IHandle;
+
+function NtxEnumerateProcessesByNtdll;
+var
+  Init: IAcquiredRunOnce;
+  FileName: String;
+begin
+  if RtlxRunOnceBegin(@NtdllHandleInitialized, Init) then
+  begin
+    Result := LdrxCheckDelayedModule(delayed_ntdll);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Query the filename from the mapped ntdll. Note that we don't want to
+    // hardcode \SystemRoot\system32\ntdll.dll because in Windows Sandbox
+    // the path will be under \Device\vmsmb instead
+    Result := NtxQueryFileNameMemory(NtxCurrentProcess,
+      delayed_ntdll.DllAddress, FileName);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result := NtxOpenFile(NtdllHandle, FileParameters
+      .UseFileName(FileName)
+      .UseAccess(FILE_READ_ATTRIBUTES)
+      .UseSyncMode(fsAsynchronous)
+      .UseOptions(FILE_NON_DIRECTORY_FILE)
+    );
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Init.Complete;
+  end;
+
+  Result := NtxEnumerateUsingProcessesFile(NtdllHandle, PIDs);
 end;
 
 { Extended Attributes }
