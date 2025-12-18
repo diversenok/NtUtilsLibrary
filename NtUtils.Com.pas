@@ -450,12 +450,54 @@ function RoxActivateInstanceWithFallback(
   out Inspectable: IInspectable
 ): TNtxStatus;
 
+{ ORPC Debug }
+
+type
+  [NamingStyle(nsCamelCase, 'dm')]
+  TOrpcDebugMethod = (
+    dmClientGetBufferSize,
+    dmClientFillBuffer,
+    dmClientNotify,
+    dmServerNotify,
+    dmServerGetBufferSize,
+    dmServerFillBuffer
+  );
+  TOrpcDebugMethods = set of TOrpcDebugMethod;
+
+  TOrpcDebugCallback = reference to procedure (
+    Method: TOrpcDebugMethod;
+    var OrpcDebugAll: TOrpcDbgAll
+  );
+
+const
+  ORPC_DEBUG_ALL_METHODS = [dmClientGetBufferSize..dmServerFillBuffer];
+
+// Lookup a name for an interface
+function ComxLookupInterfaceName(
+  const IID: TIID;
+  out Name: String
+): TNtxStatus;
+
+// Lookup a name for an interface or format it as a GUID
+function ComxFormatInterfaceName(
+  const IID: TIID
+): String;
+
+// Subscribe an anonymous function to ORPC debug events
+function ComxDebugOrpcMethods(
+  out Registration: IAutoReleasable;
+  Callback: TOrpcDebugCallback;
+  Serialize: Boolean = True;
+  Methods: TOrpcDebugMethods = ORPC_DEBUG_ALL_METHODS
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.WinError, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Errors,
-  NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens, NtUtils.Tokens.Info,
-  NtUtils.Synchronization, NtUtils.SysUtils, DelphiUtils.Arrays;
+  Ntapi.WinError, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntregapi,
+  NtUtils.Errors, NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens,
+  NtUtils.Tokens.Info, NtUtils.Synchronization, NtUtils.Registry,
+  NtUtils.SysUtils, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -1593,6 +1635,175 @@ begin
 
   if not Result.IsSuccess then
     Result := RtlxComActivateInstance(DllName, ActivatableClassId, Inspectable);
+end;
+
+{ ORPC Debug }
+
+function ComxLookupInterfaceName;
+var
+  hxKey: IHandle;
+begin
+  Result := NtxOpenKey(hxKey, REG_PATH_MACHINE + '\SOFTWARE\Classes\Interface\'
+    + RtlxGuidToString(IID), KEY_QUERY_VALUE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxQueryValueKeyString(hxKey, '', Name);
+end;
+
+function ComxFormatInterfaceName;
+begin
+  if not ComxLookupInterfaceName(IID, Result).IsSuccess then
+    Result := RtlxGuidToString(IID);
+end;
+
+type
+  IOrpcDebugInternal = interface (IAutoReleasable)
+    ['{A3E2F55F-0E36-46D7-B86A-B66E9C96BA25}']
+    procedure NotifyRegistered;
+    function AsInitArgs: POrpcInitArgs;
+  end;
+
+  TOrpcDebug = class (TAutoInterfacedObject, IOrpcDebugNotify,
+    IOrpcDebugInternal, IAutoReleasable)
+    FArgs: TOrpcInitArgs;
+    FCallback: TOrpcDebugCallback;
+    FMethods: TOrpcDebugMethods;
+    FLock: TRtlSRWLock;
+    FSerialize: Boolean;
+    FRegistered: Boolean;
+    procedure InvokeCallback(Method: TOrpcDebugMethod; var OrpcDebugAll: TOrpcDbgAll);
+    procedure ClientGetBufferSize(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ClientFillBuffer(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ClientNotify(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ServerNotify(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ServerGetBufferSize(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ServerFillBuffer(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure NotifyRegistered;
+    function AsInitArgs: POrpcInitArgs;
+    constructor Create(Callback: TOrpcDebugCallback; Serialize: Boolean; Methods: TOrpcDebugMethods);
+    destructor Destroy; override;
+  end;
+
+function TOrpcDebug.AsInitArgs;
+begin
+  Result := @FArgs;
+end;
+
+procedure TOrpcDebug.ClientFillBuffer;
+begin
+  if dmClientFillBuffer in FMethods then
+    InvokeCallback(dmClientFillBuffer, OrpcDebugAll);
+end;
+
+procedure TOrpcDebug.ClientGetBufferSize;
+begin
+  if dmClientGetBufferSize in FMethods then
+    InvokeCallback(dmClientGetBufferSize, OrpcDebugAll);
+end;
+
+procedure TOrpcDebug.ClientNotify;
+begin
+  if dmClientNotify in FMethods then
+    InvokeCallback(dmClientNotify, OrpcDebugAll);
+end;
+
+constructor TOrpcDebug.Create;
+begin
+  inherited Create;
+
+  FCallback := Callback;
+  FMethods := Methods;
+  FSerialize := Serialize;
+
+  // Add a weak self-reference to share with COM
+  Pointer(FArgs.IntfOrpcDebug) := IOrpcDebugNotify(Self);
+end;
+
+destructor TOrpcDebug.Destroy;
+begin
+  if FRegistered then
+  begin
+    // Release the weak self reference
+    Pointer(FArgs.IntfOrpcDebug) := nil;
+
+    // Unregister
+    DllDebugObjectRPCHook(False, nil);
+  end;
+
+  inherited;
+end;
+
+procedure TOrpcDebug.InvokeCallback;
+var
+  AcquiredLock: IAutoReleasable;
+begin
+  if not Assigned(FCallback) then
+    Exit;
+
+  if FSerialize then
+    AcquiredLock := RtlxAcquireSRWLockExclusive(@FLock);
+
+  try
+    FCallback(Method, OrpcDebugAll);
+  except
+    on E: TObject do
+      if not Assigned(AutoExceptionHanlder) or not
+        AutoExceptionHanlder(E) then
+        raise;
+  end;
+end;
+
+procedure TOrpcDebug.NotifyRegistered;
+begin
+  FRegistered := True;
+end;
+
+procedure TOrpcDebug.ServerFillBuffer;
+begin
+  if dmServerFillBuffer in FMethods then
+    InvokeCallback(dmServerFillBuffer, OrpcDebugAll);
+end;
+
+procedure TOrpcDebug.ServerGetBufferSize;
+begin
+  if dmServerGetBufferSize in FMethods then
+    InvokeCallback(dmServerGetBufferSize, OrpcDebugAll);
+end;
+
+procedure TOrpcDebug.ServerNotify;
+begin
+  if dmServerNotify in FMethods then
+    InvokeCallback(dmServerNotify, OrpcDebugAll);
+end;
+
+function ComxDebugOrpcMethods;
+var
+  DebugObj: IOrpcDebugInternal;
+begin
+  if not Assigned(Callback) then
+  begin
+    Result.Location := 'ComxDebugOrpcMethods';
+    Result.Status := ERROR_INVALID_PARAMETER;
+    Exit;
+  end;
+
+  // Prepare a wrapper for the anonymous callback
+  DebugObj := TOrpcDebug.Create(Callback, Serialize, Methods);
+
+  // Register it
+  if DllDebugObjectRPCHook(True, DebugObj.AsInitArgs) then
+  begin
+    DebugObj.NotifyRegistered;
+    Registration := DebugObj;
+    Result := NtxSuccess;
+  end
+  else
+  begin
+    Result.Location := 'DllDebugObjectRPCHook';
+    Result.Status := STATUS_NOT_SUPPORTED;
+  end;
 end;
 
 end.
