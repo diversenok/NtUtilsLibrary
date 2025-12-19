@@ -67,6 +67,22 @@ const
   RPC_C_AUTHZ_NONE = 0;
   RPC_C_AUTHZ_DEFAULT = $FFFFFFFF;
 
+  // SDK::objidlbase.h - authentication capabilities
+  EOAC_MUTUAL_AUTH = $0001;
+  EOAC_SECURE_REFS = $0002;
+  EOAC_ACCESS_CONTROL = $0004;
+  EOAC_APPID = $0008;
+  EOAC_DYNAMIC = $0010;
+  EOAC_STATIC_CLOAKING = $0020;
+  EOAC_DYNAMIC_CLOAKING = $0040;
+  EOAC_ANY_AUTHORITY = $0080;
+  EOAC_MAKE_FULLSIC = $0100;
+  EOAC_REQUIRE_FULLSIC = $0200;
+  EOAC_AUTO_IMPERSONATE = $0400;
+  EOAC_DEFAULT = $0800;
+  EOAC_DISABLE_AAA = $1000;
+  EOAC_NO_CUSTOM_MARSHAL = $2000;
+
   // SDK::oleauto.h
   DISPATCH_METHOD = $1;
   DISPATCH_PROPERTYGET = $2;
@@ -331,6 +347,51 @@ type
     function Reset(
     ): HResult; stdcall;
   end;
+
+  // SDK::objidlbase.h
+  [SDKName('SOLE_AUTHENTICATION_SERVICE')]
+  TSOleAuthenticationService = record
+    AuthnSvc: TRpcAuthnService;
+    AuthzSvc: TRpcAuthzService;
+    PrincipalName: PWideChar;
+    hr: HResult;
+  end;
+  PSOleAuthenticationService = ^TSOleAuthenticationService;
+
+  // SDK::objidlbase.h
+  [SDKName('SOLE_AUTHENTICATION_INFO')]
+  TSOleAuthenticationInfo = record
+    AuthnSvc: TRpcAuthnService;
+    AuthzSvc: TRpcAuthzService;
+    AuthInfo: Pointer;
+  end;
+  PSOleAuthenticationInfo = ^TSOleAuthenticationInfo;
+
+  // SDK::objidlbase.h
+  [SDKName('SOLE_AUTHENTICATION_LIST')]
+  TSOleAuthenticationList = record
+    cAuthInfo: Cardinal;
+    aAuthInfo: PSOleAuthenticationInfo;
+  end;
+  PSOleAuthenticationList = ^TSOleAuthenticationList;
+
+  // SDK::objidlbase.h
+  [SDKName('EOLE_AUTHENTICATION_CAPABILITIES')]
+  [FlagName(EOAC_MUTUAL_AUTH, 'Mutual Authentication')]
+  [FlagName(EOAC_SECURE_REFS, 'Secure References')]
+  [FlagName(EOAC_ACCESS_CONTROL, 'Access Control')]
+  [FlagName(EOAC_APPID, 'AppID')]
+  [FlagName(EOAC_DYNAMIC, 'Dynamic')]
+  [FlagName(EOAC_STATIC_CLOAKING, 'Static Cloaking')]
+  [FlagName(EOAC_DYNAMIC_CLOAKING, 'Dynamic Cloaking')]
+  [FlagName(EOAC_ANY_AUTHORITY, 'Any Authority')]
+  [FlagName(EOAC_MAKE_FULLSIC, 'Make Fullsic')]
+  [FlagName(EOAC_REQUIRE_FULLSIC, 'Require Fullsic')]
+  [FlagName(EOAC_AUTO_IMPERSONATE, 'Auto Impersonate')]
+  [FlagName(EOAC_DEFAULT, 'Default')]
+  [FlagName(EOAC_DISABLE_AAA, 'Disable AAA')]
+  [FlagName(EOAC_NO_CUSTOM_MARSHAL, 'No Custom Marshal')]
+  TOleAuthenticationCapabilities = type Cardinal;
 
   // private
   [SDKName('PRT')]
@@ -710,6 +771,19 @@ procedure CoUninitialize(
 function CoInitializeEx(
   [Reserved] pvReserved: Pointer;
   [in] coInit: TCoInitMode
+): HResult; stdcall; external ole32;
+
+// SDK::combaseapi.h
+function CoInitializeSecurity(
+  [in, opt] SecDesc: PSecurityDescriptor;
+  [in, NumberOfElements] cAuthSvc: Integer;
+  [in, ReadsFrom] asAuthSvc: PSOleAuthenticationService;
+  [Reserved] Reserved1: Cardinal;
+  [in] AuthnLevel: TRpcAuthnLevel;
+  [in] ImpLevel: TRpcImpLevel;
+  [in, opt] AuthList: PSOleAuthenticationList;
+  [in] Capabilities: TOleAuthenticationCapabilities;
+  [Reserved] Reserved2: Cardinal
 ): HResult; stdcall; external ole32;
 
 // SDK::combaseapi.h
