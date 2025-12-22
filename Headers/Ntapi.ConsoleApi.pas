@@ -26,6 +26,10 @@ const
   // Special flag for AttachConsole
   ATTACH_PARENT_PROCESS = TProcessId32(-1);
 
+  // rev
+  // ProcessParameters->ConsoleHandle (\Device\ConDrv\Server\Reference\Connect)
+  IOCTL_CONDRV_CONNECTION_QUERY_SERVER_PID = $500023; // q: TProcessId // Win 8+
+
 type
   [FlagName(FOREGROUND_BLUE, 'Foreground Blue')]
   [FlagName(FOREGROUND_GREEN, 'Foreground Green')]

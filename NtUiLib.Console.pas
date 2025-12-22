@@ -7,7 +7,7 @@ unit NtUiLib.Console;
 interface
 
 uses
-  Ntapi.WinNt, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, NtUtils, DelphiApi.Reflection, Ntapi.Versions;
 
 type
   [NamingStyle(nsCamelCase, 'ch')]
@@ -89,6 +89,12 @@ function RtlxSetConsoleColor(
   Background: TConsoleColor = ccUnchanged
 ): IAutoConsoleColor;
 
+// Query the process ID of the associated console host
+[MinOSVersion(OsWin8)]
+function RtlxGetConhostPid(
+  out ProcessId: TProcessId
+): TNtxStatus;
+
 // Enumerate processes using the current console
 function RtlxEnumerateConsoleProcesses(
   out ProcessIDs: TArray<TProcessId32>
@@ -103,9 +109,9 @@ function RtlxConsoleHostState: TConsoleHostState;
 implementation
 
 uses
-  Ntapi.ntpsapi, Ntapi.ConsoleApi, Ntapi.ntpebteb,
+  Ntapi.ntpsapi, Ntapi.ConsoleApi, Ntapi.ntpebteb, Ntapi.ntstatus,
   NtUtils.SysUtils, NtUtils.Processes, NtUtils.Processes.Info,
-  DelphiUtils.AutoObjects, DelphiUtils.AutoEvents;
+  NtUtils.Files.Control, DelphiUtils.AutoObjects, DelphiUtils.AutoEvents;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -350,6 +356,23 @@ begin
 end;
 
 { Console Host }
+
+function RtlxGetConhostPid;
+var
+  hConsole: THandle;
+begin
+  hConsole := RtlGetCurrentPeb.ProcessParameters.ConsoleHandle;
+
+  if hConsole = 0 then
+  begin
+    Result.Location := 'RtlxGetConhostPid';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := NtxFileControl.IoControlOut(Auto.RefHandle(hConsole),
+    IOCTL_CONDRV_CONNECTION_QUERY_SERVER_PID, ProcessId);
+end;
 
 function RtlxEnumerateConsoleProcesses;
 var
