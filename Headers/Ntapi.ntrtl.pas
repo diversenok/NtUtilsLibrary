@@ -157,12 +157,14 @@ type
   [FlagName(RTL_CRITICAL_SECTION_FLAG_FORCE_DEBUG_INFO, 'Force Debug Info')]
   TRtlCriticalSectionFlags = type Cardinal;
 
+  PRtlCriticalSection = ^TRtlCriticalSection;
+
   // SDK::winnt.h
   [SDKName('RTL_CRITICAL_SECTION_DEBUG')]
   TRtlCriticalSectionDebug = record
     &Type: Word;
     CreatorBackTraceIndex: Word;
-    CriticalSection: Pointer; // PRtlCriticalSection
+    CriticalSection: PRtlCriticalSection;
     ProcessLocksList: TListEntry;
     EntryCount: Cardinal;
     ContentionCount: Cardinal;
@@ -182,7 +184,6 @@ type
     LockSemaphore: THandle;
     SpinCount: TNativeUIntArray;
   end align 8;
-  PRtlCriticalSection = ^TRtlCriticalSection;
 
   [SDKName('RTL_RESOURCE_DEBUG')]
   TRtlResourceDebug = type TRtlCriticalSectionDebug;
