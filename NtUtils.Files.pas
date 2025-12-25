@@ -35,6 +35,8 @@ type
     ): TNtxExtendedAttribute; static;
   end;
 
+  IFullEaInformation = IMemory<PFileFullEaInformation>;
+
   // File open/create operation parameters; see NtUtils.Files.Open
   IFileParameters = interface
     ['{223484B1-C23F-46DE-BAC5-25418010086D}']
@@ -54,7 +56,7 @@ type
     function UseFileAttributes(const Attributes: TFileAttributes): IFileParameters;
     function UseAllocationSize(const Size: UInt64): IFileParameters;
     function UseDisposition(const Disposition: TFileDisposition): IFileParameters;
-    function UseEA(const EAs: TArray<TNtxExtendedAttribute>): IFileParameters;
+    function UseEAs(const Buffer: IFullEaInformation): IFileParameters;
     function UseTimeout(const Timeout: Int64): IFileParameters;
     function UsePipeType(const PipeType: TFilePipeType): IFileParameters;
     function UsePipeReadMode(const ReadMode: TFilePipeReadMode): IFileParameters;
@@ -83,7 +85,7 @@ type
     function GetFileAttributes: TFileAttributes;
     function GetAllocationSize: UInt64;
     function GetDisposition: TFileDisposition;
-    function GetEA: TArray<TNtxExtendedAttribute>;
+    function GetEAs: IFullEaInformation;
     function GetTimeout: Int64;
     function GetPipeType: TFilePipeType;
     function GetPipeReadMode: TFilePipeReadMode;
@@ -109,7 +111,7 @@ type
     property FileAttributes: TFileAttributes read GetFileAttributes;
     property AllocationSize: UInt64 read GetAllocationSize;
     property Disposition: TFileDisposition read GetDisposition;
-    property EA: TArray<TNtxExtendedAttribute> read GetEA;
+    property EAs: IFullEaInformation read GetEAs;
     property Timeout: Int64 read GetTimeout;
     property PipeType: TFilePipeType read GetPipeType;
     property PipeReadMode: TFilePipeReadMode read GetPipeReadMode;
@@ -169,7 +171,7 @@ function RtlxSetCurrentDirectory(
 [Result: MayReturnNil]
 function RtlxAllocateEAs(
   const Entries: TArray<TNtxExtendedAttribute>
-): IMemory<PFileFullEaInformation>;
+): IFullEaInformation;
 
 // Capture a raw buffer with extended attribtues
 function RtlxCaptureFullEaInformation(
