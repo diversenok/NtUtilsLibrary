@@ -7,10 +7,11 @@ unit Ntapi.ntpebteb;
 interface
 
 {$MINENUMSIZE 4}
+{$WARN SYMBOL_PLATFORM OFF}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.actctx,
-  Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // Extracted from bit union PEB.BitField
@@ -853,7 +854,17 @@ function RtlWow64EnableFsRedirectionEx(
 function RtlIsThreadWithinLoaderCallout(
 ): Boolean; stdcall; external ntdll;
 
-{ Other helpers }
+{ User shared data }
+
+// PHNT::ntrtl.h
+[MinOSVersion(OsWin10RS2)]
+function RtlGetNtSystemRoot(
+): PWideChar; stdcall; external ntdll delayed;
+
+var delayed_RtlGetNtSystemRoot: TDelayedLoadFunction = (
+  Dll: @delayed_ntdll;
+  FunctionName: 'RtlGetNtSystemRoot';
+);
 
 // Hash for telemetry coverage entries
 function RtlHashAnsiStringFnv1(const S: AnsiString): Cardinal;

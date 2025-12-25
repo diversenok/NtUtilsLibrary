@@ -261,7 +261,7 @@ begin
   // Expand the SystemRoot symlink
   if RtlxPrefixStripString(SYSTEM_ROOT, Result) then
   begin
-    Result := USER_SHARED_DATA.NtSystemRoot + Result;
+    Result := RtlxGetNtSystemRoot + Result;
     Exit;
   end;
 

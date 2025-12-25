@@ -391,6 +391,9 @@ function RtlxStringToGuid(
 
 // Paths
 
+// Determine the system root path (usually, C:\Windows)
+function RtlxGetNtSystemRoot: String;
+
 // Split the path into the parent-most directory and the rest of the path
 function RtlxSplitPathOnFirst(
   const Path: String;
@@ -475,7 +478,8 @@ function RtlxParamStrFrom(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb, NtUtils.Synchronization;
+  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb, NtUtils.Synchronization,
+  NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -1671,6 +1675,27 @@ begin
 
   Result.Location := 'RtlGUIDFromString';
   Result.Status := RtlGUIDFromString(GuidStr, Guid);
+end;
+
+var
+  SystemRootCacheInitialized: TRtlRunOnce;
+  SystemRootCache: String;
+
+function RtlxGetNtSystemRoot;
+var
+  Init: IAcquiredRunOnce;
+begin
+  if RtlxRunOnceBegin(@SystemRootCacheInitialized, Init) then
+  begin
+    if LdrxCheckDelayedImport(delayed_RtlGetNtSystemRoot).IsSuccess then
+      SystemRootCache := RtlGetNtSystemRoot
+    else
+      SystemRootCache := USER_SHARED_DATA.NtSystemRoot;
+
+    Init.Complete;
+  end;
+
+  Result := SystemRootCache;
 end;
 
 function RtlxSplitPathOnFirst;

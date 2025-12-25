@@ -508,7 +508,7 @@ var
   CaptureBuffer: ICsrCaptureHeader;
 begin
   if AssemblyDirectory = '' then
-    AssemblyDirectory := USER_SHARED_DATA.NtSystemRoot + '\WinSxS';
+    AssemblyDirectory := RtlxGetNtSystemRoot + '\WinSxS';
 
   Result := RtlxInitUnicodeString(Msg.AssemblyDirectory, AssemblyDirectory);
 

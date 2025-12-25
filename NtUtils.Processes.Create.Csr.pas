@@ -57,7 +57,7 @@ begin
     CurrentDirectory := RtlxGetCurrentDirectory;
 
   if CurrentDirectory = '' then
-    CurrentDirectory := USER_SHARED_DATA.NtSystemRoot;
+    CurrentDirectory := RtlxGetNtSystemRoot;
 
   Result := RtlxInitUnicodeString(CurrentDirectoryStr, CurrentDirectory);
 
