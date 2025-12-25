@@ -51,6 +51,7 @@ function RtlxCreateInitialThread(
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
+[SupportedOption(spoDllPath)]
 [SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]

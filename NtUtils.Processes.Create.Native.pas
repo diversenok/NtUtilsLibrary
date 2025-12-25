@@ -28,6 +28,7 @@ function RtlxCreateProcessParameters(
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
+[SupportedOption(spoDllPath)]
 [SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
@@ -50,6 +51,7 @@ function RtlxCreateUserProcess(
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
+[SupportedOption(spoDllPath)]
 [SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
@@ -77,6 +79,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
+[SupportedOption(spoDllPath)]
 [SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
@@ -135,6 +138,7 @@ var
   ApplicationWin32Str, CommandLineStr, CurrentDirStr, DesktopStr,
   WindowTitleStr: TNtUnicodeString;
   WindowTitleStrRef: PNtUnicodeString;
+  DllPath: TNtUnicodeString;
 begin
   // Keep the string from the Options.ApplicationWin32() call alive
   ApplicationWin32 := Options.ApplicationWin32;
@@ -170,11 +174,16 @@ begin
   else
     WindowTitleStrRef := nil;
 
+  Result := RtlxInitUnicodeString(DllPath, Options.DllPath);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'RtlCreateProcessParametersEx';
   Result.Status := RtlCreateProcessParametersEx(
     Buffer,
     ApplicationWin32Str,
-    nil, // DllPath
+    DllPath.RefOrNil,
     CurrentDirStr.RefOrNil,
     @CommandLineStr,
     Auto.DataOrNil<PEnvironment>(Options.Environment),
@@ -189,12 +198,14 @@ begin
     Exit;
 
   // Make sure zero-length strings use null pointers
-  Buffer.DLLPath := Default(TNtUnicodeString);
   Buffer.ShellInfo := Default(TNtUnicodeString);
   Buffer.RuntimeData := Default(TNtUnicodeString);
 
   if Buffer.WindowTitle.Length = 0 then
     Buffer.WindowTitle := Default(TNtUnicodeString);
+
+  if Buffer.DLLPath.Length = 0 then
+    Buffer.DLLPath := Default(TNtUnicodeString);
 
   IMemory(xMemory) := TAutoUserProcessParams.Capture(Buffer,
     Buffer.MaximumLength + Buffer.EnvironmentSize);

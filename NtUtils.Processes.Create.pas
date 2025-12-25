@@ -83,6 +83,7 @@ type
     OwnerWindow: THwnd;
     WindowMode: TShowMode32;
     WindowTitle: String;
+    DllPath: String;
     hxStdInput: IHandle;
     hxStdOutput: IHandle;
     hxStdError: IHandle;
@@ -139,6 +140,7 @@ type
     spoOwnerWindow,
     spoWindowMode,
     spoWindowTitle,
+    spoDllPath,
     spoStdHandles,
     spoDesktop,
     spoToken,
