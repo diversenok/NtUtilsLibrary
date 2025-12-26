@@ -9,6 +9,11 @@ interface
 uses
   Ntapi.WinNt, Ntapi.ConsoleApi, NtUtils, DelphiApi.Reflection, Ntapi.Versions;
 
+const
+  // An access mask for annotations
+  PROCESS_ATTACH_CONSOLE_DIRECT = PROCESS_DUP_HANDLE or PROCESS_VM_READ or
+    PROCESS_QUERY_LIMITED_INFORMATION;
+
 type
   TRtlxConsoleOwnershipOperation = (coPreserve, coUse, coReset);
 
@@ -69,8 +74,14 @@ function RtlxLaunchConsoleServer(
 
 // Attach to an existing console
 [MinOSVersion(OsWin8)]
-function RtlxAttachToConsole(
+function RtlxAttachConsoleById(
   ProcessId: TProcessId;
+  out hxConnect: IHandle
+): TNtxStatus;
+
+// Attach to an existing console by duplicating its connection handle
+function RtlxAttachConsoleDirect(
+  [Access(PROCESS_ATTACH_CONSOLE_DIRECT)] const hxProcess: IHandle;
   out hxConnect: IHandle
 ): TNtxStatus;
 
@@ -78,6 +89,20 @@ function RtlxAttachToConsole(
 [MinOSVersion(OsWin8)]
 function RtlxSelectConsoleAsOwner(
   [opt] const hxConnect: IHandle
+): TNtxStatus;
+
+// Create an console connection handle from an already launched console reference
+[MinOSVersion(OsWin8)]
+function RtlxDeriveConsoleConnect(
+  const hxReference: IHandle;
+  out hxConnect: IHandle
+): TNtxStatus;
+
+// Create an console reference handle from a connection
+[MinOSVersion(OsWin8)]
+function RtlxDeriveConsoleReference(
+  const hxConnect: IHandle;
+  out hxReference: IHandle
 ): TNtxStatus;
 
 // Create an console input handle from a connection
@@ -112,10 +137,11 @@ procedure RtlxSelectConsole(
 implementation
 
 uses
-  Ntapi.ntpebteb, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ProcessThreadsApi,
-  Ntapi.WinUser, Ntapi.ntpsapi, NtUtils.Ldr, NtUtils.Files, NtUtils.Files.Open,
-  NtUtils.Files.Control, NtUtils.Processes.Info, NtUtils.Processes.Create,
-  NtUtils.Processes.Create.Native;
+  Ntapi.ntpebteb, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntwow64, Ntapi.ntpsapi,
+  Ntapi.ProcessThreadsApi, Ntapi.WinUser, NtUtils.Ldr, NtUtils.Files,
+  NtUtils.Files.Open, NtUtils.Files.Control, NtUtils.Processes.Info,
+  NtUtils.Processes.Create, NtUtils.Processes.Create.Native, NtUtils.Objects,
+  NtUtils.Memory;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -164,7 +190,7 @@ begin
   // On earlier versions, we only have the connection handle from PEB
   hConnection := RtlGetCurrentPeb.ProcessParameters.ConsoleHandle;
 
-  if hConnection = 0 then
+  if (hConnection = 0) or (hConnection > MAX_HANDLE) then
   begin
     // No console
     hxReference := Auto.RefHandle(0);
@@ -374,13 +400,94 @@ begin
   );
 end;
 
-function RtlxAttachToConsole;
+function RtlxAttachConsoleById;
 begin
   Result := NtxCreateFile(hxConnect, FileParameters
     .UseFileName(CONDRV_DRIVER_PATH + CONDRV_CONNECT_NAME)
     .UseEAs(RtlxAllocateEA(CONDRV_ATTACH_EA_NAME, Auto.RefBuffer(ProcessId)))
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );
+end;
+
+function RtlxAttachConsoleDirect;
+var
+  BasicInfo: TProcessBasicInformation;
+  Wow64Peb: PPeb32;
+  RemoteParameters32: Wow64Pointer<PRtlUserProcessParameters32>;
+  ConsoleHandle32: Wow64Handle;
+  RemoteParameters: PRtlUserProcessParameters;
+  ConsoleHandle: THandle;
+  hxConnectionCopy, hxReference: IHandle;
+begin
+  // Determine target's bitness and prevent WoW64 -> Native access
+  Result := RtlxAssertWoW64CompatiblePeb(hxProcess, Wow64Peb);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Assigned(Wow64Peb) then
+  begin
+    // Read the WoW64 process parameters base
+    Result := NtxMemory.Read(hxProcess, @Wow64Peb.ProcessParameters,
+      RemoteParameters32);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Read the console handle value
+    Result := NtxMemory.Read(hxProcess, @RemoteParameters32.Self.ConsoleHandle,
+     ConsoleHandle32);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    ConsoleHandle := ConsoleHandle32;
+  end
+  else
+  begin
+    // Locate the native PEB
+    Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Read the process parameters base
+    Result := NtxMemory.Read(hxProcess,
+      @BasicInfo.PebBaseAddress.ProcessParameters, RemoteParameters);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Read the console handle value
+    Result := NtxMemory.Read(hxProcess, @RemoteParameters.ConsoleHandle,
+     ConsoleHandle);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  if (ConsoleHandle = 0) or (ConsoleHandle > MAX_HANDLE) then
+  begin
+    Result.Location := 'RtlxAttachConsoleViaDuplication';
+    Result.Status := STATUS_NOT_FOUND;
+    Exit;
+  end;
+
+  // Duplicate the connection handle. Note that the handle is still tied to
+  // another process, so we cannot use it directly.
+  Result := NtxDuplicateHandleFrom(hxProcess, ConsoleHandle, hxConnectionCopy);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // We can, however, convert it to a reference
+  Result := RtlxDeriveConsoleReference(hxConnectionCopy, hxReference);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // And then convert back to a connection, this time, relative to our process
+  Result := RtlxDeriveConsoleConnect(hxReference, hxConnect);
 end;
 
 function RtlxSelectConsoleAsOwner;
@@ -404,6 +511,24 @@ begin
   // Set it the current process owner
   Result := NtxProcess.Set(NtxCurrentProcess, ProcessConsoleHostProcess,
     ConhostPID);
+end;
+
+function RtlxDeriveConsoleConnect;
+begin
+  Result := NtxCreateFile(hxConnect, FileParameters
+    .UseFileName(CONDRV_CONNECT_NAME)
+    .UseRoot(hxReference)
+    .UseAccess(GENERIC_READ or GENERIC_WRITE)
+  );
+end;
+
+function RtlxDeriveConsoleReference;
+begin
+  Result := NtxOpenFile(hxReference, FileParameters
+    .UseFileName(CONDRV_REFERENCE_NAME)
+    .UseRoot(hxConnect)
+    .UseAccess(GENERIC_READ or GENERIC_WRITE)
+  );
 end;
 
 function RtlxDeriveConsoleInput;
