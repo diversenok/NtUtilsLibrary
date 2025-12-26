@@ -1,13 +1,13 @@
 unit NtUiLib.Console;
 
 {
-  This module includes functions that help building console applications.
+  This module includes functions that help using console for UI purposes.
 }
 
 interface
 
 uses
-  Ntapi.WinNt, NtUtils, DelphiApi.Reflection, Ntapi.Versions;
+  NtUtils, DelphiApi.Reflection;
 
 type
   [NamingStyle(nsCamelCase, 'ch')]
@@ -84,34 +84,19 @@ function ReadUIntPtr(
 ): UIntPtr;
 
 // Change console output color and revert it back later
-function RtlxSetConsoleColor(
+function AdvxSetConsoleColor(
   Foreground: TConsoleColor;
   Background: TConsoleColor = ccUnchanged
 ): IAutoConsoleColor;
 
-// Query the process ID of the associated console host
-[MinOSVersion(OsWin8)]
-function RtlxGetConhostPid(
-  out ProcessId: TProcessId
-): TNtxStatus;
-
-// Enumerate processes using the current console
-function RtlxEnumerateConsoleProcesses(
-  out ProcessIDs: TArray<TProcessId32>
-): TNtxStatus;
-
 // Determine if any other processes are using the same console
-function RtlxIsLastConsoleProcess: Boolean;
-
-// Determine whether the current process inherited or created the console
-function RtlxConsoleHostState: TConsoleHostState;
+function AdvxIsLastConsoleProcess: Boolean;
 
 implementation
 
 uses
-  Ntapi.ntpsapi, Ntapi.ConsoleApi, Ntapi.ntpebteb, Ntapi.ntstatus,
-  NtUtils.SysUtils, NtUtils.Processes, NtUtils.Processes.Info,
-  NtUtils.Files.Control, DelphiUtils.AutoObjects, DelphiUtils.AutoEvents;
+  Ntapi.WinNt, Ntapi.ntpebteb, Ntapi.ConsoleApi, NtUtils.SysUtils,
+  DelphiUtils.AutoEvents;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -350,96 +335,25 @@ begin
   Result := FLayerId;
 end;
 
-function RtlxSetConsoleColor;
+function AdvxSetConsoleColor;
 begin
   Result := TAutoConsoleColor.Apply(Foreground, Background);
 end;
 
-{ Console Host }
+{ Console host }
 
-function RtlxGetConhostPid;
-var
-  hConsole: THandle;
-begin
-  hConsole := RtlGetCurrentPeb.ProcessParameters.ConsoleHandle;
-
-  if hConsole = 0 then
-  begin
-    Result.Location := 'RtlxGetConhostPid';
-    Result.Status := STATUS_NOT_SUPPORTED;
-    Exit;
-  end;
-
-  Result := NtxFileControl.IoControlOut(Auto.RefHandle(hConsole),
-    IOCTL_CONDRV_CONNECTION_QUERY_SERVER_PID, ProcessId);
-end;
-
-function RtlxEnumerateConsoleProcesses;
-var
-  Required: Integer;
-begin
-  Result.Location := 'GetConsoleProcessList';
-
-  SetLength(ProcessIDs, 1);
-  repeat
-    Required := GetConsoleProcessList(@ProcessIDs[0], Length(ProcessIDs));
-    Result.Win32Result := Required <> 0;
-
-    if not Result.IsSuccess then
-      Exit;
-
-    if Required > Length(ProcessIDs) then
-      SetLength(ProcessIDs, Required)
-    else
-      Break;
-  until False;
-
-  // Trim if necessary
-  if Length(ProcessIDs) > Required then
-    SetLength(ProcessIDs, Required);
-end;
-
-function RtlxIsLastConsoleProcess;
+function AdvxIsLastConsoleProcess;
 var
   PID: TProcessId32;
 begin
   Result := GetConsoleProcessList(@PID, 1) = 1;
 end;
 
-function RtlxConsoleHostState;
-var
-  PID: TProcessId;
-  hxProcess: IHandle;
-  ConhostInfo, OurInfo: TKernelUserTimes;
-begin
-  Result := chUnknown;
-
-  // Determine conhost's PID
-  if not NtxProcess.Query(NtxCurrentProcess, ProcessConsoleHostProcess, PID)
-    .IsSuccess then
-    Exit;
-
-  if PID = 0 then
-    Exit(chNone);
-
-  // Query its and our creation time
-  if NtxOpenProcess(hxProcess, PID, PROCESS_QUERY_LIMITED_INFORMATION).IsSuccess
-    and NtxProcess.Query(hxProcess, ProcessTimes, ConhostInfo).IsSuccess
-    and NtxProcess.Query(NtxCurrentProcess, ProcessTimes, OurInfo).IsSuccess then
-  begin
-    // Compare them
-    if ConhostInfo.CreateTime > OurInfo.CreateTime then
-      Result := chCreated
-    else
-      Result := chInherited;
-  end;
-end;
-
 initialization
 
 finalization
 {$IFDEF Console}
-  if UseSmartCloseOnExit and RtlxIsLastConsoleProcess then
+  if UseSmartCloseOnExit and AdvxIsLastConsoleProcess then
   begin
     write(EXIT_MSG);
     readln;

@@ -110,7 +110,8 @@ uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntioapi,
   Ntapi.ntldr, Ntapi.ntpebteb, Ntapi.ProcessThreadsApi, Ntapi.ConsoleApi,
   NtUtils.Threads, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens,
-  NtUtils.Processes.Info, NtUtils.Files.Open, NtUtils.Manifests;
+  NtUtils.Processes.Info, NtUtils.Files.Open, NtUtils.Manifests,
+  NtUtils.Console;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -823,6 +824,7 @@ var
   CreateInfo: TPsCreateInfo;
   Attributes: TPsAttributesRecord;
   ProcessObjAttr, ThreadObjAttr: PObjectAttributes;
+  hxConsoleReference: IHandle;
 begin
   Info := Default(TProcessInfo);
 
@@ -873,14 +875,16 @@ begin
   // Console inheritance
   if poInheritConsole in Options.Flags then
   begin
-    if LdrxCheckDelayedImport(delayed_BaseGetConsoleReference).IsSuccess then
-      ProcessParams.Data.ConsoleHandle := BaseGetConsoleReference
-    else
-      ProcessParams.Data.ConsoleHandle :=
-        RtlGetCurrentPeb.ProcessParameters.ConsoleHandle;
+    Result := RtlxGetConsoleReference(hxConsoleReference);
 
-    ProcessParams.Data.ProcessGroupID :=
-      RtlGetCurrentPeb.ProcessParameters.ProcessGroupID;
+    if not Result.IsSuccess then
+      Exit;
+
+    ProcessParams.Data.ConsoleHandle := hxConsoleReference.Handle;
+
+    if RtlOsVersionAtLeast(OsWin8) then
+      ProcessParams.Data.ProcessGroupID :=
+        RtlGetCurrentPeb.ProcessParameters.ProcessGroupID;
   end;
 
   // Ask for us as much info as possible

@@ -281,7 +281,7 @@ type
     YSize: Cardinal;
     XCountChars: Cardinal;
     YCountChars: Cardinal;
-    FillAttribute: TConsoleFill;
+    FillAttribute: TConsoleFill32;
     Flags: TStartupFlags;
     ShowWindow: TShowMode16;
     [Unlisted] cbReserved2: Word;

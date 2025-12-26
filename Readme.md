@@ -303,7 +303,7 @@ Support unit                                                                    
 [DelphiUtils.LiteRTTI](./DelphiUtils.LiteRTTI.pas)                                               | Lite RTTI and custom attribute parsing
 [DelphiUiLib.LiteReflection](./DelphiUiLib.LiteReflection.pas)                                   | Type representation via lite RTTI
 [DelphiUiLib.LiteReflection.Types](./DelphiUiLib.LiteReflection.Types.pas)                       | Lite RTTI formatting for some known types
-[NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console I/O helpers
+[NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console UI helpers
 [NtUiLib.TaskDialog](./NtUiLib/NtUiLib.TaskDialog.pas)                                           | TaskDialog-based GUI
 [NtUiLib.Errors.Dialog](./NtUiLib/NtUiLib.Errors.Dialog.pas)                                     | GUI error dialog
 [NtUiLib.Exceptions.Dialog](./NtUiLib/NtUiLib.Exceptions.Dialog.pas)                             | GUI exception dialog
@@ -315,6 +315,7 @@ System unit                                                                     
 [NtUtils.ActCtx](./NtUtils.ActCtx.pas)                                                           | Activation contexts
 [NtUtils.AntiHooking](./NtUtils.AntiHooking.pas)                                                 | Unhooking and direct syscall
 [NtUtils.Com](./NtUtils.Com.pas)                                                                 | COM, IDispatch, WinRT
+[NtUtils.Console](./NtUtils.Console.pas)                                                         | Low-level console support
 [NtUtils.Csr](./NtUtils.Csr.pas)                                                                 | CSRSS/SxS registration
 [NtUtils.DbgHelp](./NtUtils.DbgHelp.pas)                                                         | DbgHelp and debug symbols
 [NtUtils.DbgHelp.Dia](./NtUtils.DbgHelp.Dia.pas)                                                 | PDB parsing via MSDIA
