@@ -175,14 +175,14 @@ type
 
     // Read a fixed-size structure
     class function Read<T>(
-      [Access(PROCESS_VM_READ)] const hProcess: IHandle;
+      [Access(PROCESS_VM_READ)] const hxProcess: IHandle;
       [in] Address: Pointer;
       out Buffer: T
     ): TNtxStatus; static;
 
     // Write a fixed-size structure
     class function Write<T>(
-      [Access(PROCESS_VM_WRITE)] const hProcess: IHandle;
+      [Access(PROCESS_VM_WRITE)] const hxProcess: IHandle;
       [in] Address: Pointer;
       const Buffer: T
     ): TNtxStatus; static;
@@ -552,12 +552,12 @@ end;
 
 class function NtxMemory.Read<T>;
 begin
-  Result := NtxReadMemory(hProcess, Address, TMemory.Reference(Buffer));
+  Result := NtxReadMemory(hxProcess, Address, TMemory.Reference(Buffer));
 end;
 
 class function NtxMemory.Write<T>;
 begin
-  Result := NtxWriteMemory(hProcess, Address, TMemory.Reference(Buffer));
+  Result := NtxWriteMemory(hxProcess, Address, TMemory.Reference(Buffer));
 end;
 
 function NtxOpenSession;
