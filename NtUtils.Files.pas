@@ -33,6 +33,8 @@ type
       [opt] const Value: IMemory;
       Flags: TFileEaFlags = 0
     ): TNtxExtendedAttribute; static;
+
+    function RequiredSize: Cardinal;
   end;
 
   IFullEaInformation = IMemory<PFileFullEaInformation>;
@@ -167,7 +169,14 @@ function RtlxSetCurrentDirectory(
 
 { Extended Attributes }
 
-// Prepare an extended attributes buffer
+// Prepare a buffer with one extended attribute
+function RtlxAllocateEA(
+  const Name: AnsiString;
+  [opt] const Value: IMemory;
+  Flags: TFileEaFlags = 0
+): IFullEaInformation;
+
+// Prepare a buffer with multiple extended attributes
 [Result: MayReturnNil]
 function RtlxAllocateEAs(
   const Entries: TArray<TNtxExtendedAttribute>
@@ -350,6 +359,14 @@ begin
   Result.Value := Value;
 end;
 
+function RtlxAllocateEA;
+var
+  Attribute: TNtxExtendedAttribute;
+begin
+  Attribute := TNtxExtendedAttribute.From(Name, Value, Flags);
+  Result := RtlxAllocateEAs([Attribute]);
+end;
+
 function RtlxAllocateEAs;
 var
   Size: Cardinal;
@@ -363,9 +380,7 @@ begin
   Size := 0;
 
   for i := 0 to High(Entries) do
-    Inc(Size, AlignUp(SizeOf(TFileFullEaInformation) +
-      Cardinal(Length(Entries[i].Name)) +
-      Auto.SizeOrZero(Entries[i].Value), 4));
+    Inc(Size, Entries[i].RequiredSize);
 
   // Write all EAs into the buffer
   IMemory(Result) := Auto.AllocateDynamic(Size);
@@ -386,8 +401,7 @@ begin
     if i < High(Entries) then
     begin
       // Record offsets and advance to the next entry
-      Cursor.NextEntryOffset := AlignUp(SizeOf(TFileFullEaInformation) +
-        Cardinal(Length(Entries[i].Name)) + Entries[i].Value.Size, 4);
+      Cursor.NextEntryOffset := Entries[i].RequiredSize;
       Cursor := Pointer(PByte(Cursor) + Cursor.NextEntryOffset);
     end;
   end;
@@ -434,6 +448,12 @@ begin
     Inc(Count);
     Cursor := Pointer(PByte(Cursor) + Cursor.NextEntryOffset);
   until False;
+end;
+
+function TNtxExtendedAttribute.RequiredSize;
+begin
+  Result := UIntPtr(@PFileFullEaInformation(nil).EaName) +
+    Cardinal(Succ(Length(Name))) + Auto.SizeOrZero(Value);
 end;
 
 end.

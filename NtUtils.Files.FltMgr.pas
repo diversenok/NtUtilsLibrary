@@ -262,8 +262,7 @@ begin
   // Open the FltMgrMsg device passing the request
   Result := NtxCreateFile(hxPort, PortParameters
     .UseFileName(FLT_MSG_SYMLINK_NAME).UseFileId(0).UseRoot(nil)
-    .UseEAs(RtlxAllocateEAs([TNtxExtendedAttribute.From(FLT_PORT_EA_NAME,
-      IMemory(EAValue))]))
+    .UseEAs(RtlxAllocateEA(FLT_PORT_EA_NAME, IMemory(EAValue)))
   );
 end;
 
