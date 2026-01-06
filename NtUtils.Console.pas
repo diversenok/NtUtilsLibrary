@@ -200,7 +200,7 @@ begin
 
   // Open a new reference from the connection
   Result := NtxOpenFile(hxReference, FileParameters
-    .UseFileName(CONDRV_REFERENCE_NAME)
+    .UseFileName(CD_REFERENCE_NAME)
     .UseRoot(Auto.RefHandle(hConnection))
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );
@@ -270,7 +270,7 @@ begin
   end;
 
   Result := NtxFileControl.IoControlOut(Auto.RefHandle(hConsole),
-    IOCTL_CONDRV_CONNECTION_QUERY_SERVER_PID, ProcessId);
+    IOCTL_CONDRV_GET_SERVER_PID, ProcessId);
 end;
 
 procedure MarshalConsoleString(
@@ -354,8 +354,8 @@ var
   hxServer, hxReference: IHandle;
 begin
   Options := Default(TCreateProcessOptions);
-  Options.Application := CONDRV_SERVER_LAUNCH_APPLICATION;
-  Options.Parameters := CONDRV_SERVER_LAUNCH_ARGUMENTS;
+  Options.Application := CD_SERVER_LAUNCH_APPLICATION;
+  Options.Parameters := CD_SERVER_LAUNCH_ARGUMENTS;
 
   // Allocate process parameters for the conhost process
   Result := RtlxCreateProcessParameters(Options, ProcessParameters);
@@ -365,7 +365,7 @@ begin
 
   // Create a ConDrv server handle
   Result := NtxCreateFile(hxServer, FileParameters
-    .UseFileName(CONDRV_DRIVER_PATH + CONDRV_SERVER_NAME)
+    .UseFileName(CD_DEVICE_PATH + CD_SERVER_NAME)
     .UseSyncMode(fsAsynchronous)
     .UseAccess(GENERIC_ALL)
   );
@@ -374,7 +374,7 @@ begin
     Exit;
 
   // Start conhost
-  Result := NtxDeviceIoControlFile(hxServer, IOCTL_CONDRV_SERVER_LAUNCH,
+  Result := NtxDeviceIoControlFile(hxServer, IOCTL_CONDRV_LAUNCH_SERVER,
     ProcessParameters.Data, ProcessParameters.Size);
 
   if not Result.IsSuccess then
@@ -382,7 +382,7 @@ begin
 
   // Create a reference handle
   Result := NtxCreateFile(hxReference, FileParameters
-    .UseFileName(CONDRV_REFERENCE_NAME)
+    .UseFileName(CD_REFERENCE_NAME)
     .UseRoot(hxServer)
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );
@@ -392,9 +392,9 @@ begin
 
   // Connect to conhost and make it create the console window
   Result := NtxCreateFile(hxConnect, FileParameters
-    .UseFileName(CONDRV_CONNECT_NAME)
+    .UseFileName(CD_CONNECT_NAME)
     .UseRoot(hxReference)
-    .UseEAs(RtlxAllocateEA(CONDRV_SERVER_EA_NAME,
+    .UseEAs(RtlxAllocateEA(CD_SERVER_EA_NAME,
       Auto.RefBuffer(LaunchParameters)))
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );
@@ -403,8 +403,8 @@ end;
 function RtlxAttachConsoleById;
 begin
   Result := NtxCreateFile(hxConnect, FileParameters
-    .UseFileName(CONDRV_DRIVER_PATH + CONDRV_CONNECT_NAME)
-    .UseEAs(RtlxAllocateEA(CONDRV_ATTACH_EA_NAME, Auto.RefBuffer(ProcessId)))
+    .UseFileName(CD_DEVICE_PATH + CD_CONNECT_NAME)
+    .UseEAs(RtlxAllocateEA(CD_ATTACH_EA_NAME, Auto.RefBuffer(ProcessId)))
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );
 end;
@@ -516,7 +516,7 @@ end;
 function RtlxDeriveConsoleConnect;
 begin
   Result := NtxCreateFile(hxConnect, FileParameters
-    .UseFileName(CONDRV_CONNECT_NAME)
+    .UseFileName(CD_CONNECT_NAME)
     .UseRoot(hxReference)
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );
@@ -525,7 +525,7 @@ end;
 function RtlxDeriveConsoleReference;
 begin
   Result := NtxOpenFile(hxReference, FileParameters
-    .UseFileName(CONDRV_REFERENCE_NAME)
+    .UseFileName(CD_REFERENCE_NAME)
     .UseRoot(hxConnect)
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );
@@ -534,7 +534,7 @@ end;
 function RtlxDeriveConsoleInput;
 begin
   Result := NtxCreateFile(hxInput, FileParameters
-    .UseFileName(CONDRV_INPUT_NAME)
+    .UseFileName(CD_INPUT_NAME)
     .UseRoot(hxConnect)
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );
@@ -543,7 +543,7 @@ end;
 function RtlxDeriveConsoleOutput;
 begin
   Result := NtxCreateFile(hxOutput, FileParameters
-    .UseFileName(CONDRV_OUTPUT_NAME)
+    .UseFileName(CD_OUTPUT_NAME)
     .UseRoot(hxConnect)
     .UseAccess(GENERIC_READ or GENERIC_WRITE)
   );

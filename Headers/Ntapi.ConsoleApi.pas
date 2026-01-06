@@ -28,24 +28,24 @@ const
   ATTACH_PARENT_PROCESS = TProcessId32(-1);
 
   // rev - driver paths and sub-paths
-  CONDRV_DRIVER_PATH = '\Device\ConDrv';
-  CONDRV_SERVER_NAME = '\Server';
-  CONDRV_REFERENCE_NAME = '\Reference';
-  CONDRV_CONNECT_NAME = '\Connect';
-  CONDRV_INPUT_NAME = '\Input';
-  CONDRV_OUTPUT_NAME = '\Output';
+  CD_DEVICE_PATH = '\Device\ConDrv';
+  CD_SERVER_NAME = '\Server';
+  CD_REFERENCE_NAME = '\Reference';
+  CD_CONNECT_NAME = '\Connect';
+  CD_INPUT_NAME = '\Input';
+  CD_OUTPUT_NAME = '\Output';
 
   // rev - command line template for new conhost instances
-  CONDRV_SERVER_LAUNCH_APPLICATION = '\??\C:\Windows\system32\conhost.exe';
-  CONDRV_SERVER_LAUNCH_ARGUMENTS = ' 0xffffffff -ForceV1';
+  CD_SERVER_LAUNCH_APPLICATION = '\??\C:\Windows\system32\conhost.exe';
+  CD_SERVER_LAUNCH_ARGUMENTS = ' 0xffffffff -ForceV1';
 
-  // rev - extended attributes for connection handles
-  CONDRV_SERVER_EA_NAME = 'server'; // in: TConsoleServerMsg
-  CONDRV_ATTACH_EA_NAME = 'attach'; // in: TCdAttachInformation
+  // WindowsTerminal::condrv.h - extended attributes for connection handles
+  CD_SERVER_EA_NAME = 'server'; // in: TConsoleServerMsg
+  CD_ATTACH_EA_NAME = 'attach'; // in: TCdAttachInformation
 
-  // rev - IOCTLs
-  IOCTL_CONDRV_CONNECTION_QUERY_SERVER_PID = $500023; // q: TProcessId
-  IOCTL_CONDRV_SERVER_LAUNCH = $500037; // s: TRtlUserProcessParameters
+  // WindowsTerminal::condrv.h - IOCTLs
+  IOCTL_CONDRV_GET_SERVER_PID = $500023; // q: TProcessId // for connection handles
+  IOCTL_CONDRV_LAUNCH_SERVER = $500037; // s: TRtlUserProcessParameters // for server handles
 
 type
   [FlagName(FOREGROUND_BLUE, 'Foreground Blue')]
@@ -113,7 +113,7 @@ type
     MaximumWindowSize: TCoord;
   end;
 
-  // private
+  // WindowsTerminal::conmsgl1.h
   [SDKName('CONSOLE_SERVER_MSG')]
   TConsoleServerMsg = record
     IconId: Cardinal;
@@ -136,7 +136,7 @@ type
   end;
   PConsoleServerMsg = ^TConsoleServerMsg;
 
-  // private
+  // WindowsTerminal::condrv.h
   [SDKName('CD_ATTACH_INFORMATION')]
   TCdAttachInformation = record
     ProcessId: TProcessId;

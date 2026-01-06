@@ -82,8 +82,8 @@ const
   RTL_PROCESS_REFLECTION_FLAGS_NO_SYNCHRONIZE = $0008;
   RTL_PROCESS_REFLECTION_FLAGS_NO_CLOSE_EVENT = $0010;
 
-  // private
-  IGNORE_CTRL_C = $0001;
+  // WindowsTerminal::ntcon.h - PEB ConsoleFlags
+  CONSOLE_IGNORE_CTRL_C = $0001;
 
   // PHNT::ntrtl.h
   RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK = $00000001;
@@ -320,7 +320,7 @@ type
   [Hex]
   TRtlUserProcessParametersDebugFlags = type Cardinal;
 
-  [FlagName(IGNORE_CTRL_C, 'Ignore Ctrl+C')]
+  [FlagName(CONSOLE_IGNORE_CTRL_C, 'Ignore Ctrl+C')]
   TRtlConsoleFlags = type Cardinal;
 
   // PHNT::ntrtl.h
