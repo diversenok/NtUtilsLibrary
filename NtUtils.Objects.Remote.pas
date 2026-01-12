@@ -95,7 +95,7 @@ begin
   Stats := Default(TProcessHandleInformation);
 
   // Determine the handle statistics for the target process
-  Result := NtxProcess.Query(hxProcess, ProcessHandleInformation, Stats);
+  Result := NtxProcess.Query(hxProcess, ProcessHandleCount, Stats);
 
   if not Result.IsSuccess then
     Exit;
