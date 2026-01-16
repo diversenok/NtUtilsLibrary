@@ -16,6 +16,10 @@ uses
 const
   win32u = 'win32u.dll';
 
+  // rev - NtUserMessageCall function numbers
+  FNID_SENDMESSAGEFF = $000002B2; // xParam: TSndMsgTimeout
+  FNID_SENDMESSAGEEX = $000002B3; // xParam: TSndMsgTimeout
+
   // rev, thread desktop flags
   TDF_PROTECT_HANDLE = $00000001;
 
@@ -27,6 +31,20 @@ var
   delayed_win32u: TDelayedLoadDll = (DllName: win32u);
 
 type
+  [FlagName(FNID_SENDMESSAGEFF, 'FNID_SENDMESSAGEFF')]
+  [FlagName(FNID_SENDMESSAGEEX, 'FNID_SENDMESSAGEEX')]
+  TMessageCallFunctionId = type Cardinal;
+
+  // private
+  [SDKName('SNDMSGTIMEOUT')]
+  TSndMsgTimeout = record
+    Flags: TSendMessageOptions;
+    Timeout: Cardinal;
+    SMTOReturn: NativeUInt;
+    SMTOResult: NativeUInt;
+  end;
+  PSndMsgTimeout = ^TSndMsgTimeout;
+
   [FlagName(TDF_PROTECT_HANDLE, 'Protect')]
   TThreadDesktopFlags = type Cardinal;
 
@@ -490,6 +508,51 @@ function NtUserGetClassName(
 var delayed_NtUserGetClassName: TDelayedLoadFunction = (
   Dll: @delayed_win32u;
   FunctionName: 'NtUserGetClassName';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserRegisterWindowMessage(
+  [in] const strMessage: TNtUnicodeString
+): Cardinal; stdcall; external win32u delayed;
+
+var delayed_NtUserRegisterWindowMessage: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserRegisterWindowMessage';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserMessageCall(
+  [in] hwnd: THwnd;
+  [in] msg: Cardinal;
+  [in, opt] wParam: WPARAM;
+  [in, opt] lParam: LPARAM;
+  [in, opt] xParam: NativeUInt;
+  [in] xpfnProc: TMessageCallFunctionId;
+  [in] bAnsi: LongBool
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserMessageCall: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserMessageCall';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserPostMessage(
+  [in] hwnd: THwnd;
+  [in] msg: Cardinal;
+  [in, opt] wParam: WPARAM;
+  [in, opt] lParam: LPARAM
+): LongBool; stdcall; external win32u delayed;
+
+var delayed_NtUserPostMessage: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserPostMessage';
 );
 
 // private

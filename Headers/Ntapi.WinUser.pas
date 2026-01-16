@@ -1067,7 +1067,7 @@ function SendMessageTimeoutW(
   [in] lParam: NativeInt;
   [in] Flags: TSendMessageOptions;
   [in] Timeout: Cardinal;
-  [out, opt] out dwResult: NativeInt
+  [out, opt] out dwResult: NativeUInt
 ): NativeInt; stdcall; external user32;
 
 // SDK::WinUser.h

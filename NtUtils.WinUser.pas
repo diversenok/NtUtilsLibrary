@@ -255,13 +255,13 @@ function UsrxOverridePebWindowMode(
 
 // Send a window message with a timeout
 function UsrxSendMessage(
-  out Outcome: NativeInt;
   hWindow: THwnd;
   Msg: Cardinal;
   wParam: NativeUInt;
   lParam: NativeInt;
   Flags: TSendMessageOptions = SMTO_ABORTIFHUNG;
-  Timeout: Cardinal = DEFAULT_USER_TIMEOUT
+  Timeout: Cardinal = DEFAULT_USER_TIMEOUT;
+  Outcome: PNativeUInt = nil
 ): TNtxStatus;
 
 // Get text of a window.
@@ -795,23 +795,28 @@ end;
 { Messages }
 
 function UsrxSendMessage;
+var
+  OutcomeValue: NativeUInt;
 begin
   Result.Location := 'SendMessageTimeoutW';
   Result.Win32Result := SendMessageTimeoutW(hWindow, Msg, wParam, lParam,
-    Flags, Timeout, Outcome) <> 0;
+    Flags, Timeout, OutcomeValue) <> 0;
+
+  if Result.IsSuccess and Assigned(Outcome) then
+    Outcome^ := OutcomeValue;
 end;
 
 function UsrxGetWindowText;
 var
   xMemory: IMemory;
-  BufferLength, CopiedLength: NativeInt;
+  BufferLength, CopiedLength: NativeUInt;
 begin
   CopiedLength := 0;
 
   repeat
     // Get the required buffer length
-    Result := UsrxSendMessage(BufferLength, Control, WM_GETTEXTLENGTH, 0, 0,
-      SMTO_ABORTIFHUNG, DEFAULT_USER_TIMEOUT);
+    Result := UsrxSendMessage(Control, WM_GETTEXTLENGTH, 0, 0, SMTO_ABORTIFHUNG,
+      DEFAULT_USER_TIMEOUT, @BufferLength);
 
     if not Result.IsSuccess then
       Exit;
@@ -831,8 +836,9 @@ begin
     xMemory := Auto.AllocateDynamic(BufferLength * SizeOf(WideChar));
 
     // Get the text
-    Result := UsrxSendMessage(CopiedLength, Control, WM_GETTEXT, BufferLength,
-      IntPtr(xMemory.Data), SMTO_ABORTIFHUNG, DEFAULT_USER_TIMEOUT);
+    Result := UsrxSendMessage(Control, WM_GETTEXT, BufferLength,
+      IntPtr(xMemory.Data), SMTO_ABORTIFHUNG, DEFAULT_USER_TIMEOUT,
+      @CopiedLength);
 
     if not Result.IsSuccess then
       Exit;

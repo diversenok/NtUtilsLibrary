@@ -11,6 +11,9 @@ interface
 uses
   Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ntuser, Ntapi.WinUser, NtUtils;
 
+const
+  DEFAULT_USER_TIMEOUT = 1000; // in ms
+
 type
   IHook = IHandle;
 
@@ -111,6 +114,33 @@ function NtxGetGuiInfoThread(
 function NtxIsGuiThread(
   ThreadId: TThreadId32
 ): Boolean;
+
+{ Messages }
+
+// Send a window message with a timeout
+function NtxSendMessage(
+  hwnd: THwnd;
+  Msg: Cardinal;
+  wParam: NativeUInt;
+  lParam: NativeInt;
+  Flags: TSendMessageOptions = SMTO_ABORTIFHUNG;
+  Timeout: Cardinal = DEFAULT_USER_TIMEOUT;
+  Outcome: PNativeInt = nil
+): TNtxStatus;
+
+// Post a window message
+function NtxPostMessage(
+  hwnd: THwnd;
+  Msg: Cardinal;
+  wParam: NativeUInt;
+  lParam: NativeInt
+): TNtxStatus;
+
+// Register a named message and get a shared identifier for it
+function NtxRegisterWindowMessage(
+  out MessageValue: Cardinal;
+  const MessageName: String
+): TNtxStatus;
 
 { Misc }
 
@@ -405,6 +435,63 @@ var
   Info: TGuiThreadInfo;
 begin
   Result := NtxGetGuiInfoThread(ThreadId, Info).IsSuccess;
+end;
+
+{ Messages }
+
+function NtxSendMessage;
+var
+  xParam: TSndMsgTimeout;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserMessageCall);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  xParam.Flags := Flags;
+  xParam.Timeout := Timeout;
+  xParam.SMTOReturn := 0;
+  xParam.SMTOResult := 0;
+
+  Result.Location := 'NtUserMessageCall';
+  Result.LastCall.UsesInfoClass<TMessageCallFunctionId>(FNID_SENDMESSAGEEX,
+    icPerform);
+  NtUserMessageCall(hwnd, Msg, wParam, lParam, NativeUInt(@xParam),
+    FNID_SENDMESSAGEEX, False);
+  Result.Win32Result := xParam.SMTOReturn <> 0;
+
+  if Result.IsSuccess and Assigned(Outcome) then
+    Outcome^ := xParam.SMTOResult
+end;
+
+function NtxPostMessage;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserPostMessage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserPostMessage';
+  Result.Win32Result := NtUserPostMessage(hwnd,Msg, wParam, lParam);
+end;
+
+function NtxRegisterWindowMessage;
+var
+  MessageStr: TNtUnicodeString;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserRegisterWindowMessage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(MessageStr, MessageName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserRegisterWindowMessage';
+  MessageValue := NtUserRegisterWindowMessage(MessageStr);
+  Result.Win32Result := MessageValue <> 0;
 end;
 
 { Misc }
