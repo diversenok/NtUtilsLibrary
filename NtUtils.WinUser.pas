@@ -261,7 +261,7 @@ function UsrxSendMessage(
   lParam: NativeInt;
   Flags: TSendMessageOptions = SMTO_ABORTIFHUNG;
   Timeout: Cardinal = DEFAULT_USER_TIMEOUT;
-  Outcome: PNativeUInt = nil
+  [out] Outcome: PNativeUInt = nil
 ): TNtxStatus;
 
 // Get text of a window.

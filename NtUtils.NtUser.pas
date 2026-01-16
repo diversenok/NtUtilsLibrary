@@ -9,10 +9,8 @@ unit NtUtils.NtUser;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ntuser, Ntapi.WinUser, NtUtils;
-
-const
-  DEFAULT_USER_TIMEOUT = 1000; // in ms
+  Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ntuser, Ntapi.WinUser, Ntapi.Versions,
+  NtUtils;
 
 type
   IHook = IHandle;
@@ -20,11 +18,13 @@ type
 { Window Stations }
 
 // Get a per-session directory where window stations reside
+[MinOSVersion(OsWin10RS1)]
 function RtlxWindowStationDirectory(
   SessionId: TSessionId = TSessionId(-1)
 ): String;
 
 // Open a window station based on a name from the object manager's namespace
+[MinOSVersion(OsWin10RS1)]
 function NtxOpenWindowStation(
   out hxWinSta: IHandle;
   DesiredAccess: TWinstaAccessMask;
@@ -33,6 +33,7 @@ function NtxOpenWindowStation(
 ): TNtxStatus;
 
 // Enumerate window stations of the current session
+[MinOSVersion(OsWin10RS1)]
 function NtxEnumerateWindowStations(
   out Names: TArray<String>
 ): TNtxStatus;
@@ -40,12 +41,14 @@ function NtxEnumerateWindowStations(
 { Desktops }
 
 // Enumerate desktops of a window station
+[MinOSVersion(OsWin10RS1)]
 function NtxEnumerateDesktops(
   [Access(WINSTA_ENUMDESKTOPS)] const hxWinSta: IHandle;
   out Names: TArray<String>
 ): TNtxStatus;
 
 // Open a desktop based on a name from the object manager's namespace
+[MinOSVersion(OsWin10RS1)]
 function NtxOpenDesktop(
   out hxDesktop: IHandle;
   DesiredAccess: TDesktopAccessMask;
@@ -54,6 +57,7 @@ function NtxOpenDesktop(
 ): TNtxStatus;
 
 // Opens the desktop that receives user input
+[MinOSVersion(OsWin10RS1)]
 function NtxOpenInputDesktop(
   out hxDesktop: IHandle;
   DesiredAccess: TDesktopAccessMask;
@@ -61,6 +65,7 @@ function NtxOpenInputDesktop(
 ): TNtxStatus;
 
 // Opens the desktop used by a thread
+[MinOSVersion(OsWin10RS1)]
 function NtxOpenThreadDesktop(
   out hxDesktop: IHandle;
   ThreadId: TThreadId32;
@@ -70,6 +75,7 @@ function NtxOpenThreadDesktop(
 ): TNtxStatus;
 
 // Set the desktop of the current thread
+[MinOSVersion(OsWin10RS1)]
 function NtxSetThreadDesktop(
   const hxDesktop: IHandle
 ): TNtxStatus;
@@ -77,6 +83,7 @@ function NtxSetThreadDesktop(
 { Windows }
 
 // Enumerate windows by desktop/thread/parent
+[MinOSVersion(OsWin10RS1)]
 function NtxEnumerateWindows(
   out Windows: TArray<THwnd>;
   [opt, Access(DESKTOP_READOBJECTS)] const hxDesktop: IHandle = nil;
@@ -86,6 +93,7 @@ function NtxEnumerateWindows(
 ): TNtxStatus;
 
 // Open a process by a HWND
+[MinOSVersion(OsWin10RS4)]
 function NtxOpenProcessByWindow(
   out hxProcess: IHandle;
   hWnd: THwnd;
@@ -95,6 +103,7 @@ function NtxOpenProcessByWindow(
 type
   NtxWindow = class abstract
     // Query fixed-size window information
+    [MinOSVersion(OsWin10RS1)]
     class function Query<T>(
       hWnd: THwnd;
       InfoClass: TWindowInfoClass;
@@ -105,12 +114,14 @@ type
 { Threads }
 
 // Query information about a GUI thread
+[MinOSVersion(OsWin10RS1)]
 function NtxGetGuiInfoThread(
   ThreadId: TThreadId32;
   out Info: TGuiThreadInfo
 ): TNtxStatus;
 
 // Determine if a thread has performed any GUI operations
+[MinOSVersion(OsWin10RS1)]
 function NtxIsGuiThread(
   ThreadId: TThreadId32
 ): Boolean;
@@ -118,17 +129,19 @@ function NtxIsGuiThread(
 { Messages }
 
 // Send a window message with a timeout
+[MinOSVersion(OsWin10RS1)]
 function NtxSendMessage(
   hwnd: THwnd;
   Msg: Cardinal;
   wParam: NativeUInt;
   lParam: NativeInt;
   Flags: TSendMessageOptions = SMTO_ABORTIFHUNG;
-  Timeout: Cardinal = DEFAULT_USER_TIMEOUT;
-  Outcome: PNativeInt = nil
+  Timeout: Cardinal = 0;
+  [out] Outcome: PNativeInt = nil
 ): TNtxStatus;
 
 // Post a window message
+[MinOSVersion(OsWin10RS1)]
 function NtxPostMessage(
   hwnd: THwnd;
   Msg: Cardinal;
@@ -137,6 +150,7 @@ function NtxPostMessage(
 ): TNtxStatus;
 
 // Register a named message and get a shared identifier for it
+[MinOSVersion(OsWin10RS1)]
 function NtxRegisterWindowMessage(
   out MessageValue: Cardinal;
   const MessageName: String
@@ -145,6 +159,7 @@ function NtxRegisterWindowMessage(
 { Misc }
 
 // Install a window hook
+[MinOSVersion(OsWin10RS1)]
 function NtxSetWindowsHookEx(
   out hxHook: IHook;
   FilterType: THookId;
@@ -156,6 +171,7 @@ function NtxSetWindowsHookEx(
 ): TNtxStatus;
 
 // Lock the workstation and switch to the logon screen
+[MinOSVersion(OsWin10RS1)]
 function NtxLockWorkstation(
 ): TNtxStatus;
 
