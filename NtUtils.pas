@@ -218,7 +218,7 @@ type
 { Buffer Expansion }
 
 const
-  BUFFER_LIMIT = 1024 * 1024 * 1024; // 1 GiB
+  DEFAULT_BUFFER_LIMIT = 1024 * 1024 * 1024; // 1 GiB
 
 type
   TBufferGrowthMethod = function (
@@ -231,6 +231,13 @@ function Grow12Percent(
   const Memory: IMemory;
   Required: NativeUInt
 ): NativeUInt;
+
+// Re-allocate the buffer with exponential backoff
+function NtxExpandBufferGuess(
+  var Status: TNtxStatus;
+  var Memory: IMemory;
+  BufferLimit: NativeUInt = DEFAULT_BUFFER_LIMIT
+): Boolean;
 
 // Re-allocate the buffer according to the required size
 function NtxExpandBufferEx(
@@ -794,6 +801,33 @@ begin
   Result := False
 end;
 
+function NtxExpandBufferGuess;
+var
+  Required: NativeUInt;
+begin
+  // True means continue; False means break from the loop
+  Result := False;
+
+  if not RtlxIsBufferRelatedStatus(Status) then
+    Exit;
+
+  {$Q-}
+  Required := (Memory.Size + 16) * 2;
+  {$IFDEF Q+}{$Q+}{$ENDIF}
+
+  // Cap the growth
+  if Required > BufferLimit then
+    Required := BufferLimit;
+
+  // Check for overflows
+  if Required < Memory.Size then
+    Exit;
+
+  // Re-allocate
+  Memory := Auto.AllocateDynamic(Required);
+  Result := True;
+end;
+
 function NtxExpandBufferEx;
 begin
   // True means continue; False means break from the loop
@@ -811,7 +845,7 @@ begin
     Exit;
 
   // Check for the limitation
-  if Required > BUFFER_LIMIT then
+  if Required > DEFAULT_BUFFER_LIMIT then
   begin
     Status.Location := 'NtxExpandBufferEx';
     Status.Status := STATUS_IMPLEMENTATION_LIMIT;
@@ -847,7 +881,8 @@ begin
     Required2 := CurrentSize2;
 
   // Check for the limitation
-  if (Required1 > BUFFER_LIMIT) or (Required2 > BUFFER_LIMIT) then
+  if (Required1 > DEFAULT_BUFFER_LIMIT) or
+    (Required2 > DEFAULT_BUFFER_LIMIT) then
   begin
     Status.Location := 'NtxExpandBufferPairEx';
     Status.Status := STATUS_IMPLEMENTATION_LIMIT;

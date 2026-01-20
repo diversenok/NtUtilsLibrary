@@ -102,7 +102,7 @@ begin
     Exit;
 
   // Do not copy unrealistically huge environments
-  if Size > BUFFER_LIMIT then
+  if Size > DEFAULT_BUFFER_LIMIT then
   begin
     Result.Location := 'NtxQueryEnvironmentProcess';
     Result.Status := STATUS_IMPLEMENTATION_LIMIT;

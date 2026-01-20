@@ -422,7 +422,7 @@ begin
     Exit;
 
   if (Size < SizeOf(TRtlUnloadEventTrace)) or
-    (UInt64(Size) * Count > BUFFER_LIMIT) then
+    (UInt64(Size) * Count > DEFAULT_BUFFER_LIMIT) then
   begin
     Result.Location := 'NtxEnumerateUnloadedModulesProcessNative';
     Result.Status := STATUS_INVALID_BUFFER_SIZE;
@@ -631,7 +631,7 @@ begin
     Exit;
 
   if (Size < SizeOf(TRtlUnloadEventTrace32)) or
-    (UInt64(Size) * Count > BUFFER_LIMIT) then
+    (UInt64(Size) * Count > DEFAULT_BUFFER_LIMIT) then
   begin
     Result.Location := 'NtxEnumerateUnloadedModulesProcessNative';
     Result.Status := STATUS_INVALID_BUFFER_SIZE;
