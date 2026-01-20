@@ -15,6 +15,13 @@ uses
 type
   IHook = IHandle;
 
+  TNtxAtomUsage = record
+    UsageCount: Word;
+    Flags: TAtomFlags;
+  end;
+
+  TNtxPropSet = TPropSet;
+
 { Window Stations }
 
 // Get a per-session directory where window stations reside
@@ -150,10 +157,85 @@ function NtxPostMessage(
 ): TNtxStatus;
 
 // Register a named message and get a shared identifier for it
+// (a UserAtomTableHandle atom)
 [MinOSVersion(OsWin10RS1)]
 function NtxRegisterWindowMessage(
-  out MessageValue: Cardinal;
-  const MessageName: String
+  const MessageName: String;
+  out MessageAtom: Cardinal
+): TNtxStatus;
+
+// Determine a string that corresponds to a UserAtomTableHandle atom
+[MinOSVersion(OsWin10RS1)]
+function NtxUserGetAtomName(
+  Atom: Word;
+  out AtomName: String
+): TNtxStatus;
+
+{ WinSta atoms & window props }
+
+// Determine a string that corresponds to a WinSta->GlobalAtomTable atom
+function NtxQueryNameAtom(
+  Atom: Word;
+  out AtomName: String
+): TNtxStatus;
+
+// Query the usage information for a WinSta->GlobalAtomTable atom
+function NtxQueryUsageAtom(
+  Atom: Word;
+  out Usage: TNtxAtomUsage
+): TNtxStatus;
+
+// Enumerate valid atoms in WinSta->GlobalAtomTable
+function NtxEnumerateAtoms(
+  out Atoms: TArray<Word>
+): TNtxStatus;
+
+// Find a WinSta->GlobalAtomTable atom by a string
+function NtxFindAtom(
+  const AtomName: String;
+  out Atom: Word
+): TNtxStatus;
+
+// Add an atom to WinSta->GlobalAtomTable
+function NtxAddAtom(
+  const AtomName: String;
+  out Atom: Word
+): TNtxStatus;
+
+// Delete an atom from WinSta->GlobalAtomTable
+function NtxDeleteAtom(
+  Atom: Word
+): TNtxStatus;
+
+// Enumerate properties of a window
+[MinOSVersion(OsWin10RS1)]
+function NtxEnumerateProps(
+  hwnd: THwnd;
+  out Props: TArray<TNtxPropSet>
+): TNtxStatus;
+
+// Query a property of a window
+[MinOSVersion(OsWin10RS1)]
+function NtxGetProp(
+  hwnd: THwnd;
+  Atom: Word;
+  out Value: NativeUInt
+): TNtxStatus;
+
+// Set a property of a window
+[MinOSVersion(OsWin10RS1)]
+function NtxSetProp(
+  hwnd: THwnd;
+  Atom: Word;
+  Value: NativeUInt
+): TNtxStatus;
+
+// Remove a property of a window
+[MinOSVersion(OsWin10RS1)]
+function NtxRemoveProp(
+  hwnd: THwnd;
+  Atom: Word;
+  [out, opt] OldValue: PNativeUInt = nil
 ): TNtxStatus;
 
 { Misc }
@@ -506,8 +588,209 @@ begin
     Exit;
 
   Result.Location := 'NtUserRegisterWindowMessage';
-  MessageValue := NtUserRegisterWindowMessage(MessageStr);
-  Result.Win32Result := MessageValue <> 0;
+  MessageAtom := NtUserRegisterWindowMessage(MessageStr);
+  Result.Win32Result := MessageAtom <> 0;
+end;
+
+function NtxUserGetAtomName;
+const
+  INITIAL_SIZE = 20 * SizeOf(WideChar);
+var
+  Buffer: IMemory;
+  AtomNameStr: TNtUnicodeString;
+  Returned: Cardinal;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserGetAtomName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserGetAtomName';
+  Buffer := Auto.AllocateDynamic(INITIAL_SIZE);
+
+  repeat
+    AtomNameStr.Buffer := Buffer.Data;
+    AtomNameStr.Length := Buffer.Size;
+    AtomNameStr.MaximumLength := Buffer.Size;
+
+    Returned := NtUserGetAtomName(Atom, AtomNameStr);
+    Result.Win32Result := (Returned > 0) and
+      (Returned < Word(AtomNameStr.Length div SizeOf(WideChar) - 1));
+
+  until not NtxExpandBufferGuess(Result, Buffer, MAX_UNICODE_STRING *
+    SizeOf(WideChar));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  AtomNameStr.Length := Returned * SizeOf(WideChar);
+  AtomName := AtomNameStr.ToString;
+end;
+
+{ WinSta atoms & window props }
+
+function NtxQueryNameAtom;
+const
+  INITIAL_SIZE = SizeOf(TAtomBasicInformation) + 20 * SizeOf(WideChar);
+var
+  Buffer: IMemory<PAtomBasicInformation>;
+begin
+  Result.Location := 'NtQueryInformationAtom';
+  Result.LastCall.UsesInfoClass(AtomBasicInformation, icQuery);
+
+  IMemory(Buffer) := Auto.AllocateDynamic(INITIAL_SIZE);
+
+  repeat
+    Result.Status := NtQueryInformationAtom(Atom, AtomBasicInformation,
+      Buffer.Data, Buffer.Size, nil);
+
+    if Result.IsSuccess and (Buffer.Data.NameLength >=
+      Buffer.Size - SizeOf(TAtomBasicInformation)) then
+      Result.Status := STATUS_BUFFER_TOO_SMALL;
+
+  until not NtxExpandBufferGuess(Result, IMemory(Buffer),
+    SizeOf(TAtomBasicInformation) + MAX_WORD);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetString(AtomName, PWideChar(@Buffer.Data.Name[0]),
+    Buffer.Data.NameLength div SizeOf(WideChar));
+end;
+
+function NtxQueryUsageAtom;
+var
+  Buffer: IMemory<PAtomBasicInformation>;
+begin
+  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TAtomBasicInformation) +
+    SizeOf(WideChar));
+
+  Result.Location := 'NtQueryInformationAtom';
+  Result.LastCall.UsesInfoClass(AtomBasicInformation, icQuery);
+  Result.Status := NtQueryInformationAtom(Atom, AtomBasicInformation,
+    Buffer.Data, Buffer.Size, nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Usage.UsageCount := Buffer.Data.UsageCount;
+  Usage.Flags := Buffer.Data.Flags;
+end;
+
+function NtxEnumerateAtoms;
+const
+  INITIAL_SIZE = SizeOf(TAtomTableInformation);
+var
+  Buffer: IMemory<PAtomTableInformation>;
+begin
+  IMemory(Buffer) := Auto.AllocateDynamic(INITIAL_SIZE);
+
+  repeat
+    Result.Status := NtQueryInformationAtom(0, AtomTableInformation,
+      Buffer.Data, Buffer.Size, nil);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer),
+    SizeOf(TAtomTableInformation) + Buffer.Data.NumberOfAtoms * SizeOf(Word));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Atoms, Buffer.Data.NumberOfAtoms);
+
+  if Length(Atoms) > 0 then
+    Move(Buffer.Data.Atoms, Atoms[0], Length(Atoms) * SizeOf(Word));
+end;
+
+function NtxFindAtom;
+begin
+  Result.Location := 'NtFindAtom';
+  Result.Status := NtFindAtom(PWideChar(AtomName), StringSizeNoZero(AtomName),
+    @Atom);
+end;
+
+function NtxAddAtom;
+begin
+  Result.Location := 'NtAddAtom';
+  Result.Status := NtAddAtom(PWideChar(AtomName), StringSizeNoZero(AtomName),
+    @Atom);
+end;
+
+function NtxDeleteAtom;
+begin
+  Result.Location := 'NtDeleteAtom';
+  Result.Status := NtDeleteAtom(Atom);
+end;
+
+function NtxEnumerateProps;
+var
+  RequiredCount: Cardinal;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserBuildPropList);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserBuildPropList';
+  RequiredCount := 1;
+
+  repeat
+    Props := nil;
+    Inc(RequiredCount);
+    SetLength(Props, RequiredCount);
+
+    Result.Status := NtUserBuildPropList(hwnd, RequiredCount, @Props[0],
+      RequiredCount);
+  until Result.Status <> STATUS_BUFFER_TOO_SMALL;
+
+  if Result.IsSuccess then
+    SetLength(Props, RequiredCount)
+  else
+    Props := nil;
+end;
+
+function NtxGetProp;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserGetProp);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Value := 0;
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Result.Location := 'NtUserGetProp';
+  Value := NtUserGetProp(hwnd, Atom);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function NtxSetProp;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserSetProp);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Value := 0;
+  RtlSetLastWin32Error(ERROR_INVALID_PARAMETER);
+  Result.Location := 'NtUserSetProp';
+  Result.Win32Result := NtUserSetProp(hwnd, Atom, Value);
+end;
+
+function NtxRemoveProp;
+var
+  Value: NativeUInt;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserRemoveProp);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Result.Location := 'NtUserRemoveProp';
+  Value := NtUserRemoveProp(hwnd, Atom);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+
+  if Result.IsSuccess and Assigned(OldValue) then
+    OldValue^ := Value;
 end;
 
 { Misc }

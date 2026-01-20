@@ -16,7 +16,12 @@ uses
 const
   win32u = 'win32u.dll';
 
+  // PHNT::ntrtl.h - atom flags
+  RTL_ATOM_PINNED = $0001;
+  RTL_ATOM_GLOBAL = $0002; // rev
+
   // rev - NtUserMessageCall function numbers
+  FNID_SENDMESSAGE = $000002B1; // xParam: void
   FNID_SENDMESSAGEFF = $000002B2; // xParam: TSndMsgTimeout
   FNID_SENDMESSAGEEX = $000002B3; // xParam: TSndMsgTimeout
 
@@ -31,8 +36,8 @@ var
   delayed_win32u: TDelayedLoadDll = (DllName: win32u);
 
 type
-  [FlagName(FNID_SENDMESSAGEFF, 'FNID_SENDMESSAGEFF')]
-  [FlagName(FNID_SENDMESSAGEEX, 'FNID_SENDMESSAGEEX')]
+  [SubEnum(MAX_UINT, FNID_SENDMESSAGEFF, 'FNID_SENDMESSAGEFF')]
+  [SubEnum(MAX_UINT, FNID_SENDMESSAGEEX, 'FNID_SENDMESSAGEEX')]
   TMessageCallFunctionId = type Cardinal;
 
   // private
@@ -56,6 +61,47 @@ type
     Names: TAnysizeArray<WideChar>;
   end;
   PNameList = ^TNameList;
+
+  // PHNT::ntexapi.h
+  [SDKName('ATOM_INFORMATION_CLASS')]
+  TAtomInformationClass = (
+    AtomBasicInformation = 0, // q: TAtomBasicInformation
+    AtomTableInformation = 1  // q: TAtomTableInformation
+  );
+
+  [NamingStyle(nsSnakeCase, 'RTL_ATOM')]
+  [FlagName(RTL_ATOM_PINNED, 'RTL_ATOM_PINNED')]
+  [FlagName(RTL_ATOM_GLOBAL, 'RTL_ATOM_GLOBAL')]
+  TAtomFlags = type Word;
+
+  [InheritsFrom(System.TypeInfo(TAtomFlags))]
+  TAtomFlags32 = type Cardinal;
+
+  // PHNT::ntexapi.h
+  [SDKName('ATOM_BASIC_INFORMATION')]
+  TAtomBasicInformation = record
+    UsageCount: Word;
+    Flags: TAtomFlags;
+    [NumberOfBytes] NameLength: Word;
+    Name: TAnysizeArray<WideChar>;
+  end;
+  PAtomBasicInformation = ^TAtomBasicInformation;
+
+  // PHNT::ntexapi.h
+  [SDKName('ATOM_TABLE_INFORMATION')]
+  TAtomTableInformation = record
+    NumberOfAtoms: Cardinal;
+    Atoms: TAnysizeArray<Word>;
+  end;
+  PAtomTableInformation = ^TAtomTableInformation;
+
+  // private
+  [SDKName('PROPSET')]
+  TPropSet = record
+    Data: NativeUInt;
+    Atom: Word;
+  end;
+  PPropSet = ^TPropSet;
 
   // private
   [SDKName('WINDOWINFOCLASS')]
@@ -510,7 +556,7 @@ var delayed_NtUserGetClassName: TDelayedLoadFunction = (
   FunctionName: 'NtUserGetClassName';
 );
 
-// private
+// private // UserAtomTableHandle
 [SetsLastError]
 [MinOSVersion(OsWin10RS1)]
 function NtUserRegisterWindowMessage(
@@ -520,6 +566,116 @@ function NtUserRegisterWindowMessage(
 var delayed_NtUserRegisterWindowMessage: TDelayedLoadFunction = (
   Dll: @delayed_win32u;
   FunctionName: 'NtUserRegisterWindowMessage';
+);
+
+// private // UserAtomTableHandle
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+[Result: NumberOfElements]
+function NtUserGetAtomName(
+  [in] Atom: Word;
+  [in, out] var AtomName: TNtUnicodeString
+): Cardinal; stdcall; external win32u delayed;
+
+var delayed_NtUserGetAtomName: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserGetAtomName';
+);
+
+// PHNT::ntexapi.h // WinSta->GlobalAtomTable
+function NtAddAtom(
+  [in, ReadsFrom] AtomName: PWideChar;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, opt] Atom: PWord
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntexapi.h // WinSta->GlobalAtomTable
+[MinOSVersion(OsWin8)]
+function NtAddAtomEx(
+  [in, ReadsFrom] AtomName: PWideChar;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, opt] Atom: PWord;
+  [in] Flags: TAtomFlags32
+): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtAddAtomEx: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtAddAtomEx';
+);
+
+// PHNT::ntexapi.h // WinSta->GlobalAtomTable
+function NtFindAtom(
+  [in, ReadsFrom] AtomName: PWideChar;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, opt] Atom: PWord
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntexapi.h // WinSta->GlobalAtomTable
+function NtDeleteAtom(
+  [in] Atom: Word
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntexapi.h // WinSta->GlobalAtomTable
+function NtQueryInformationAtom(
+  [in] Atom: Word;
+  [in] AtomInformationClass: TAtomInformationClass;
+  [out, WritesTo] AtomInformation: Pointer;
+  [in] AtomInformationLength: Cardinal;
+  [out, opt] ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
+
+// private // WinSta->GlobalAtomTable
+[MinOSVersion(OsWin10RS1)]
+function NtUserBuildPropList(
+  [in] hwnd: THwnd;
+  [in, NumberOfElements] PropMax: Cardinal;
+  [out, WritesTo] PropSet: PPropSet;
+  [out, NumberOfElements] out PropNeeded: Cardinal
+): NTSTATUS; stdcall; external win32u delayed;
+
+var delayed_NtUserBuildPropList: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserBuildPropList';
+);
+
+// private // WinSta->GlobalAtomTable
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserGetProp(
+  [in] hwnd: THwnd;
+  [in] Atom: Word
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserGetProp: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserGetProp';
+);
+
+// private // WinSta->GlobalAtomTable
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserSetProp(
+  [in] hwnd: THwnd;
+  [in] Prop: Cardinal;
+  [in] Data: NativeUInt
+): LongBool; stdcall; external win32u delayed;
+
+var delayed_NtUserSetProp: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserSetProp';
+);
+
+// private // WinSta->GlobalAtomTable
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserRemoveProp(
+  [in] hwnd: THwnd;
+  [in] Prop: Cardinal
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserRemoveProp: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserRemoveProp';
 );
 
 // private
