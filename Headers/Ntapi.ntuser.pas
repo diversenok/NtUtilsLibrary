@@ -28,6 +28,11 @@ const
   // rev, thread desktop flags
   TDF_PROTECT_HANDLE = $00000001;
 
+  // SDK::WinUser.h - clipboard formats
+  CF_TEXT = 1;
+  CF_OEMTEXT = 7;
+  CF_UNICODETEXT = 13;
+
   // private - hook flags
   HF_ANSI = $0002;
   HF_EXTENDED_TIMEOUT = $0040; // rev // Win 10 21H1+
@@ -36,6 +41,8 @@ var
   delayed_win32u: TDelayedLoadDll = (DllName: win32u);
 
 type
+  TMemHandle = THandle;
+
   [SubEnum(MAX_UINT, FNID_SENDMESSAGEFF, 'FNID_SENDMESSAGEFF')]
   [SubEnum(MAX_UINT, FNID_SENDMESSAGEEX, 'FNID_SENDMESSAGEEX')]
   TMessageCallFunctionId = type Cardinal;
@@ -102,6 +109,20 @@ type
     Atom: Word;
   end;
   PPropSet = ^TPropSet;
+
+  [SubEnum(MAX_UINT, CF_TEXT, 'CF_TEXT')]
+  [SubEnum(MAX_UINT, CF_TEXT, 'CF_OEMTEXT')]
+  [SubEnum(MAX_UINT, CF_TEXT, 'CF_UNICODETEXT')]
+  TClipboardFormat = type Cardinal;
+
+  // private
+  [SDKName('GETCLIPBDATA')]
+  TGetClipbData = record
+    FmtRet: TClipboardFormat;
+    GlobalHandle: LongBool;
+    hLocale: NativeUInt;
+  end;
+  PGetClipbData = ^TGetClipbData;
 
   // private
   [SDKName('WINDOWINFOCLASS')]
@@ -678,37 +699,59 @@ var delayed_NtUserRemoveProp: TDelayedLoadFunction = (
   FunctionName: 'NtUserRemoveProp';
 );
 
+{ Clipboard }
+
 // private
 [SetsLastError]
 [MinOSVersion(OsWin10RS1)]
-function NtUserMessageCall(
-  [in] hwnd: THwnd;
-  [in] msg: Cardinal;
-  [in, opt] wParam: WPARAM;
-  [in, opt] lParam: LPARAM;
-  [in, opt] xParam: NativeUInt;
-  [in] xpfnProc: TMessageCallFunctionId;
-  [in] bAnsi: LongBool
-): NativeUInt; stdcall; external win32u delayed;
+function NtUserCloseClipboard(
+): LongBool; stdcall; external win32u delayed;
 
-var delayed_NtUserMessageCall: TDelayedLoadFunction = (
+var delayed_NtUserCloseClipboard: TDelayedLoadFunction = (
   Dll: @delayed_win32u;
-  FunctionName: 'NtUserMessageCall';
+  FunctionName: 'NtUserCloseClipboard';
 );
 
 // private
 [SetsLastError]
 [MinOSVersion(OsWin10RS1)]
-function NtUserPostMessage(
+[Result: ReleaseWith('NtUserCloseClipboard')]
+function NtUserOpenClipboard(
   [in] hwnd: THwnd;
-  [in] msg: Cardinal;
-  [in, opt] wParam: WPARAM;
-  [in, opt] lParam: LPARAM
+  [out] out EmptyClient: LongBool
 ): LongBool; stdcall; external win32u delayed;
 
-var delayed_NtUserPostMessage: TDelayedLoadFunction = (
+var delayed_NtUserOpenClipboard: TDelayedLoadFunction = (
   Dll: @delayed_win32u;
-  FunctionName: 'NtUserPostMessage';
+  FunctionName: 'NtUserOpenClipboard';
+);
+
+// private
+[MayReturnNil]
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserGetClipboardData(
+  [in] fmt: TClipboardFormat;
+  [out] out gcd: TGetClipbData
+): TMemHandle; stdcall; external win32u delayed;
+
+var delayed_NtUserGetClipboardData: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserGetClipboardData';
+);
+
+// private
+[MinOSVersion(OsWin10RS1)]
+function NtUserCreateLocalMemHandle(
+  [in] hMem: TMemHandle;
+  [out, WritesTo] Data: Pointer;
+  [in, NumberOfBytes] cbData: Cardinal;
+  [out, opt] Needed: PCardinal
+): NTSTATUS; stdcall; external win32u delayed;
+
+var delayed_NtUserCreateLocalMemHandle: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCreateLocalMemHandle';
 );
 
 // private
@@ -745,6 +788,41 @@ function NtUserGetClipboardViewer(
 var delayed_NtUserGetClipboardViewer: TDelayedLoadFunction = (
   Dll: @delayed_win32u;
   FunctionName: 'NtUserGetClipboardViewer';
+);
+
+{ Messages }
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserMessageCall(
+  [in] hwnd: THwnd;
+  [in] msg: Cardinal;
+  [in, opt] wParam: WPARAM;
+  [in, opt] lParam: LPARAM;
+  [in, opt] xParam: NativeUInt;
+  [in] xpfnProc: TMessageCallFunctionId;
+  [in] bAnsi: LongBool
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserMessageCall: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserMessageCall';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserPostMessage(
+  [in] hwnd: THwnd;
+  [in] msg: Cardinal;
+  [in, opt] wParam: WPARAM;
+  [in, opt] lParam: LPARAM
+): LongBool; stdcall; external win32u delayed;
+
+var delayed_NtUserPostMessage: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserPostMessage';
 );
 
 { Threads }

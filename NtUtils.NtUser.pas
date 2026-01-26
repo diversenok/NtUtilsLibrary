@@ -238,6 +238,39 @@ function NtxRemoveProp(
   [out, opt] OldValue: PNativeUInt = nil
 ): TNtxStatus;
 
+{ Clipboard }
+
+// Open a clipboard for access
+[MinOSVersion(OsWin10RS1)]
+function NtxOpenClipboard(
+  out ClipboardRelease: IDiscardableResource;
+  [opt] hwnd: THwnd = 0;
+  [out, opt] EmptyClient: PLongBool = nil
+): TNtxStatus;
+
+// Capture the content of a clipboard buffer handle
+[MinOSVersion(OsWin10RS1)]
+function NtxCaptureMemHandle(
+  hMem: TMemHandle;
+  out Buffer: IMemory
+): TNtxStatus;
+
+// Get a clipboard buffer handle
+[MinOSVersion(OsWin10RS1)]
+function NtxGetClipboardDataHandle(
+  Format: Cardinal;
+  out Info: TGetClipbData;
+  out hMem: TMemHandle
+): TNtxStatus;
+
+// Get clipboard content
+[MinOSVersion(OsWin10RS1)]
+function NtxGetClipboardData(
+  Format: Cardinal;
+  out Info: TGetClipbData;
+  out Data: IMemory
+): TNtxStatus;
+
 { Misc }
 
 // Install a window hook
@@ -791,6 +824,83 @@ begin
 
   if Result.IsSuccess and Assigned(OldValue) then
     OldValue^ := Value;
+end;
+
+{ Clipboard }
+
+type
+  TAutoClipboard = class (TDiscardableResource)
+    destructor Destroy; override;
+  end;
+
+destructor TAutoClipboard.Destroy;
+begin
+  if not FDiscardOwnership and
+    LdrxCheckDelayedImport(delayed_NtUserCloseClipboard).IsSuccess then
+    NtUserCloseClipboard;
+end;
+
+function NtxOpenClipboard;
+var
+  EmptyClientValue: LongBool;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserOpenClipboard);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserOpenClipboard';
+  Result.Win32Result := NtUserOpenClipboard(hwnd, EmptyClientValue);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  ClipboardRelease := TAutoClipboard.Create;
+
+  if Assigned(EmptyClient) then
+    EmptyClient^ := EmptyClientValue;
+end;
+
+function NtxCaptureMemHandle;
+var
+  Needed: Cardinal;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserCreateLocalMemHandle);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Buffer := nil;
+  Result.Location := 'NtUserCreateLocalMemHandle';
+
+  repeat
+    Result.Status := NtUserCreateLocalMemHandle(hMem, Auto.DataOrNil(Buffer),
+      Auto.SizeOrZero(Buffer), @Needed);
+  until not NtxExpandBufferEx(Result, Buffer, Needed);
+end;
+
+function NtxGetClipboardDataHandle;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserGetClipboardData);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserGetClipboardData';
+  hMem := NtUserGetClipboardData(Format, Info);
+  Result.Win32Result := hMem <> 0;
+end;
+
+function NtxGetClipboardData;
+var
+  hMem: TMemHandle;
+begin
+  Result := NtxGetClipboardDataHandle(Format, Info, hMem);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxCaptureMemHandle(hMem, Data);
 end;
 
 { Misc }
