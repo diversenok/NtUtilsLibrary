@@ -812,7 +812,7 @@ begin
     Exit;
 
   {$Q-}
-  Required := (Memory.Size + 16) * 2;
+  Required := (Auto.SizeOrZero(Memory) + 16) * 2;
   {$IFDEF Q+}{$Q+}{$ENDIF}
 
   // Cap the growth
@@ -820,7 +820,7 @@ begin
     Required := BufferLimit;
 
   // Check for overflows
-  if Required < Memory.Size then
+  if Required < Auto.SizeOrZero(Memory) then
     Exit;
 
   // Re-allocate
