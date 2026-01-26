@@ -241,6 +241,11 @@ begin
   Result := Input;
 
   case NamingStyle of
+    nsPreserveCase:
+    begin
+      RtlxPrefixStripString(Prefix, Result, True);
+      RtlxSuffixStripString(Suffix, Result, True);
+    end;
     nsCamelCase:
       Result := PrettifyCamelCase(Result, Prefix, Suffix);
     nsSnakeCase:
