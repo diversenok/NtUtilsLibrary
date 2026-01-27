@@ -301,6 +301,226 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
+{ Legacy calls }
+
+function NtxCallNoParam(
+  Proc: TUserCallIndex;
+  out Value: NativeUInt
+): TNtxStatus;
+begin
+  // Our procedure index table does not support earlier versions
+  if not RtlOsVersionAtLeast(OsWin1020H1) or not (Proc in SFI_NoParam) then
+  begin
+    Result.Location := 'NtxCallNoParam';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := LdrxCheckDelayedImport(delayed_NtUserCallNoParam);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserCallNoParam';
+  Result.LastCall.UsesInfoClass(Proc, icExecute);
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Value := NtUserCallNoParam(Proc);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function NtxCallOneParam(
+  Proc: TUserCallIndex;
+  Param: NativeUInt;
+  out Value: NativeUInt
+): TNtxStatus;
+begin
+  // Our procedure index table does not support earlier versions
+  if not RtlOsVersionAtLeast(OsWin1020H1) or not (Proc in SFI_OneParam) then
+  begin
+    Result.Location := 'NtxCallOneParam';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := LdrxCheckDelayedImport(delayed_NtUserCallOneParam);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserCallOneParam';
+  Result.LastCall.UsesInfoClass(Proc, icExecute);
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Value := NtUserCallOneParam(Param, Proc);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function NtxCallHwnd(
+  Proc: TUserCallIndex;
+  Hwnd: THwnd;
+  out Value: NativeUInt
+): TNtxStatus;
+begin
+  // Our procedure index table does not support earlier versions
+  if not RtlOsVersionAtLeast(OsWin1020H1) or not (Proc in SFI_Hwnd) then
+  begin
+    Result.Location := 'NtxCallHwnd';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwnd);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserCallHwnd';
+  Result.LastCall.UsesInfoClass(Proc, icExecute);
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Value := NtUserCallHwnd(Hwnd, Proc);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function NtxCallHwndOpt(
+  Proc: TUserCallIndex;
+  Hwnd: THwnd;
+  out Value: NativeUInt
+): TNtxStatus;
+begin
+  // Our procedure index table does not support earlier versions
+  if not RtlOsVersionAtLeast(OsWin1020H1) or not (Proc in SFI_HwndOpt) then
+  begin
+    Result.Location := 'NtxCallHwndOpt';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwndOpt);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserCallHwndOpt';
+  Result.LastCall.UsesInfoClass(Proc, icExecute);
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Value := NtUserCallHwndOpt(Hwnd, Proc);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function NtxCallHwndParam(
+  Proc: TUserCallIndex;
+  Hwnd: THwnd;
+  Param: NativeUInt;
+  out Value: NativeUInt
+): TNtxStatus;
+begin
+  // Our procedure index table does not support earlier versions
+  if not RtlOsVersionAtLeast(OsWin1020H1) or not (Proc in SFI_HwndParam) then
+  begin
+    Result.Location := 'NtxCallHwndParam';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwndParam);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserCallHwndParam';
+  Result.LastCall.UsesInfoClass(Proc, icExecute);
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Value := NtUserCallHwndParam(Hwnd, Param, Proc);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function NtxCallHwndLock(
+  Proc: TUserCallIndex;
+  Hwnd: THwnd;
+  out Value: NativeUInt
+): TNtxStatus;
+begin
+  // Our procedure index table does not support earlier versions
+  if not RtlOsVersionAtLeast(OsWin1020H1) or not (Proc in SFI_HwndLock) then
+  begin
+    Result.Location := 'NtxCallHwndLock';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwndLock);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserCallHwndLock';
+  Result.LastCall.UsesInfoClass(Proc, icExecute);
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Value := NtUserCallHwndLock(Hwnd, Proc);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function NtxCallHwndParamLock(
+  Proc: TUserCallIndex;
+  Hwnd: THwnd;
+  Param: NativeUInt;
+  out Value: NativeUInt
+): TNtxStatus;
+begin
+  // Our procedure index table does not support earlier versions
+  if not RtlOsVersionAtLeast(OsWin1020H1) or not (Proc in SFI_HwndParamLock) then
+  begin
+    Result.Location := 'NtxCallHwndParamLock';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwndParamLock);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserCallHwndParamLock';
+  Result.LastCall.UsesInfoClass(Proc, icExecute);
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Value := NtUserCallHwndParamLock(Hwnd, Param, Proc);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function NtxCallTwoParam(
+  Proc: TUserCallIndex;
+  Param1: NativeUInt;
+  Param2: NativeUInt;
+  out Value: NativeUInt
+): TNtxStatus;
+begin
+  // Our procedure index table does not support earlier versions
+  if not RtlOsVersionAtLeast(OsWin1020H1) or not (Proc in SFI_TwoParam) then
+  begin
+    Result.Location := 'NtxCallTwoParam';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := LdrxCheckDelayedImport(delayed_NtUserCallTwoParam);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtUserCallTwoParam';
+  Result.LastCall.UsesInfoClass(Proc, icExecute);
+
+  RtlSetLastWin32Error(ERROR_SUCCESS);
+  Value := NtUserCallTwoParam(Param1, Param2, Proc);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
 { Common }
 
 function NtuxEnumerateNames(

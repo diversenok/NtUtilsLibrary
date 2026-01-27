@@ -154,6 +154,154 @@ type
     ConsoleEndTask = 7
   );
 
+  // rev // indexes for 20H1+ only!
+  [MinOSVersion(OsWin1020H1)]
+  [NamingStyle(nsPreserveCase, 'SFI_')]
+  TUserCallIndex = (
+    SFI_NtUserCreateMenu = 0, // NoParam
+    SFI_NtUserCreatePopupMenu = 1, // NoParam
+    SFI_NtUserAllowForegroundActivation = 2, // NoParam
+    SFI_NtUserCancelQueueEventCompletionPacket = 3, // NoParam
+    SFI_NtUserClearWakeMask = 4, // NoParam
+    SFI_NtUserCreateSystemThreads = 5, // NoParam
+    SFI_NtUserDestroyCaret = 6, // NoParam
+    SFI_NtUserDisableProcessWindowsGhosting = 7, // NoParam
+    SFI_NtUserDrainThreadCoreMessagingCompletions = 8, // NoParam
+    SFI_NtUserGetDeviceChangeInfo = 9, // NoParam
+    SFI_NtUserGetIMEShowStatus = 10, // NoParam
+    SFI_NtUserGetInputDesktop = 11, // NoParam
+    SFI_NtUserGetMessagePos = 12, // NoParam
+    SFI_NtUserGetQueueIocp = 13, // NoParam
+    SFI_NtUserGetUnpredictedMessagePos = 14, // NoParam
+    SFI_NtUserHandleSystemThreadCreationFailure = 15, // NoParam
+    SFI_NtUserHideCursorNoCapture = 16, // NoParam
+    SFI_NtUserIsQueueAttached = 17, // NoParam
+    SFI_NtUserLoadCursorsAndIcons = 18, // NoParam
+    SFI_NtUserLoadUserApiHook = 19, // NoParam
+    SFI_NtUserPrepareForLogoff = 20, // NoParam
+    SFI_NtUserReassociateQueueEventCompletionPacket = 21, // NoParam
+    SFI_NtUserReleaseCapture = 22, // NoParam
+    SFI_NtUserRemoveQueueCompletion = 23, // NoParam
+    SFI_NtUserResetDblClk = 24, // NoParam
+    SFI_NtUserZapActiveAndFocus = 25, // NoParam
+    SFI_NtUserRemoteConsoleShadowStop = 26, // NoParam
+    SFI_NtUserRemoteDisconnect = 27, // NoParam
+    [Reserved] SFI_28 = 28, // NoParam
+    [Reserved] SFI_29 = 29, // NoParam
+    SFI_NtUserRemoteShadowSetup = 30, // NoParam
+    SFI_NtUserRemoteShadowStop = 31, // NoParam
+    SFI_NtUserRemotePassthruEnable = 32, // NoParam
+    SFI_NtUserRemotePassthruDisable = 33, // NoParam
+    SFI_NtUserRemoteConnectState = 34, // NoParam
+    [Reserved] SFI_35 = 35, // NoParam
+    SFI_NtUserUpdatePerUserImmEnabling = 36, // NoParam
+    SFI_NtUserUserPowerCalloutWorker = 37, // NoParam
+    SFI_NtUserWakeRITForShutdown = 38, // NoParam
+    SFI_NtUserDoInitMessagePumpHook = 39, // NoParam
+    SFI_NtUserDoUninitMessagePumpHook = 40, // NoParam
+    SFI_NtUserEnableMouseInPointerForThread = 41, // NoParam
+    SFI_NtUserDeferredDesktopRotation = 42, // NoParam
+    SFI_NtUserEnablePerMonitorMenuScaling = 43, // NoParam
+    SFI_NtUserBeginDeferWindowPos = 44, // OneParam
+    SFI_NtUserGetSendMessageReceiver = 45, // OneParam
+    SFI_NtUserAllowSetForegroundWindow = 46, // OneParam
+    SFI_NtUserCsDdeUninitialize = 47, // OneParam
+    [Reserved] SFI_48 = 48, // OneParam
+    SFI_NtUserEnumClipboardFormats = 49, // OneParam
+    SFI_NtUserGetInputEvent = 50, // OneParam
+    SFI_NtUserGetKeyboardType = 51, // OneParam
+    SFI_NtUserGetProcessDefaultLayout = 52, // OneParam
+    SFI_NtUserGetWinStationInfo = 53, // OneParam
+    SFI_NtUserLockSetForegroundWindow = 54, // OneParam
+    SFI_NtUserLW_LoadFonts = 55, // OneParam
+    SFI_NtUserMapDesktopObject = 56, // OneParam
+    SFI_NtUserMessageBeep = 57, // OneParam
+    SFI_NtUserPlayEventSound = 58, // OneParam
+    SFI_NtUserPostQuitMessage = 59, // OneParam
+    SFI_NtUserRealizePalette = 60, // OneParam
+    SFI_NtUserRegisterLPK = 61, // OneParam
+    SFI_NtUserRegisterSystemThread = 62, // OneParam
+    SFI_NtUserRemoteReconnect = 63, // OneParam
+    SFI_NtUserRemoteThinwireStats = 64, // OneParam
+    SFI_NtUserRemoteNotify = 65, // OneParam
+    SFI_NtUserReplyMessage = 66, // OneParam
+    SFI_NtUserSetCaretBlinkTime = 67, // OneParam
+    SFI_NtUserSetDoubleClickTime = 68, // OneParam
+    SFI_NtUserSetMessageExtraInfo = 69, // OneParam
+    SFI_NtUserSetProcessDefaultLayout = 70, // OneParam
+    SFI_NtUserSetWatermarkStrings = 71, // OneParam
+    SFI_NtUserShowStartGlass = 72, // OneParam
+    SFI_NtUserSwapMouseButton = 73, // OneParam
+    SFI_NtUserWOWModuleUnload = 74, // OneParam
+    SFI_NtUserDwmLockScreenUpdates = 75, // OneParam
+    SFI_NtUserEnableSessionForMMCSS = 76, // OneParam
+    SFI_NtUserSetWaitForQueueAttach = 77, // OneParam
+    SFI_NtUserThreadMessageQueueAttached = 78, // OneParam
+    [Reserved] SFI_79 = 79, // OneParam
+    SFI_NtUserEnsureDpiDepSysMetCacheForPlateau = 80, // OneParam
+    SFI_NtUserForceEnableNumpadTranslation = 81, // OneParam
+    SFI_NtUserSetTSFEventState = 82, // OneParam
+    SFI_NtUserSetShellChangeNotifyHWND = 83, // OneParam
+    SFI_NtUserDeregisterShellHookWindow = 84, // Hwnd
+    SFI_NtUserDWP_GetEnabledPopupOffset = 85, // Hwnd
+    SFI_NtUserGetModernAppWindow = 86, // Hwnd
+    SFI_NtUserGetWindowContextHelpId = 87, // Hwnd
+    SFI_NtUserRegisterShellHookWindow = 88, // Hwnd
+    SFI_NtUserSetMsgBox = 89, // Hwnd
+    SFI_NtUserInitThreadCoreMessagingIocp = 90, // Hwnd, HwndSafe
+    SFI_NtUserScheduleDispatchNotification = 91, // Hwnd, HwndSafe
+    SFI_NtUserSetProgmanWindow = 92, // HwndOpt
+    SFI_NtUserSetTaskmanWindow = 93, // HwndOpt
+    SFI_NtUserGetClassIcoCur = 94, // HwndParam
+    SFI_NtUserClearWindowState = 95, // HwndParam
+    SFI_NtUserKillSystemTimer = 96, // HwndParam
+    SFI_NtUserNotifyOverlayWindow = 97, // HwndParam
+    [Reserved] SFI_98 = 98, // HwndParam
+    SFI_NtUserSetDialogPointer = 99, // HwndParam
+    SFI_NtUserSetVisible = 100, // HwndParam
+    SFI_NtUserSetWindowContextHelpId = 101, // HwndParam
+    SFI_NtUserSetWindowState = 102, // HwndParam
+    SFI_NtUserRegisterWindowArrangementCallout = 103, // HwndParam
+    SFI_NtUserEnableModernAppWindowKeyboardIntercept = 104, // HwndParam
+    SFI_NtUserArrangeIconicWindows = 105, // HwndLock
+    SFI_NtUserDrawMenuBar = 106, // HwndLock
+    SFI_NtUserCheckImeShowStatusInThread = 107, // HwndLock, HwndLockSafe
+    SFI_NtUserGetSysMenuOffset = 108, // HwndLock
+    SFI_NtUserRedrawFrame = 109, // HwndLock
+    SFI_NtUserRedrawFrameAndHook = 110, // HwndLock
+    SFI_NtUserSetDialogSystemMenu = 111, // HwndLock
+    SFI_NtUserSetForegroundWindow = 112, // HwndLock
+    SFI_NtUserSetSysMenu = 113, // HwndLock
+    SFI_NtUserUpdateClientRect = 114, // HwndLock
+    SFI_NtUserUpdateWindow = 115, // HwndLock
+    SFI_NtUserSetCancelRotationDelayHintWindow = 116, // HwndLock
+    SFI_NtUserGetWindowTrackInfoAsync = 117, // HwndLock
+    SFI_NtUserBroadcastImeShowStatusChange = 118, // HwndParamLock
+    SFI_NtUserSetModernAppWindow = 119, // HwndParamLock
+    SFI_NtUserRedrawTitle = 120, // HwndParamLock
+    SFI_NtUserShowOwnedPopups = 121, // HwndParamLock
+    SFI_NtUserSwitchToThisWindow = 122, // HwndParamLock
+    SFI_NtUserUpdateWindows = 123, // HwndParamLock
+    SFI_NtUserValidateRgn = 124, // HwndParamLock
+    SFI_NtUserEnableWindow = 125, // HwndParamLock, ParamLockSafe
+    SFI_NtUserChangeWindowMessageFilter = 126, // TwoParam
+    SFI_NtUserGetCursorPos = 127, // TwoParam
+    SFI_NtUserInitAnsiOem = 128, // TwoParam
+    SFI_NtUserNlsKbdSendIMENotification = 129, // TwoParam
+    SFI_NtUserRegisterGhostWindow = 130, // TwoParam
+    SFI_NtUserRegisterLogonProcess = 131, // TwoParam
+    SFI_NtUserRegisterSiblingFrostWindow = 132, // TwoParam
+    SFI_NtUserRegisterUserHungAppHandlers = 133, // TwoParam
+    SFI_NtUserRemoteShadowCleanup = 134, // TwoParam
+    SFI_NtUserRemoteShadowStart = 135, // TwoParam
+    SFI_NtUserSetCaretPos = 136, // TwoParam
+    SFI_NtUserSetThreadQueueMergeSetting = 137, // TwoParam
+    SFI_NtUserUnhookWindowsHook = 138, // TwoParam
+    SFI_NtUserEnableShellWindowManagementBehavior = 139, // TwoParam
+    SFI_NtUserCitSetInfo = 140, // TwoParam
+    SFI_NtUserScaleSystemMetricForDPIWithoutCache = 141 // TwoParam
+  );
+
   // private
   [SDKName('CONSOLESETWINDOWOWNER')]
   TConsoleSetWindowOwner = record
@@ -166,6 +314,17 @@ type
   [FlagName(HF_ANSI, 'HF_ANSI')]
   [FlagName(HF_EXTENDED_TIMEOUT, 'HF_EXTENDED_TIMEOUT')]
   THookFlags = type Cardinal;
+
+const
+  // rev
+  SFI_NoParam = [SFI_NtUserCreateMenu..SFI_NtUserEnablePerMonitorMenuScaling];
+  SFI_OneParam = [SFI_NtUserBeginDeferWindowPos..SFI_NtUserSetShellChangeNotifyHWND];
+  SFI_Hwnd = [SFI_NtUserDeregisterShellHookWindow..SFI_NtUserScheduleDispatchNotification];
+  SFI_HwndOpt = [SFI_NtUserSetProgmanWindow..SFI_NtUserSetTaskmanWindow];
+  SFI_HwndParam = [SFI_NtUserGetClassIcoCur..SFI_NtUserEnableModernAppWindowKeyboardIntercept];
+  SFI_HwndLock = [SFI_NtUserArrangeIconicWindows..SFI_NtUserGetWindowTrackInfoAsync];
+  SFI_HwndParamLock = [SFI_NtUserBroadcastImeShowStatusChange..SFI_NtUserEnableWindow];
+  SFI_TwoParam = [SFI_NtUserChangeWindowMessageFilter..SFI_NtUserScaleSystemMetricForDPIWithoutCache];
 
 { Window Stations }
 
@@ -934,6 +1093,154 @@ function NtUserTestForInteractiveUser(
 var delayed_NtUserTestForInteractiveUser: TDelayedLoadFunction = (
   Dll: @delayed_win32u;
   FunctionName: 'NtUserTestForInteractiveUser';
+);
+
+{ Legacy calls }
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserCallNoParam(
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallNoParam: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallNoParam';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserCallOneParam(
+  [in] Param: NativeUInt;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallOneParam: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallOneParam';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserCallHwnd(
+  [in] hwnd: THwnd;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallHwnd: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallHwnd';
+);
+
+// rev
+[SetsLastError]
+[MinOSVersion(OsWin10RS5)]
+function NtUserCallHwndSafe(
+  [in] hwnd: THwnd;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallHwndSafe: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallHwndSafe';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserCallHwndOpt(
+  [in, opt] hwnd: THwnd;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallHwndOpt: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallHwndOpt';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserCallHwndParam(
+  [in] hwnd: THwnd;
+  [in] Param: NativeUInt;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallHwndParam: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallHwndParam';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserCallHwndLock(
+  [in] hwnd: THwnd;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallHwndLock: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallHwndLock';
+);
+
+// rev
+[SetsLastError]
+[MinOSVersion(OsWin10RS5)]
+function NtUserCallHwndLockSafe(
+  [in] hwnd: THwnd;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallHwndLockSafe: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallHwndLockSafe';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserCallHwndParamLock(
+  [in] hwnd: THwnd;
+  [in] Param: NativeUInt;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallHwndParamLock: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallHwndParamLock';
+);
+
+// rev
+[SetsLastError]
+[MinOSVersion(OsWin10RS5)]
+function NtUserCallHwndParamLockSafe(
+  [in] hwnd: THwnd;
+  [in] Param: NativeUInt;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallHwndParamLockSafe: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallHwndParamLockSafe';
+);
+
+// private
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function NtUserCallTwoParam(
+  [in] Param1: NativeUInt;
+  [in] Param2: NativeUInt;
+  [in] xpfnProc: TUserCallIndex
+): NativeUInt; stdcall; external win32u delayed;
+
+var delayed_NtUserCallTwoParam: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserCallTwoParam';
 );
 
 implementation
