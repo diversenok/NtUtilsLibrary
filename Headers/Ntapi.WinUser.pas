@@ -389,7 +389,7 @@ type
     GCLP_HMODULE = -16,       // q, s: HMODULE
     GCL_CBWNDEXTRA = -18,     // q, s: Cardinal
     GCL_CBCLSEXTRA = -20,     // q, s: Cardinal
-    GCL_WNDPROC = -24,        // q, s: Pointer
+    GCLP_WNDPROC = -24,       // q, s: Pointer
     GCL_STYLE = -26,          // q, s: TClassStyle
     GCW_ATOM = -32,           // q: Word
     GCLP_HICONSM = -34        // q, s: HICON
