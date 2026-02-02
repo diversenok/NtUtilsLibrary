@@ -12,6 +12,13 @@ uses
   Ntapi.WinNt, Ntapi.ObjBase, Ntapi.WinUser, DelphiApi.Reflection;
 
 const
+  // SDK::objidlbase.h
+  ACTIVATIONTYPE_FROM_MONIKER = $01;
+  ACTIVATIONTYPE_FROM_DATA = $02;
+  ACTIVATIONTYPE_FROM_STORAGE = $04;
+  ACTIVATIONTYPE_FROM_STREAM = $08;
+  ACTIVATIONTYPE_FROM_FILE = $10;
+
   // SDK::rpcdcep.h - a flag for iMethod
   RPC_FLAGS_VALID_BIT = $00008000;
 
@@ -90,6 +97,25 @@ const
 type
   TIid = Ntapi.ObjBase.TIid;
   TClsid = Ntapi.ObjBase.TClsid;
+
+  [SDKName('ACTIVATIONTYPE')]
+  [NamingStyle(nsSnakeCase, 'ACTIVATIONTYPE')]
+  [FlagName(ACTIVATIONTYPE_FROM_MONIKER, 'ACTIVATIONTYPE_FROM_MONIKER')]
+  [FlagName(ACTIVATIONTYPE_FROM_DATA, 'ACTIVATIONTYPE_FROM_DATA')]
+  [FlagName(ACTIVATIONTYPE_FROM_STORAGE, 'ACTIVATIONTYPE_FROM_STORAGE')]
+  [FlagName(ACTIVATIONTYPE_FROM_STREAM, 'ACTIVATIONTYPE_FROM_STREAM')]
+  [FlagName(ACTIVATIONTYPE_FROM_FILE, 'ACTIVATIONTYPE_FROM_FILE')]
+  TActivationType = type Cardinal;
+
+  // SDK::objidlbase.h
+  IActivationFilter = interface
+    ['{00000017-0000-0000-C000-000000000046}']
+    function HandleActivation(
+      [in] ActivationType: TActivationType;
+      [in] const Clsid: TClsid;
+      [out] var ReplacementClsId: TClsid
+    ): HResult; stdcall;
+  end;
 
   [FlagName(RPCFLG_HAS_GUARANTEE, 'Has Guarantee')]
   [FlagName(RPCFLG_WINRT_REMOTE_ASYNC, 'WinRT Remote Async')]
@@ -1101,6 +1127,11 @@ type
       [out] out Success: TVarData
     ): HResult; stdcall;
   end;
+
+// SDK::combaseapi.h
+function CoRegisterActivationFilter(
+  [in] const ActivationFilter: IActivationFilter
+): HResult; stdcall; external ole32;
 
 // MSDN
 function DllDebugObjectRPCHook(
