@@ -86,6 +86,18 @@ type
   TNtUnicodeStringArray = TAnysizeArray<TNtUnicodeString>;
   PNtUnicodeStringArray = ^TNtUnicodeStringArray;
 
+  // private
+  PNtLargeString = ^TNtLargeString;
+  [SDKName('LARGE_STRING')]
+  TNtLargeString = record
+    [Bytes] Length: Cardinal;
+    [Bytes] MaximumLength: Cardinal; // can include the Ansi bit (31)
+    Buffer: Pointer;
+    constructor From(const Source: String);
+    function ToString: String;
+    function RefOrNil: PNtLargeString;
+  end;
+
   [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
   [FlagName(OBJ_INHERIT, 'Inherit')]
   [FlagName(OBJ_AUDIT_OBJECT_CLOSE, 'Audit Object Close')]
@@ -284,6 +296,36 @@ end;
 function TNtUnicodeString.ToString;
 begin
   SetString(Result, Buffer, Length div SizeOf(WideChar));
+end;
+
+{ TNtLargeString }
+
+constructor TNtLargeString.From;
+begin
+  Length := System.Length(Source) * SizeOf(WideChar);
+  MaximumLength := Length + SizeOf(WideChar);
+  Buffer := PWideChar(Source);
+end;
+
+function TNtLargeString.RefOrNil;
+begin
+  if Assigned(@Self) and (Length > 0) then
+    Result := @Self
+  else
+    Result := nil;
+end;
+
+function TNtLargeString.ToString;
+var
+  AnsiResult: AnsiString;
+begin
+  if (MaximumLength and $80000000) <> 0 then
+  begin
+    SetString(AnsiResult, PAnsiChar(Buffer), Length div SizeOf(AnsiChar));
+    Result := String(AnsiResult);
+  end
+  else
+    SetString(Result, PWideChar(Buffer), Length div SizeOf(WideChar));
 end;
 
 { TClientId }
