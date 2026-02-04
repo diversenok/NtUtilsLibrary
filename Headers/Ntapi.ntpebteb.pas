@@ -11,7 +11,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.actctx,
-  Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
+  Ntapi.WinUser, Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // Extracted from bit union PEB.BitField
@@ -432,6 +432,116 @@ type
     Buffer: array [0..309] of Cardinal;
   end;
 
+  // rev
+  [MinOSVersion(OsWin10RS2)]
+  [SDKName('DESKTOPINFO')]
+  TDesktopInfo = record
+    [Hex] DesktopId: UIntPtr;
+    [Offset] wnd: UIntPtr;
+    [Hex] fsHooks: Cardinal;
+  end;
+  PDesktopInfo = ^TDesktopInfo;
+
+  // private
+  [SDKName('CALLBACKWND')]
+  TCallbackWnd = record
+    hwnd: THwnd;
+    wnd: NativeUInt;
+    ActCtx: PActivationContext;
+  end;
+
+  // private // before Windows 11
+  [SDKName('CLIENTTHREADINFO')]
+  TClientThreadInfoV1 = record
+    [Hex] CTIF_flags: Cardinal;
+    [Hex] fsChangeBits: Word;
+    [Hex] fsWakeBits: Word;
+    [Hex] fsWakeBitsJournal: Word;
+    [Hex] fsWakeMask: Word;
+    LastMsgChecked: Cardinal; // NtGetTickCount
+  end;
+  PClientThreadInfoV1 = ^TClientThreadInfoV1;
+
+  // private + rev
+  [MinOSVersion(OsWin11)]
+  [SDKName('CLIENTTHREADINFO')]
+  TClientThreadInfoV2 = record
+    [Hex] CTIF_flags: Cardinal;
+    [Hex] fsChangeBits: Cardinal;
+    [Hex] fsWakeBits: Cardinal;
+    [Hex] fsWakeBitsJournal: Cardinal;
+    [Hex] fsWakeMask: Cardinal;
+    LastMsgChecked: Cardinal; // NtGetTickCount
+  end;
+  PClientThreadInfoV2 = ^TClientThreadInfoV2;
+
+  TClientThreadInfo = record
+  case TWindowsVersion of
+    OsWinOld: (V1: TClientThreadInfoV1);
+    OsWin11: (V2: TClientThreadInfoV2);
+  end;
+  PClientThreadInfo = ^TClientThreadInfo;
+
+  // SDK::WinUser.h
+  [SDKName('MSG')]
+  TMsg = record
+    hwnd: THwnd;
+    Message: Cardinal;
+    wParam: UIntPtr;
+    lParam: IntPtr;
+    time: Cardinal;
+    pt: TPoint;
+  end;
+
+  TKeyStateCache = array [0..7] of Byte;
+
+  // private
+  [SDKName('DPICONTEXTINFO')]
+  TDpiContextInfo = record
+    dpiContext: Cardinal;
+    Dirty: LongBool;
+  end;
+
+  // private + rev
+  [SDKName('CLIENTINFO')]
+  TClientInfo = record
+    [Hex] CI_flags: NativeUInt;
+    cSpins: NativeUInt;
+    [Hex] ExpWinVer: Cardinal;
+    [Hex] CompatFlags: Cardinal;
+    [Hex] CompatFlags2: Cardinal;
+    [Hex] TIFlags: Cardinal;
+    DeskInfo: PDesktopInfo;
+    DesktopBase: Pointer; // ClientDelta before RS2
+    hkCurrent: THandle;
+    fsHooks: Cardinal;
+    CallbackWnd: TCallbackWnd;
+    dwHookCurrent: Cardinal;
+    cInDDEMLCallback: Integer;
+    ClientThreadInfo: PClientThreadInfo;
+    HookData: NativeUInt;
+    [Hex] KeyCache: Cardinal;
+    KeyState: TKeyStateCache;
+    [Hex] AsyncKeyCache: Cardinal;
+    AsyncKeyState: TKeyStateCache;
+    AsyncKeyStateRecentDown: TKeyStateCache;
+    [Hex] hKL: THandle;
+    CodePage: Word;
+    achDbcsCFOld: array [0..1] of Byte;
+    achDbcsCFNew: array [0..1] of Byte;
+    msgDbcsCB: TMsg;
+    RegisteredClasses: PCardinal;
+    mmcssHandle: THandle;
+    [Hex] CI_exflags: NativeUInt;
+    dci: TDpiContextInfo;
+  {$IFDEF Win64}
+    Padding: array [0..31] of NativeUInt;
+  {$ELSE}
+    Padding: array [0..21] of NativeUInt;
+  {$ENDIF}
+  end;
+  PClientInfo = ^TClientInfo;
+
   [FlagName(RTL_ERRORMODE_FAILCRITICALERRORS, 'Fail Critical Errors')]
   [FlagName(RTL_ERRORMODE_NOGPFAULTERRORBOX, 'No GP Fault Error Box')]
   [FlagName(RTL_ERRORMODE_NOOPENFILEERRORBOX, 'No OpenFile Error Box')]
@@ -556,7 +666,7 @@ type
     GDIClientPID: TProcessId32;
     GDIClientTID: TThreadId32;
     GDIThreadLocalInfo: Pointer;
-    Win32ClientInfo: array [0..61] of NativeUInt;
+    Win32ClientInfo: TClientInfo;
     glDispatchTable: array [0..232] of Pointer;
     [Unlisted] glReserved1: array [0..28] of NativeUInt;
     [Unlisted] glReserved2: Pointer;
