@@ -283,7 +283,7 @@ type
     SFI_NtUserSwitchToThisWindow = 122, // HwndParamLock
     SFI_NtUserUpdateWindows = 123, // HwndParamLock
     SFI_NtUserValidateRgn = 124, // HwndParamLock
-    SFI_NtUserEnableWindow = 125, // HwndParamLock, ParamLockSafe
+    SFI_NtUserEnableWindow = 125, // HwndParamLock, HwndParamLockSafe
     SFI_NtUserChangeWindowMessageFilter = 126, // TwoParam
     SFI_NtUserGetCursorPos = 127, // TwoParam
     SFI_NtUserInitAnsiOem = 128, // TwoParam
@@ -1241,6 +1241,18 @@ function NtUserCallTwoParam(
 var delayed_NtUserCallTwoParam: TDelayedLoadFunction = (
   Dll: @delayed_win32u;
   FunctionName: 'NtUserCallTwoParam';
+);
+
+// private
+[Result: MayReturnNil]
+[MinOSVersion(OsWin11)]
+function NtUserMapDesktopObject(
+  [in] h: THandle
+): Pointer; stdcall; external win32u delayed;
+
+var delayed_NtUserMapDesktopObject: TDelayedLoadFunction = (
+  Dll: @delayed_win32u;
+  FunctionName: 'NtUserMapDesktopObject';
 );
 
 implementation

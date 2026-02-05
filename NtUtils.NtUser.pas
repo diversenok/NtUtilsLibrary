@@ -290,6 +290,13 @@ function NtxSetWindowsHookEx(
 function NtxLockWorkstation(
 ): TNtxStatus;
 
+// Locate a object body on the desktop heap
+[MinOSVersion(OsWin1020H1)]
+function NtxMapDesktopObject(
+  h: THandle;
+  out AObject: Pointer
+): TNtxStatus;
+
 implementation
 
 uses
@@ -304,8 +311,9 @@ uses
 { Legacy calls }
 
 function NtxCallNoParam(
+  out Value: NativeUInt;
   Proc: TUserCallIndex;
-  out Value: NativeUInt
+  AllowNilReturn: Boolean
 ): TNtxStatus;
 begin
   // Our procedure index table does not support earlier versions
@@ -326,13 +334,15 @@ begin
 
   RtlSetLastWin32Error(ERROR_SUCCESS);
   Value := NtUserCallNoParam(Proc);
-  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+  Result.Win32Result := (Value <> 0) or AllowNilReturn or
+    (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
 function NtxCallOneParam(
+  out Value: NativeUInt;
   Proc: TUserCallIndex;
   Param: NativeUInt;
-  out Value: NativeUInt
+  AllowNilReturn: Boolean
 ): TNtxStatus;
 begin
   // Our procedure index table does not support earlier versions
@@ -353,13 +363,15 @@ begin
 
   RtlSetLastWin32Error(ERROR_SUCCESS);
   Value := NtUserCallOneParam(Param, Proc);
-  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+  Result.Win32Result := (Value <> 0) or AllowNilReturn or
+    (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
 function NtxCallHwnd(
+  out Value: NativeUInt;
   Proc: TUserCallIndex;
   Hwnd: THwnd;
-  out Value: NativeUInt
+  AllowNilReturn: Boolean
 ): TNtxStatus;
 begin
   // Our procedure index table does not support earlier versions
@@ -380,13 +392,15 @@ begin
 
   RtlSetLastWin32Error(ERROR_SUCCESS);
   Value := NtUserCallHwnd(Hwnd, Proc);
-  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+  Result.Win32Result := (Value <> 0) or AllowNilReturn or
+    (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
 function NtxCallHwndOpt(
+  out Value: NativeUInt;
   Proc: TUserCallIndex;
   Hwnd: THwnd;
-  out Value: NativeUInt
+  AllowNilReturn: Boolean
 ): TNtxStatus;
 begin
   // Our procedure index table does not support earlier versions
@@ -407,14 +421,16 @@ begin
 
   RtlSetLastWin32Error(ERROR_SUCCESS);
   Value := NtUserCallHwndOpt(Hwnd, Proc);
-  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+  Result.Win32Result := (Value <> 0) or AllowNilReturn or
+    (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
 function NtxCallHwndParam(
+  out Value: NativeUInt;
   Proc: TUserCallIndex;
   Hwnd: THwnd;
   Param: NativeUInt;
-  out Value: NativeUInt
+  AllowNilReturn: Boolean
 ): TNtxStatus;
 begin
   // Our procedure index table does not support earlier versions
@@ -435,13 +451,15 @@ begin
 
   RtlSetLastWin32Error(ERROR_SUCCESS);
   Value := NtUserCallHwndParam(Hwnd, Param, Proc);
-  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+  Result.Win32Result := (Value <> 0) or AllowNilReturn or
+    (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
 function NtxCallHwndLock(
+  out Value: NativeUInt;
   Proc: TUserCallIndex;
   Hwnd: THwnd;
-  out Value: NativeUInt
+  AllowNilReturn: Boolean
 ): TNtxStatus;
 begin
   // Our procedure index table does not support earlier versions
@@ -462,14 +480,16 @@ begin
 
   RtlSetLastWin32Error(ERROR_SUCCESS);
   Value := NtUserCallHwndLock(Hwnd, Proc);
-  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+  Result.Win32Result := (Value <> 0) or AllowNilReturn or
+    (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
 function NtxCallHwndParamLock(
+  out Value: NativeUInt;
   Proc: TUserCallIndex;
   Hwnd: THwnd;
   Param: NativeUInt;
-  out Value: NativeUInt
+  AllowNilReturn: Boolean
 ): TNtxStatus;
 begin
   // Our procedure index table does not support earlier versions
@@ -490,14 +510,16 @@ begin
 
   RtlSetLastWin32Error(ERROR_SUCCESS);
   Value := NtUserCallHwndParamLock(Hwnd, Param, Proc);
-  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+  Result.Win32Result := (Value <> 0) or AllowNilReturn or
+    (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
 function NtxCallTwoParam(
+  out Value: NativeUInt;
   Proc: TUserCallIndex;
   Param1: NativeUInt;
   Param2: NativeUInt;
-  out Value: NativeUInt
+  AllowNilReturn: Boolean
 ): TNtxStatus;
 begin
   // Our procedure index table does not support earlier versions
@@ -518,7 +540,8 @@ begin
 
   RtlSetLastWin32Error(ERROR_SUCCESS);
   Value := NtUserCallTwoParam(Param1, Param2, Proc);
-  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+  Result.Win32Result := (Value <> 0) or AllowNilReturn or
+    (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
 { Common }
@@ -1171,6 +1194,22 @@ begin
 
   Result.Location := 'NtUserLockWorkStation';
   Result.Win32Result := NtUserLockWorkStation;
+end;
+
+function NtxMapDesktopObject;
+begin
+  Result := LdrxCheckDelayedImport(delayed_NtUserMapDesktopObject);
+
+  if Result.IsSuccess then
+  begin
+    RtlSetLastWin32Error(ERROR_SUCCESS);
+    Result.Location := 'NtUserMapDesktopObject';
+    AObject := NtUserMapDesktopObject(h);
+    Result.Win32Result := Assigned(AObject);
+  end
+  else
+    Result := NtxCallOneParam(NativeUInt(AObject),
+      SFI_NtUserMapDesktopObject, h, False);
 end;
 
 end.
