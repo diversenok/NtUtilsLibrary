@@ -334,7 +334,7 @@ begin
     if Result.ProcessGroupId = 0 then
       Result.ProcessGroupId := Cardinal(NtCurrentTeb.ClientID.UniqueProcess);
 
-    Result.WindowVisible := ProcessParameters.ConsoleHandle <> -3;
+    Result.WindowVisible := ProcessParameters.ConsoleHandle <> THandle(-3);
 
     MarshalConsoleString(ProcessParameters.ImagePathName.Buffer,
       ProcessParameters.ImagePathName.Length, @Result.ApplicationName,
