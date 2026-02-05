@@ -147,11 +147,15 @@ function NtxDeleteSymlinkPipe(
   [opt] hxPipeDevice: IHandle = nil
 ): TNtxStatus;
 
+// Create a pipe and impersonate it via the loopback interface
+function NtxImpersonateLoopbackPipe(
+): TNtxStatus;
+
 implementation
 
 uses
   Ntapi.ntstatus, NtUtils.Files.Operations, NtUtils.Files.Open,
-  DelphiUtils.AutoObjects, NtUtils.Synchronization;
+  DelphiUtils.AutoObjects, NtUtils.Synchronization, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -484,6 +488,42 @@ begin
   // Issue the request
   Result := NtxFsControlFile(hxPipeDevice, FSCTL_PIPE_DELETE_SYMLINK,
     Buffer.Data, Buffer.Size);
+end;
+
+function NtxImpersonateLoopbackPipe;
+var
+  hxPipeServer, hxPipeClient: IHandle;
+  PipeName: String;
+begin
+  // Create a pipe with the local prefix to make it work in AppContainer
+  Result := NtxCreatePipe(hxPipeServer, FileParameters
+    .UseFileName('\Device\NamedPipe\Local\' + RtlxExtractNamePath(
+      RtlxParamStr(0)) + RtlxIntToHex(RtlxRandom, 8, False))
+    .UseAccess(FILE_READ_DATA)
+    .UseShareMode(FILE_SHARE_WRITE)
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine its actual name
+  Result := NtxQueryNameFile(hxPipeServer, PipeName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Open it via the SMB redirector
+  Result := NtxOpenFile(hxPipeClient, FileParameters
+    .UseFileName('\Device\Mup\localhost\PIPE' + PipeName)
+    .UseOptions(FILE_NON_DIRECTORY_FILE)
+    .UseAccess(FILE_WRITE_DATA)
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Impersonate the client
+  Result := NtxFsControlFile(hxPipeServer, FSCTL_PIPE_IMPERSONATE);
 end;
 
 end.
