@@ -346,6 +346,7 @@ System unit                                                                     
 [NtUtils.Memory](./NtUtils.Memory.pas)                                                           | Memory operations
 [NtUtils.MiniDumps](./NtUtils.MiniDumps.pas)                                                     | Minidump format parsing
 [NtUtils.NtUser](./NtUtils.NtUser.pas)                                                           | Win32k syscalls
+[NtUtils.NtUser.Oleacc](./NtUtils.NtUser.Oleacc.pas)                                             | OLE accessibility hooks
 [NtUtils.Objects](./NtUtils.Objects.pas)                                                         | Kernel objects and handles
 [NtUtils.Objects.Snapshots](./NtUtils.Objects.Snapshots.pas)                                     | Handle snapshotting
 [NtUtils.Objects.Namespace](./NtUtils.Objects.Namespace.pas)                                     | NT object namespace

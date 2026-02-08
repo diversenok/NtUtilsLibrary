@@ -9,7 +9,19 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.WinUser, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
+
+const
+  oleacchooks = 'oleacchooks.dll';
+
+var
+  delayed_oleacchooks: TDelayedLoadDll = (DllName: oleacchooks);
+
+  delayed_OleAccHook_CallWndProc: TDelayedLoadFunction = (
+    Dll: @delayed_oleacchooks;
+    FunctionName: MAKEINTRESOURCEA(1);
+  );
 
 const
   // SDK::objidlbase.h
@@ -1127,6 +1139,14 @@ type
       [out] out Success: TVarData
     ): HResult; stdcall;
   end;
+
+  // private
+  [SDKName('RequestMessage')]
+  TOleaccRequestMessage = record
+    [Volatile] Active: LongBool;
+    [Volatile] ClientRelativeHandle: Cardinal; // THandle
+  end;
+  POleaccRequestMessage = ^TOleaccRequestMessage;
 
 // SDK::combaseapi.h
 function CoRegisterActivationFilter(
