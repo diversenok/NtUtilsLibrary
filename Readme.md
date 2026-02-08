@@ -54,21 +54,19 @@ If you want to go even further and show a pretty message box to the user, [NtUiL
 
 ### Stack Traces & Debug Symbols
 
-`TNtxStatus` supports capturing stack traces (disabled by default). To enable it, set `NtUtils.CaptureStackTraces` to True. Keep in mind that displaying stack traces in a meaningful way requires configuring generation of debug symbols for your executable. Unfortunately, Delphi can only output simple text-based `.map` files (configured via Project -> Options -> Building -> Delphi Compiler -> Linking -> Map File) while this feature (and 3-rd party debuggers) require either `.dbg` (an older format) or `.pdb` (the newer format). After enabling map file generation in the project settings, you can add the following post-build events:
+`TNtxStatus` supports capturing stack traces (disabled by default). To enable it, set `NtUtils.CaptureStackTraces` to True. Keep in mind that displaying stack traces in a meaningful way requires configuring generation of debug symbols for your executable. Unfortunately, Delphi can only output simple text-based `.map` files while this feature (and 3-rd party debuggers) require either `.dbg` (older format) or `.pdb` (newer format) symbols. To automatically generate `.pdb` files, do the following:
 
-Option 1: use [**map2dbg** ](https://stackoverflow.com/questions/9422703) and [**cv2pdb**](https://github.com/rainers/cv2pdb).
-```
-map2dbg.exe $(OUTPUTPATH)
-cv2pdb64.exe -n -s. -p$(OUTPUTNAME).pdb $(OUTPUTPATH)
-``` 
-
-Option 2: use [**map2pdb**](https://github.com/andersmelander/map2pdb).
+1. Enable `.map` file generation in your project settings: Project -> Options -> Building -> Delphi Compiler -> Linking -> Map File -> "Detailed".
+2. Optionally, if you want to include line number information: Project -> Options -> Building -> Delphi Compiler -> Compiling -> Debugging -> Debug Information -> Select "Debug information". Note that for the change to take effect, you might need to delete existing `.dcu` files and then recompile your project from scratch.
+3. Download or build [**map2pdb**](https://github.com/andersmelander/map2pdb) and place its executable where Delphi can find it.
+4. Add the following post-build event in your project settings (Project -> Options -> Building -> Build Events -> Post-build events -> Commands):
 ```
 cd $(OUTPUTDIR)
-map2pdb.exe -bind $(OUTPUTNAME).map
+map2pdb.exe -bind:$(OUTPUTFILENAME) $(OUTPUTNAME).map
 ```
+5. Select execute conditions via Project -> Options -> Building -> Build Events -> Post-build events -> Execute when "Target is out of date".
 
-Both methods produce `.pdb` symbols and attach a debug directory to the executable to make them discoverable to debuggers.
+The script will produce a `.pdb` with debug symbols and attach required metadata (a debug directory) to the executable every time you compile the project.
 
 ## Automatic Lifetime Management
 

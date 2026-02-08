@@ -13,15 +13,12 @@ uses
 var
   // Controls whether TNtxStatus should capture stack traces on failure.
   // When enabled, you should also configure generation of debug symbols via
-  // Project -> Options -> Building -> Delphi Compiler -> Linking -> Map File.
-  // This switch controls creation of .map files which you can later convert
-  // into .dbg using the map2dbg tool. Optionally, you can go one step further
-  // and convert the .dbg file into a more modern .pdb via the cv2pdb tool.
-  // For more details, see https://stackoverflow.com/questions/9422703 and
-  // https://github.com/rainers/cv2pdb
-  // You can also configure the following post-build events for the project:
-  //   map2dbg.exe $(OUTPUTPATH)
-  //   cv2pdb64.exe -n -s. -p$(OUTPUTNAME).pdb $(OUTPUTPATH)
+  // Project -> Options -> Building -> Delphi Compiler -> Linking -> Map File
+  // -> "Detailed". This switch controls creation of .map files which you can
+  // convert into .pdb via map2pdb (https://github.com/andersmelander/map2pdb)
+  // using the following post-build event:
+  //  cd $(OUTPUTDIR)
+  //  map2pdb.exe -bind:$(OUTPUTFILENAME) $(OUTPUTNAME).map
   CaptureStackTraces: Boolean = False;
 
 { Forwarded definitions }
