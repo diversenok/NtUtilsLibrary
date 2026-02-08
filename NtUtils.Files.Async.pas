@@ -203,23 +203,18 @@ end;
 
 class function TNtxIoContext.Prepare;
 begin
+  Context := Default(TNtxIoContext);
+
+  // We cannot use file handles for waiting since they might not grant
+  // SYNCHRONIZE access.
+  Result := RtlxAcquireReusableEvent(Context.FEvent);
+
+  if not Result.IsSuccess then
+    Exit;
+
   if Assigned(AsyncCallback) then
-  begin
-    // We cannot use file handles for waiting since they might not grant
-    // SYNCHRONIZE access.
-    Result := RtlxAcquireReusableEvent(Context.FEvent);
-
-    if not Result.IsSuccess then
-      Exit;
-
     // Create and register an APC object with its own I/O status block
     Context.FApcObject := TAnonymousIoApc.Create(AsyncCallback);
-  end
-  else
-  begin
-    Result := NtxSuccess;
-    Context := Default(TNtxIoContext);
-  end;
 end;
 
 end.
