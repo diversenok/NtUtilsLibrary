@@ -9,12 +9,6 @@ interface
 uses
   Ntapi.VirtDisk, NtUtils;
 
-// Identify the virtual disk kind
-function VdskxQueryVirualDiskType(
-  const FileName: String;
-  out DeviceId: TVirtualStorageDeviceId
-): TNtxStatus;
-
 // Open an existing virtual disk
 function VdskxOpenVirtualDisk(
   out hxVirtualDisk: IHandle;
@@ -51,53 +45,6 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-function VdskxQueryVirualDiskType;
-var
-  hxDevice: IHandle;
-  Input: IMemory<PStorageQueryVirtualDiskSymbolicLinkRequest>;
-  Output: IMemory<PStorageQueryVirtualDiskSymbolicLinkResponse>;
-begin
-  // Connect to VDRVROOT
-  Result := NtxOpenFile(hxDevice, FileParameters
-    .UseFileName(VDRVROOT_DEVICE_NAME)
-    .UseAccess(FILE_READ_DATA)
-  );
-
-  if not Result.IsSuccess then
-    Exit;
-
-  IMemory(Input) := Auto.AllocateDynamic(
-    SizeOf(TStorageQueryVirtualDiskSymbolicLinkRequest) +
-    StringSizeZero(FileName)
-  );
-
-  // Pack the filename
-  Input.Data.RequestLevel := 1;
-  Input.Data.VirtualStorageType.DeviceId := VIRTUAL_STORAGE_TYPE_DEVICE_UNKNOWN;
-  Input.Data.VirtualStorageType.VendorId := VIRTUAL_STORAGE_TYPE_VENDOR_MICROSOFT;
-  Input.Data.FileNameOffset := SizeOf(TStorageQueryVirtualDiskSymbolicLinkRequest);
-  Input.Data.FileNameLength := StringSizeZero(FileName);
-  Move(PWideChar(FileName)^, Input.Offset(Input.Data.FileNameOffset)^,
-    Input.Data.FileNameLength);
-
-  // Send the IOCTL to identify the device type and location
-  Result := NtxDeviceIoControlFileEx(
-    hxDevice,
-    IOCTL_STORAGE_QUERY_VIRTUAL_DISK_SYMBOLIC_LINK,
-    IMemory(Output),
-    SizeOf(TStorageQueryVirtualDiskSymbolicLinkResponse) +
-      MAX_PATH * SizeOf(WideChar),
-    nil,
-    Input.Data,
-    Input.Size
-  );
-
-  // Returnt the device type. For now we only support MS formats, so
-  // the device location is redundant
-  if Result.IsSuccess then
-    DeviceId := Output.Data.VirtualStorageType.DeviceId;
-end;
 
 function VdskxOpenVirtualDisk;
 var
