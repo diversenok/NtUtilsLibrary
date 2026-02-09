@@ -399,7 +399,8 @@ System unit                                                                     
 [NtUtils.Transactions](./NtUtils.Transactions.pas)                                               | Transaction (TmTx) objects
 [NtUtils.Transactions.Remote](./NtUtils.Transactions.Remote.pas)                                 | Forcing processes into transactions
 [NtUtils.UserManager](./NtUtils.UserManager.pas)                                                 | User Manager service (Umgr) API
-[NtUtils.Wim](./NtUtils.Wim.pas)                                                                 | Windows Imaging (*.wim) API
+[NtUtils.VirtDisk](./NtUtils.VirtDisk.pas)                                                       | Virtual disk (\*.iso, \*.vhdx) API
+[NtUtils.Wim](./NtUtils.Wim.pas)                                                                 | Windows Imaging (\*.wim) API
 [NtUtils.WinSafer](./NtUtils.WinSafer.pas)                                                       | Safer API
 [NtUtils.WinStation](./NtUtils.WinStation.pas)                                                   | Terminal server API
 [NtUtils.WinUser](./NtUtils.WinUser.pas)                                                         | User32/GUI API
