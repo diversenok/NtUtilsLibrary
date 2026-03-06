@@ -1039,4 +1039,12 @@ end;
 initialization
   if RtlGetCurrentPeb.ImageBaseAddress <> @ImageBase then
     SysInit.ModuleIsLib := True;
+
+  // Force AllocMem/GetMem/FreeMem to always use the thread-safe memory manager
+  // implementation. Otherwise, everything requiring allocation (strings,
+  // dynamic arrays, classes, anonymous functions, etc.) is inherently unsafe
+  // to use concurrently. Defaulting to False is a bad design choice, if you ask
+  // me. There are so many more ways than TThread to (accidentally) end up
+  // executing Delphi code concurrently and, thus, cause memory corruption...
+  System.IsMultiThread := True;
 end.
