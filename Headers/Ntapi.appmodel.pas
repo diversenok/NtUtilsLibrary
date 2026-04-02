@@ -556,6 +556,7 @@ type
   [FlagName(DAXAO_UNIVERSAL_CONSOLE, 'Universal Console')]
   TDesktopAppxActivateOptions = type Cardinal;
 
+  // private
   [MinOSVersion(OsWin10RS1)]
   [SDKName('IDesktopAppXActivator')]
   IDesktopAppXActivatorV1 = interface (IUnknown)
@@ -577,6 +578,7 @@ type
     ): HResult; stdcall;
   end;
 
+  // private
   [MinOSVersion(OsWin10RS2)]
   [SDKName('IDesktopAppXActivator')]
   IDesktopAppXActivatorV2 = interface (IUnknown)
@@ -599,6 +601,7 @@ type
     ): HResult; stdcall;
   end;
 
+  // private
   [MinOSVersion(OsWin11)]
   [SDKName('IDesktopAppXActivator')]
   IDesktopAppXActivatorV3 = interface (IUnknown)

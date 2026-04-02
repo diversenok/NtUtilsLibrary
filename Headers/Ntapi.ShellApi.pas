@@ -268,6 +268,8 @@ type
   IMMCFrame = IUnknown;
   IMMCColumns = IUnknown;
 
+  // private
+  [SDKName('_Application')]
   IMMCApplication = interface (IDispatch)
     ['{A3AFB9CC-B653-4741-86AB-F0470EC1384C}']
     procedure Help;
@@ -312,6 +314,8 @@ type
     ): HResult; stdcall;
   end;
 
+  // private
+  [SDKName('Document')]
   IMMCDocument = interface (IDispatch)
     ['{225120D6-1E0F-40A3-93FE-1079E6A8017B}']
     function Save(
@@ -378,6 +382,8 @@ type
     ): HResult; stdcall;
   end;
 
+  // private
+  [SDKName('View')]
   IMMCView = interface (IDispatch)
     ['{6EFC2DA2-B38C-457E-9ABB-ED2D189B8C38}']
 

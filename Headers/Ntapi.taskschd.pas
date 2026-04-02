@@ -66,6 +66,7 @@ type
   ITaskDefinition = type IUnknown;
   IRunningTaskCollection = type IUnknown;
 
+  // SDK::taskschd.h
   IRunningTask = interface (IDispatch)
     ['{653758fb-7b9a-4f1e-a471-beeb8e9b834e}']
     function get_Name(
