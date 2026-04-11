@@ -32,15 +32,7 @@ const
 
 type
   TIntegerSign = (isUnsigned, isSigned);
-  TIntegerSize = (
-    isByte,
-    isWord,
-    isCardinal,
-    isUInt64,
-    isUIntPtr =
-      {$IF SizeOf(UIntPtr) = SizeOf(UInt64)}isUInt64{$ELSE}isCardinal{$ENDIF}
-  );
-
+  TIntegerSize = (isByte, isWord, isCardinal, isUIntPtr, isUInt64);
   TNumericSystem = (nsDecimal, nsHexadecimal);
   TNumericSystems = set of TNumericSystem;
 
@@ -60,10 +52,26 @@ type
 
 const
   NUMERIC_SPACES_ALL = [npSpace, npAccent, npApostrophe, npUnderscore];
-  NUMERIC_WIDTH_PER_SIZE: array [TIntegerSize] of Byte = (2, 4, 8, 16);
+  NUMERIC_WIDTH_PER_SIZE: array [TIntegerSize] of Byte = (2, 4, 8,
+    {$IF SizeOf(UIntPtr) = SizeOf(Cardinal)}8{$ELSE}16{$ENDIF}, 16);
+
   NUMERIC_WIDTH_ROUND_TO_GROUP = $80; // Round the number of digits to the group size
-  NUMERIC_WIDTH_ROUND_TO_BYTE = $40; // Round the number of digits to the group size
+  NUMERIC_WIDTH_ROUND_TO_BYTE = $40; // Round the number of digits to the byte size
   NUMERIC_WIDTH_FLAG_MASK = $C0;
+
+  NUMERIC_SYSTEM_RADIX: array [TNumericSystem] of Byte = (10, 16);
+  INTEGER_MAX_VALUE: array [TIntegerSize] of array [TIntegerSign] of UInt64 = (
+    // (unsigned, signed)
+    ($FF, $7F),
+    ($FFFF, $7FFF),
+    ($FFFFFFFF, $7FFFFFFF),
+  {$IF SizeOf(UIntPtr) = SizeOf(Cardinal)}
+    ($FFFFFFFF, $7FFFFFFF),
+  {$ELSE}
+    ($FFFFFFFFFFFFFFFF, $7FFFFFFFFFFFFFFF),
+  {$ENDIF}
+    ($FFFFFFFFFFFFFFFF, $7FFFFFFFFFFFFFFF)
+  );
 
 // Strings
 
@@ -285,7 +293,7 @@ function RtlxIntToStr(
   Base: TNumericSystem;
   Width: Byte = 0; // can be OR'ed with NUMERIC_WIDTH_*
   ValueSize: TIntegerSize = isUInt64;
-  ValaueSign: TIntegerSign = isUnsigned;
+  ValueSign: TIntegerSign = isUnsigned;
   PrefixBases: TNumericSystems = [nsHexadecimal];
   SpaceDigits: TNumericSpaceChar = npNone
 ): String;
@@ -294,7 +302,7 @@ function RtlxIntToStr(
 function RtlxIntToDec(
   const Value: UInt64;
   ValueSize: TIntegerSize = isUInt64;
-  ValaueSign: TIntegerSign = isUnsigned;
+  ValueSign: TIntegerSign = isUnsigned;
   Width: Byte = 0;
   SpaceDigits: TNumericSpaceChar = npNone
 ): String;
@@ -1249,23 +1257,43 @@ begin
     ((Value and $00FF0000) shr 8) or ((Value and $0000FF00) shl 8);
 end;
 
+function RtlxBytesToHexStr;
 const
-  NUMERIC_SYSTEM_RADIX: array [TNumericSystem] of Byte = (10, 16);
-  INTEGER_MAX_VALUE: array [TIntegerSize] of array [TIntegerSign] of UInt64 = (
-    // (unsigned, signed)
-    ($FF, $7F),
-    ($FFFF, $7FFF),
-    ($FFFFFFFF, $7FFFFFFF),
-    ($FFFFFFFFFFFFFFFF, $7FFFFFFFFFFFFFFF)
-  );
+  HEX_DIGITS: PWideChar = '0123456789ABCDEF';
+var
+  ByteCursor: PByte;
+  HexCursor: PWideChar;
+  i: Integer;
+begin
+  if InsertSpaces and (Size > 0) then
+    SetLength(Result, Size * 3 - 1)
+  else
+    SetLength(Result, Size * 2);
+
+  HexCursor := PWideChar(Result);
+  ByteCursor := Buffer;
+
+  for i := 0 to Pred(Integer(Size)) do
+  begin
+    HexCursor^ := HEX_DIGITS[ByteCursor^ shr 4];
+    Inc(HexCursor);
+    HexCursor^ := HEX_DIGITS[ByteCursor^ and $0F];
+    Inc(HexCursor);
+    Inc(ByteCursor);
+
+    if InsertSpaces and (i < Pred(Integer(Size))) then
+    begin
+      HexCursor^ := ' ';
+      Inc(HexCursor);
+    end;
+  end;
+end;
 
 procedure RtlxExpadWidthForHex(
   var Width: Byte;
   const Value: UInt64;
   Size: TIntegerSize
 );
-const
-  WIDTH_PER_SIZE: array [TIntegerSize] of Byte = (2, 4, 8, 16);
 var
   i, Expanded: Byte;
 begin
@@ -1304,38 +1332,6 @@ begin
     Width := Expanded;
 end;
 
-function RtlxBytesToHexStr;
-const
-  HEX_DIGITS: PWideChar = '0123456789ABCDEF';
-var
-  ByteCursor: PByte;
-  HexCursor: PWideChar;
-  i: Integer;
-begin
-  if InsertSpaces and (Size > 0) then
-    SetLength(Result, Size * 3 - 1)
-  else
-    SetLength(Result, Size * 2);
-
-  HexCursor := PWideChar(Result);
-  ByteCursor := Buffer;
-
-  for i := 0 to Pred(Integer(Size)) do
-  begin
-    HexCursor^ := HEX_DIGITS[ByteCursor^ shr 4];
-    Inc(HexCursor);
-    HexCursor^ := HEX_DIGITS[ByteCursor^ and $0F];
-    Inc(HexCursor);
-    Inc(ByteCursor);
-
-    if InsertSpaces and (i < Pred(Integer(Size))) then
-    begin
-      HexCursor^ := ' ';
-      Inc(HexCursor);
-    end;
-  end;
-end;
-
 function RtlxIntToStr;
 const
   MIN_DIGITS_TO_GROUP: array [TNumericSystem] of Byte = (7, 4);
@@ -1350,14 +1346,14 @@ var
   i: Integer;
 begin
   if (Base > nsHexadecimal) or (ValueSize > isUInt64) or
-    (ValaueSign > isSigned) then
+    (ValueSign > isSigned) then
     Error(reRangeError);
 
   // Clear unused bits
   Remaining := Value and INTEGER_MAX_VALUE[ValueSize, isUnsigned];
 
   // Check if we need the minus sign
-  if (ValaueSign = isSigned) and
+  if (ValueSign = isSigned) and
     (Remaining > INTEGER_MAX_VALUE[ValueSize, isSigned]) then
   begin
     Negative := True;
@@ -1412,7 +1408,7 @@ end;
 
 function RtlxIntToDec;
 begin
-  Result := RtlxIntToStr(Value, nsDecimal, Width, ValueSize, ValaueSign, [],
+  Result := RtlxIntToStr(Value, nsDecimal, Width, ValueSize, ValueSign, [],
     SpaceDigits);
 end;
 
