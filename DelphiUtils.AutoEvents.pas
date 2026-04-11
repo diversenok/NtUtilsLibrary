@@ -73,6 +73,20 @@ type
     procedure Invoke;
   end;
 
+  // True means proceed; False means abort (veto)
+  TPollCallback = reference to function: Boolean;
+
+  // An automatic multi-subscriber poll
+  [ThreadSafe]
+  TAutoPoll = record
+  private
+    FSubscribers: TWeakArray<TPollCallback>;
+  public
+    function Subscribe(Callback: TPollCallback): IAutoReleasable;
+    function HasSubscribers: Boolean;
+    function Poll: Boolean;
+  end;
+
   TEventCallback<T> = reference to procedure (const Parameter: T);
 
   // An automatic multi-subscriber event with one parameter
@@ -350,6 +364,44 @@ begin
 end;
 
 function TAutoEvent.Subscribe;
+begin
+  Result := FSubscribers.Add(Callback);
+end;
+
+{ TAutoPoll }
+
+function TAutoPoll.HasSubscribers;
+begin
+  Result := FSubscribers.HasAny;
+end;
+
+function TAutoPoll.Poll;
+var
+  Callback: TPollCallback;
+begin
+  Result := True;
+
+  for Callback in FSubscribers.Entries do
+    try
+      Result := Callback;
+
+      // Abort if vetoed
+      if not Result then
+        Break;
+    except
+      on E: TObject do
+      begin
+        // An exception always aborts
+        Result := False;
+
+        if not Assigned(AutoExceptionHanlder) or not
+          AutoExceptionHanlder(E) then
+          raise;
+      end;
+    end;
+end;
+
+function TAutoPoll.Subscribe;
 begin
   Result := FSubscribers.Add(Callback);
 end;
