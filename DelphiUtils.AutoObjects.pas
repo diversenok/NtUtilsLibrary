@@ -219,10 +219,10 @@ type
     class var DebugDestroy: procedure (Obj: TAutoInterfacedObject);
     class var DebugAddRef: procedure (Obj: TAutoInterfacedObject);
     class var DebugRelease: procedure (Obj: TAutoInterfacedObject);
-    class procedure EnterDestructionLock; static;
-    class procedure ExitDestructionLock; static;
-    class procedure EnterFreeInstanceLock; static;
-    class procedure ExitFreeInstanceLock; static;
+    class procedure EnterDestructionLockExclusive; static;
+    class procedure ExitDestructionLockExclusive; static;
+    class procedure EnterFreeInstanceLockExclusive; static;
+    class procedure ExitFreeInstanceLockExclusive; static;
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
     class function NewInstance: TObject; override;
@@ -324,11 +324,11 @@ type
   // A wrapper that stores a weak interface reference
   TAutoWeakReference = class (TAutoInterfacedObject, IWeak)
   protected
-    [Weak] FWeakObject: TAutoInterfacedObject;
+    FAutoObject: TAutoInterfacedObject;
     [Weak] FWeakIntf: IInterface;
     function Upgrade(out StrongRef: IInterface): Boolean; virtual;
   public
-    constructor Create(const StrongRef: IInterface);
+    constructor Create(StrongRef: IInterface);
   end;
 
   // A wrapper that stores a strong interface reference
@@ -554,7 +554,7 @@ begin
   RtlDeleteResource(@FFreeInstanceLock);
 end;
 
-class procedure TAutoInterfacedObject.EnterDestructionLock;
+class procedure TAutoInterfacedObject.EnterDestructionLockExclusive;
 begin
   // We use an exclusive lock here and a shared lock in Release to avoid
   // serializing reference counting (which is more common than weak reference
@@ -562,7 +562,7 @@ begin
   RtlAcquireResourceExclusive(@FDestructorLock, True);
 end;
 
-class procedure TAutoInterfacedObject.EnterFreeInstanceLock;
+class procedure TAutoInterfacedObject.EnterFreeInstanceLockExclusive;
 begin
   // We use an exclusive lock here and a shared lock in FreeInstance to avoid
   // serializing reference object freeing (which is more common than weak
@@ -570,12 +570,12 @@ begin
   RtlAcquireResourceExclusive(@FFreeInstanceLock, True);
 end;
 
-class procedure TAutoInterfacedObject.ExitDestructionLock;
+class procedure TAutoInterfacedObject.ExitDestructionLockExclusive;
 begin
   RtlReleaseResource(@FDestructorLock);
 end;
 
-class procedure TAutoInterfacedObject.ExitFreeInstanceLock;
+class procedure TAutoInterfacedObject.ExitFreeInstanceLockExclusive;
 begin
   RtlReleaseResource(@FFreeInstanceLock);
 end;
@@ -841,9 +841,9 @@ begin
   if Assigned(StrongRef) and
     (StrongRef.QueryInterface(ObjCastGUID, Instance) = S_OK) and
     Instance.InheritsFrom(TAutoInterfacedObject) then
-    FWeakObject := TAutoInterfacedObject(Instance)
+    FAutoObject := TAutoInterfacedObject(Instance)
   else
-    FWeakObject := nil;
+    FAutoObject := nil;
 end;
 
 function TAutoWeakReference.Upgrade;
@@ -852,46 +852,59 @@ begin
   if not Assigned(FWeakIntf) then
     Exit(False);
 
-  // First, enter a less-contended FreeInstance lock and prevent weak
-  // TAutoInterfacedObject instance references from disappearing. Note that
-  // desturctors might still run but objects cannot be freed.
-  TAutoInterfacedObject.EnterFreeInstanceLock;
+  // First, enter a less-contended FreeInstance lock and prevent weak references
+  // to TAutoInterfacedObject-derived objects from disappearing. Note that
+  // desturctors can still run but objects cannot be freed. Hence, it also
+  // ensures that the reference count and IsDestroying remain safe to access.
+  TAutoInterfacedObject.EnterFreeInstanceLockExclusive;
   try
-    if Assigned(FWeakObject) then
+    // The first condition verifies that the weak reference did not go away
+    // right before we locked FreeInstance. The second determines if we deal
+    // with a TAutoInterfacedObject-derived object.
+    if Assigned(FWeakIntf) and Assigned(FAutoObject) then
     begin
-      // If the object is destroying, block upgrades
-      if not FWeakObject.IsDestroying then
+      // Do the initial destruction check before further locking
+      if not FAutoObject.IsDestroying then
       begin
-        // Use the thread-safe path and prevent destructors from running.
-        TAutoInterfacedObject.EnterDestructionLock;
+        // Use the thread-safe path and prevent any destructors from running.
+        TAutoInterfacedObject.EnterDestructionLockExclusive;
         try
           // Re-check the object for destruction, in case it started between the
           // last checking and locking.
-          if not FWeakObject.IsDestroying then
+          if not FAutoObject.IsDestroying then
           begin
-            // Upgrade to strong
+            // Safe to upgrade to strong
             StrongRef := FWeakIntf;
             Result := Assigned(StrongRef);
           end
           else
+          begin
+            // The object was destroyed (but not yet freed) right before locking
             Result := False;
+          end;
         finally
           // Allows object destruction again
-          TAutoInterfacedObject.ExitDestructionLock;
+          TAutoInterfacedObject.ExitDestructionLockExclusive;
         end;
       end
       else
+      begin
+        // The object already entered its destructor
         Result := False;
+      end;
     end
     else
     begin
-      // The object is not aware of locking; fall back to thread-unsafe upgrade
+      // Either the weak referece is nil because it dissapeared right before we
+      // locked FreeInstance (and so is safe to copy) or the object does not
+      // derive from TAutoInterfacedObject and, thus, is not aware of our
+      // locking; fall back to thread-unsafe upgrade in that case.
       StrongRef := FWeakIntf;
       Result := Assigned(StrongRef);
     end;
   finally
     // Allow object deallocation
-    TAutoInterfacedObject.ExitFreeInstanceLock;
+    TAutoInterfacedObject.ExitFreeInstanceLockExclusive;
   end;
 end;
 
