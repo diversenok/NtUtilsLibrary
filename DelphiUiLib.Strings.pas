@@ -11,23 +11,18 @@ uses
 
 { Text prettification }
 
-// Insert spaces into CamelCase strings and remove a prefix/suffix
-function PrettifyCamelCase(
-  const CamelCaseText: String;
-  const Prefix: String = '';
-  const Suffix: String = ''
-): String;
+// Split a CamelCase or a SNAKE_CASE string into an array of words
+function RtlxTokenizeIdentifier(
+  const Identifier: String
+): TArray<String>;
 
-// Convert CamelCase to SNAKE_CASE string
-function CamelCaseToSnakeCase(
-  const Text: String
-): string;
-
-// Adjust capitalization and add spaces to SNAKE_CASE strings
-function PrettifySnakeCase(
-  const CapsText: String;
-  const Prefix: String = '';
-  const Suffix: String = ''
+// Convert an identifier name into a human-readable name.
+// Examples:
+// ACCESS_DENIED -> Access Denied
+// AADUserAccount -> AAD User Account
+// Win32kFilter -> Win32k Filter
+function RtlxPrettifyIdentifier(
+  const Identifier: String
 ): String;
 
 { Integers }
@@ -127,84 +122,141 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-function PrettifyCamelCase;
-var
-  i: Integer;
+type
+  TCharCategory = (ccOther, ccLower, ccUpper, ccDigit, ccUnderscore);
+
+function CharToCategory(C: Char): TCharCategory;
 begin
-  // Convert a string with from CamelCase to a spaced string removing a
-  // prefix/suffix: '[Prefix]MyExampleIDTest[Suffix]' => 'My Example ID Test'
+  case C of
+    'a'..'z': Result := ccLower;
+    'A'..'Z': Result := ccUpper;
+    '0'..'9': Result := ccDigit;
+    '_': Result := ccUnderscore;
+  else
+    Result := ccOther;
+  end;
+end;
 
-  Result := CamelCaseText;
+function RtlxTokenizeIdentifier;
+var
+  i, TokenIndex, TokenCharIndex: Integer;
+  SplitAfter: TArray<Boolean>;
+  FirstCategory, SecondCategory: TCharCategory;
+  IsCamelCase: Boolean;
+begin
+  if Length(Identifier) <= 0 then
+    Exit(nil);
 
-  // Remove prefix & suffix
-  RtlxPrefixStripString(Prefix, Result, True);
-  RtlxSuffixStripString(Suffix, Result, True);
+  IsCamelCase := False;
+  SplitAfter:= nil;
+  SetLength(SplitAfter, Low(String) + Length(Identifier));
 
-  // Add a space before a capital that has a non-capital on either side of it
-
-  i := Low(Result);
-
-  // Skip leading lower-case word
-  while (i <= High(Result)) and (AnsiChar(Result[i]) in ['a'..'z']) do
-    Inc(i);
-
-  Inc(i);
-  while i <= High(Result) do
+  // Use a sliding window of two characters to scan the string for case changes
+  i := Low(Identifier);
+  while i < High(Identifier) do
   begin
-    if (AnsiChar(Result[i]) in ['A'..'Z', '0'..'9']) and
-      (not (AnsiChar(Result[i - 1]) in ['A'..'Z', '0'..'9']) or
-      ((i < High(Result)) and not (AnsiChar(Result[i + 1]) in
-      ['A'..'Z', '0'..'9']))) then
+    FirstCategory := CharToCategory(Identifier[i]);
+    SecondCategory := CharToCategory(Identifier[i + 1]);
+
+    if (FirstCategory = ccUpper) and (SecondCategory = ccLower) then
+      // Split before Aa
+      SplitAfter[i - 1] := True
+    else if FirstCategory = ccUnderscore then
+      // Skip underscores
+    else if (FirstCategory = SecondCategory) or
+      (SecondCategory in [ccDigit, ccOther]) or
+      ((FirstCategory = ccDigit) and (SecondCategory = ccLower)) then
+      // Preserve aa, AA, a0, A0, 00, 0a
+    else
+      // Split inside aA, 0A, a_, A_, 0_
+      SplitAfter[i] := True;
+
+    // Detect CamelCase by the presense of lowercase letters
+    IsCamelCase := IsCamelCase or (FirstCategory = ccLower) or
+      (SecondCategory = ccLower);
+
+    Inc(i);
+  end;
+
+  // Always split at the end
+  SplitAfter[High(Identifier)] := True;
+
+  // Count the number of tokens
+  TokenIndex := 0;
+  TokenCharIndex := Low(String);
+  for i := Low(Identifier) to High(Identifier) do
+  begin
+    if Identifier[i] <> '_' then
+      Inc(TokenCharIndex);
+
+    if SplitAfter[i] and (TokenCharIndex > Low(String)) then
     begin
-      Insert(' ', Result, i);
-      Inc(i);
+      Inc(TokenIndex);
+      TokenCharIndex := Low(String);
     end;
-    Inc(i);
   end;
-end;
 
-function CamelCaseToSnakeCase;
-var
-  i: Integer;
-begin
-  Result := PrettifyCamelCase(Text);
+  SetLength(Result, TokenIndex);
 
-  for i := Low(Result) to High(Result) do
-    if AnsiChar(Result[i]) in ['a'..'z'] then
-      Result[i] := Chr(Ord('A') + Ord(Result[i]) - Ord('a'))
-    else if Result[i] = ' ' then
-      Result[i] := '_';
-end;
-
-function PrettifySnakeCase;
-var
-  i: Integer;
-begin
-  // Convert a string with from capitals with underscores to a spaced string
-  // removing a prefix/suffix, ex.: 'ERROR_ACCESS_DENIED' => 'Access Denied'
-
-  Result := CapsText;
-
-  // Remove prefix & suffix
-  RtlxPrefixStripString(Prefix, Result, True);
-  RtlxSuffixStripString(Suffix, Result, True);
-  RtlxPrefixStripString('_', Result, True);
-  RtlxSuffixStripString('_', Result, True);
-
-  i := Succ(Low(Result));
-  while i <= High(Result) do
+  // Count the length of each token
+  TokenIndex := 0;
+  TokenCharIndex := Low(String);
+  for i := Low(Identifier) to High(Identifier) do
   begin
-    case Result[i] of
-      'A'..'Z':
-        Result[i] := Chr(Ord('a') + Ord(Result[i]) - Ord('A'));
-      '_':
-        begin
-          Result[i] := ' ';
-          Inc(i); // Skip the next letter
-        end;
+    if Identifier[i] <> '_' then
+      Inc(TokenCharIndex);
+
+    if SplitAfter[i] and (TokenCharIndex > Low(String)) then
+    begin
+      SetLength(Result[TokenIndex], TokenCharIndex - Low(String));
+      Inc(TokenIndex);
+      TokenCharIndex := Low(String);
     end;
-    Inc(i);
   end;
+
+  // Save each token
+  TokenIndex := 0;
+  TokenCharIndex := Low(String);
+  for i := Low(Identifier) to High(Identifier) do
+  begin
+    if Identifier[i] <> '_' then
+    begin
+      Result[TokenIndex][TokenCharIndex] := Identifier[i];
+
+      // While we always want to upcase the first letter in a token, whether
+      // we want to downcase remaining letters depends on whether we are dealing
+      // with CamelCase or SNAKE_CASE. The first one should preserve case, the
+      // second - convert. Examples:
+      // ComTechnology => Com Technology
+      // COMTechnology => COM Technology
+      // COM_TECHNOLOGY => Com Technology (ambiguous; cannot express both)
+
+      if TokenCharIndex = Low(String) then
+      case Identifier[i] of
+        'a'..'z': Dec(Result[TokenIndex][TokenCharIndex], Ord('a') - Ord('A'));
+      end
+      else if not IsCamelCase then
+      case Identifier[i] of
+        'A'..'Z': Inc(Result[TokenIndex][TokenCharIndex], Ord('a') - Ord('A'));
+      end;
+
+      Inc(TokenCharIndex);
+    end;
+
+    if SplitAfter[i] and (TokenCharIndex > Low(String))  then
+    begin
+      Inc(TokenIndex);
+      TokenCharIndex := Low(String);
+    end;
+  end;
+end;
+
+function RtlxPrettifyIdentifier;
+var
+  Tokens: TArray<String>;
+begin
+  Tokens := RtlxTokenizeIdentifier(Identifier);
+  Result := RtlxJoinStrings(Tokens, ' ');
 end;
 
 { Integers }

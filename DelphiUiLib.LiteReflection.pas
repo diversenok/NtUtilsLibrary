@@ -239,18 +239,11 @@ function RttixPrettifyName(
 ): String;
 begin
   Result := Input;
+  RtlxPrefixStripString(Prefix, Result, True);
+  RtlxSuffixStripString(Suffix, Result, True);
 
-  case NamingStyle of
-    nsPreserveCase:
-    begin
-      RtlxPrefixStripString(Prefix, Result, True);
-      RtlxSuffixStripString(Suffix, Result, True);
-    end;
-    nsCamelCase:
-      Result := PrettifyCamelCase(Result, Prefix, Suffix);
-    nsSnakeCase:
-      Result := PrettifySnakeCase(Result, Prefix, Suffix);
-  end;
+  if NamingStyle <> nsPreserveCase then
+    Result := RtlxPrettifyIdentifier(Result);
 end;
 
 function RttixFormatEnum(
