@@ -246,7 +246,7 @@ function RtlxUpperString(
 
 // Concat a collection of strings with delimiters
 function RtlxJoinStrings(
-  const Strings: TArraY<String>;
+  const Strings: TArray<String>;
   const Separator: String
 ): String;
 

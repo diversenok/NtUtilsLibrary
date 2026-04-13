@@ -736,8 +736,8 @@ type
   PRuntimeFunction = ^TImageRuntimeFunctionEntry;
 
   [SubEnum($3, UNW_FLAG_NHANDLER, 'No Handler')]
-  [SubEnum($3, UNW_FLAG_NHANDLER, 'Exception Handler')]
-  [SubEnum($3, UNW_FLAG_NHANDLER, 'Unwind Handler')]
+  [SubEnum($3, UNW_FLAG_EHANDLER, 'Exception Handler')]
+  [SubEnum($3, UNW_FLAG_UHANDLER, 'Unwind Handler')]
   [FlagName(UNW_FLAG_CHAININFO, 'Chain Info')]
   [FlagName(UNW_FLAG_NO_EPILOGUE, 'No Epilogue')]
   TUnwindFlags = type Cardinal;

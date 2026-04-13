@@ -632,16 +632,16 @@ type
   TFileMode = type Cardinal;
 
   // WDK::wdm.h - info class 17
-  [SubEnum(FILE_BYTE_ALIGNMENT, MAX_UINT, 'Byte')]
-  [SubEnum(FILE_WORD_ALIGNMENT, MAX_UINT, 'Word (2-byte)')]
-  [SubEnum(FILE_LONG_ALIGNMENT, MAX_UINT, 'Long (4-byte)')]
-  [SubEnum(FILE_QUAD_ALIGNMENT, MAX_UINT, 'Quad (8-byte)')]
-  [SubEnum(FILE_OCTA_ALIGNMENT, MAX_UINT, 'Octa (16-byte)')]
-  [SubEnum(FILE_32_BYTE_ALIGNMENT, MAX_UINT, '32-byte')]
-  [SubEnum(FILE_64_BYTE_ALIGNMENT, MAX_UINT, '64-byte')]
-  [SubEnum(FILE_128_BYTE_ALIGNMENT, MAX_UINT, '128-byte')]
-  [SubEnum(FILE_256_BYTE_ALIGNMENT, MAX_UINT, '256-byte')]
-  [SubEnum(FILE_512_BYTE_ALIGNMENT, MAX_UINT, '512-byte')]
+  [SubEnum(MAX_UINT, FILE_BYTE_ALIGNMENT, 'Byte')]
+  [SubEnum(MAX_UINT, FILE_WORD_ALIGNMENT, 'Word (2-byte)')]
+  [SubEnum(MAX_UINT, FILE_LONG_ALIGNMENT, 'Long (4-byte)')]
+  [SubEnum(MAX_UINT, FILE_QUAD_ALIGNMENT, 'Quad (8-byte)')]
+  [SubEnum(MAX_UINT, FILE_OCTA_ALIGNMENT, 'Octa (16-byte)')]
+  [SubEnum(MAX_UINT, FILE_32_BYTE_ALIGNMENT, '32-byte')]
+  [SubEnum(MAX_UINT, FILE_64_BYTE_ALIGNMENT, '64-byte')]
+  [SubEnum(MAX_UINT, FILE_128_BYTE_ALIGNMENT, '128-byte')]
+  [SubEnum(MAX_UINT, FILE_256_BYTE_ALIGNMENT, '256-byte')]
+  [SubEnum(MAX_UINT, FILE_512_BYTE_ALIGNMENT, '512-byte')]
   TFileAlignment = type Cardinal;
 
   // WDK::ntifs.h - info class 18
