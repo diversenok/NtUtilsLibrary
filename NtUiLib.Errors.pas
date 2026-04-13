@@ -119,7 +119,7 @@ begin
       Break;
 
   // Convert names from looking like "ACCESS_DENIED" to "Access Denied"
-  Result := PrettifySnakeCase(Result);
+  Result := RtlxPrettifyIdentifier(Result);
 end;
 
 function RtlxNtStatusMessage;
