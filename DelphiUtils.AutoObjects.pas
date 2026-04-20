@@ -112,8 +112,9 @@ type
   // Upgrading is thread-safe for descendants of TAutoInterfacedObject
   [ThreadSafe]
   IWeak<I: IInterface> = interface (IAutoReleasable)
-    ['{F13D07F6-3F42-44BF-AEF1-F13189D3ED40}']
+    ['{7692BE7A-AEA1-4E8E-9053-46F0E7ED2C18}']
     function Upgrade(out StrongRef: I): Boolean;
+    function HasRef: Boolean;
   end;
   IWeak = IWeak<IInterface>;
 
@@ -126,6 +127,7 @@ type
   public
     class operator Implicit(const StrongRef: I): Weak<I>;
     function Upgrade(out StrongRef: I): Boolean;
+    function HasRef: Boolean;
     property WeakReference: IWeak<I> read FReference;
   end;
 
@@ -176,7 +178,8 @@ type
     class function RefHandle(HandleValue: THandle): IHandle; static;
 
     // Capture a weak wrapper for an interface
-    class function RefWeak<I: IInterface>(const StrongRef: I): IWeak<I>; static;
+    class function RefWeak(const StrongRef: IUnknown): IWeak; overload; static;
+    class function RefWeak<I: IInterface>(const StrongRef: I): IWeak<I>; overload; static;
 
     // Create a wrapper for an interface
     class function RefStrong<I: IInterface>(const StrongRef: I): IStrong<I>; static;
@@ -327,6 +330,7 @@ type
     FAutoObject: TAutoInterfacedObject;
     [Weak] FWeakIntf: IInterface;
     function Upgrade(out StrongRef: IInterface): Boolean; virtual;
+    function HasRef: Boolean; virtual;
   public
     constructor Create(StrongRef: IInterface);
   end;
@@ -406,6 +410,14 @@ begin
 end;
 
 { Weak<I> }
+
+function Weak<I>.HasRef;
+var
+  StrongRef: I;
+begin
+  // Upgrade and discard
+  Result := Upgrade(StrongRef);
+end;
 
 class operator Weak<I>.Implicit(const StrongRef: I): Weak<I>;
 begin
@@ -508,7 +520,12 @@ begin
   IStrong(Result) := TAutoStrongReference.Create(StrongRef);
 end;
 
-class function Auto.RefWeak<I>;
+class function Auto.RefWeak(const StrongRef: IInterface): IWeak;
+begin
+  Result := TAutoWeakReference.Create(StrongRef);
+end;
+
+class function Auto.RefWeak<I>(const StrongRef: I): IWeak<I>;
 begin
   IWeak(Result) := TAutoWeakReference.Create(StrongRef);
 end;
@@ -844,6 +861,14 @@ begin
     FAutoObject := TAutoInterfacedObject(Instance)
   else
     FAutoObject := nil;
+end;
+
+function TAutoWeakReference.HasRef;
+var
+  StrongRef: IUnknown;
+begin
+  // Upgrade and discard
+  Result := Upgrade(StrongRef);
 end;
 
 function TAutoWeakReference.Upgrade;
