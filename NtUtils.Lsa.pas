@@ -162,6 +162,11 @@ function LsaxEnumeratePrivileges(
   [opt, Access(POLICY_VIEW_LOCAL_INFORMATION)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
+// Enumerate all known privileges
+function LsaxEnumeratePrivilegesWithFallback(
+  [opt, Access(POLICY_VIEW_LOCAL_INFORMATION)] hxPolicy: ILsaHandle = nil
+): TArray<TLuid>;
+
 // Convert a numerical privilege value to internal name
 function LsaxQueryPrivilege(
   const Luid: TLuid;
@@ -622,6 +627,33 @@ begin
   begin
     Privileges[i].Name := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name.ToString;
     Privileges[i].LocalValue := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.LocalValue;
+  end;
+end;
+
+function LsaxEnumeratePrivilegesWithFallback;
+const
+  SE_MIN_WELL_KNOWN_PRIVILEGE = Integer(SE_CREATE_TOKEN_PRIVILEGE);
+  SE_MAX_WELL_KNOWN_PRIVILEGE = Integer(High(TSeWellKnownPrivilege));
+var
+  Definitions: TArray<TPrivilegeDefinition>;
+  i: Integer;
+begin
+  if LsaxEnumeratePrivileges(Definitions, hxPolicy).IsSuccess then
+  begin
+    // Capture known LUIDs returned by LSA
+    SetLength(Result, Length(Definitions));
+
+    for i := 0 to High(Result) do
+      Result[i] := Definitions[i].LocalValue;
+  end
+  else
+  begin
+    // Use the entire well-known range as fallback
+    SetLength(Result, SE_MAX_WELL_KNOWN_PRIVILEGE -
+      SE_MIN_WELL_KNOWN_PRIVILEGE + 1);
+
+    for i := 0 to High(Result) do
+      Result[i] := SE_MIN_WELL_KNOWN_PRIVILEGE + i;
   end;
 end;
 
