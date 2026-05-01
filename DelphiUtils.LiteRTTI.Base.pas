@@ -280,6 +280,12 @@ type
     function TypeName: String;
   end;
 
+// Determine an IID of an interface type
+function TryGetIID(
+  AType: PLiteRttiTypeInfo;
+  out IID: TGuid
+): Boolean;
+
 implementation
 
 {$BOOLEVAL OFF}
@@ -1355,6 +1361,17 @@ end;
 function TLiteRttiMethodParameter.TypeName;
 begin
   Result := UTF8IdentToString(Start.TypeNameStart);
+end;
+
+{ Functions }
+
+function TryGetIID;
+begin
+  Result := Assigned(AType) and (AType.Kind = tkInterface) and
+    (ifHasGuid in AType.InterfaceFlags);
+
+  if Result then
+    IID := AType.InterfaceGuid;
 end;
 
 end.
