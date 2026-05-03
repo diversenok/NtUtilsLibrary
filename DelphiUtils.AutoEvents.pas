@@ -41,6 +41,7 @@ type
     [ThreadSafe(False)] class function FindIndexLocked(
       const Cookie: NativeUInt): Integer; static;
     class constructor Create;
+    class destructor Destroy;
   public
     // Save an interface reference and return a cookie
     class function Add(
@@ -117,6 +118,9 @@ type
   end;
 
 implementation
+
+uses
+  Ntapi.ntpebteb, Ntapi.ntdbg;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -264,6 +268,15 @@ begin
   // Use a magic starting number to lower the chance of collisions with
   // uninitialized data
   FNextCookie := $00DE1781;
+end;
+
+class destructor TInterfaceTable.Destroy;
+begin
+{$IFDEF DEBUG}
+  if ReportMemoryLeaksOnShutdown and (Length(FEntries) > 0) and
+    RtlGetCurrentPeb.BeingDebugged then
+    DbgBreakPoint;
+{$ENDIF}
 end;
 
 class function TInterfaceTable.Find;
