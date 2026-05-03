@@ -14,10 +14,10 @@ type
   // An exception type thrown by RaiseOnError method of TNtxStatus
   ENtError = class (EOSError)
   private
-    xStatus: TNtxStatus;
+    FStatus: TNtxStatus;
   public
     constructor Create(const Status: TNtxStatus);
-    property NtxStatus: TNtxStatus read xStatus;
+    property NtxStatus: TNtxStatus read FStatus;
   end;
 
 // Make a TNtxStatus containing exception information
@@ -26,7 +26,8 @@ function CaptureExceptionToNtxStatus(E: Exception): TNtxStatus;
 implementation
 
 uses
-  Ntapi.ntstatus, NtUiLib.Errors, NtUtils.Ldr, NtUtils.DbgHelp;
+  Ntapi.ntstatus, NtUiLib.Errors, NtUtils.Ldr, NtUtils.DbgHelp,
+  DelphiUtils.AutoEvents;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -36,7 +37,7 @@ uses
 
 constructor ENtError.Create;
 begin
-  xStatus := Status;
+  FStatus := Status;
   ErrorCode := Cardinal(Status.Win32Error);
   Message := Status.ToString;
 end;
@@ -91,40 +92,87 @@ end;
 
 { Stack Trace Support }
 
+type
+  IExceptionStackTrace = interface
+    ['{69815025-B616-43AF-BB25-AC29146B1BD5}']
+    function Format: String;
+  end;
+
+  TExceptionStackTrace = class (TInterfacedObject, IExceptionStackTrace)
+  private
+    FTrace: TArray<Pointer>;
+  public
+    function Format: String;
+    constructor Create(ExceptionAddress: Pointer);
+  end;
+
+constructor TExceptionStackTrace.Create;
+var
+  i: Integer;
+begin
+  inherited Create;
+
+  // Capture the backtrace
+  FTrace := RtlxCaptureStackTrace;
+
+  // Trim it by removing frames related to exception handling
+  for i := 0 to High(FTrace) do
+    if FTrace[i] = ExceptionAddress then
+    begin
+      Delete(FTrace, 0, i);
+      Break;
+    end;
+end;
+
+function TExceptionStackTrace.Format;
+begin
+  Result := SymxFormatStackTrace(FTrace);
+end;
+
 // A callback for capturing the stack trace when an exception occurs
 function GetExceptionStackInfoProc(P: PExceptionRecord): Pointer;
 var
-  Trace: TArray<Pointer> absolute Result;
-  i: Integer;
+  StackTrace: IExceptionStackTrace;
 begin
-  // Clean-up before assigning
-  Result := nil;
+  // Delphi has a bug (RSS-5367) where CleanUpStackInfoProc is not being called
+  // on the original exception's StackInfo after re-raising it. Because of that,
+  // we cannot return the stack trace as a pointer. Instead, we register it in
+  // the interface table and return a cookie. The cookie still needs freeing,
+  // but can be safely shared with the re-raised exception without causing
+  // double-free problems once the bug gets fixed. Upon the re-raised
+  // exception's destruction, it will revoke the cookie and free the stack
+  // trace. Subsequent cookie revokations will do no harm. Additionally,
+  // using the original stack trace for re-raised exception is better for
+  // debugging anyway.
 
-  // Capture the backtrace
-  Trace := RtlxCaptureStackTrace;
+  if TObject(P.ExceptObject) is Exception then
+  begin
+    // Forward the original stack trace on re-raise
+    Result := Exception(p.ExceptObject).StackInfo;
 
-  // Trim it by removing exception-handling frames
-  for i := 0 to High(Trace) do
-    if Trace[i] = P.ExceptionAddress then
-    begin
-      Delete(Trace, 0, i);
-      Break;
-    end;
+    if Assigned(Result) then
+      Exit;
+  end;
+
+  // Capture a stack trace, register it, and return a cookie
+  StackTrace := TExceptionStackTrace.Create(P.ExceptionAddress);
+  Result := Pointer(TInterfaceTable.Add(StackTrace));
 end;
 
 // A callback for representing the stack trace
 function GetStackInfoStringProc(Info: Pointer): string;
 var
-  Trace: TArray<Pointer> absolute Info;
+  StackTrace: IExceptionStackTrace;
 begin
-  Result := SymxFormatStackTrace(Trace);
+  if TInterfaceTable.Find(NativeUInt(Info), StackTrace) then
+    Result := StackTrace.Format
+  else
+    Result := '';
 end;
 
 procedure CleanUpStackInfoProc(Info: Pointer);
-var
-  Trace: TArray<Pointer> absolute Info;
 begin
-  Finalize(Trace);
+  TInterfaceTable.Remove(NativeUInt(Info));
 end;
 
 initialization
