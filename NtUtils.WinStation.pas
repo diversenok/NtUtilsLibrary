@@ -28,6 +28,10 @@ function WsxEnumerateSessions(
   [opt] hServer: TWinStaHandle = SERVER_CURRENT
 ): TNtxStatus;
 
+// Enumerate known known session IDs
+function WsxEnumerateSessionIDsWithFallback(
+): TArray<TSessionId>;
+
 // Find the ID of the active session
 function WsxFindActiveSessionId(
   out SessionId: TSessionId;
@@ -117,7 +121,8 @@ function AdvxEnableDisableElevationForSession(
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.SysUtils, DelphiUtils.AutoObjects, NtUtils.Ldr;
+  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.SysUtils, DelphiUtils.AutoObjects,
+  NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -190,6 +195,28 @@ begin
   for i := 0 to High(Sessions) do
     Sessions[i] := Buffer{$R-}[i]{$IFDEF R+}{$IFDEF R+}{$R+}{$ENDIF}{$ENDIF};
  end;
+
+function WsxEnumerateSessionIDsWithFallback;
+var
+  SessionInfo: TArray<TSessionIdW>;
+  i: Integer;
+begin
+  if WsxEnumerateSessions(SessionInfo).IsSuccess then
+  begin
+    SetLength(Result, Length(SessionInfo));
+
+    for i := 0 to High(SessionInfo) do
+      Result[i] := SessionInfo[i].SessionID
+  end
+  else if RtlGetCurrentPeb.SessionID <> 0 then
+    Result := [0, RtlGetCurrentPeb.SessionID]
+  else
+    Result := [0];
+
+  // Future: it's also possible to list session objects from \KernelObjects or
+  // to bruteforce values based on session object presense (knowing the total
+  // number from the type statistics). Not sure if it's worth it, though.
+end;
 
 function WsxFindActiveSessionId;
 var

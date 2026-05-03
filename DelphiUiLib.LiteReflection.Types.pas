@@ -33,8 +33,8 @@ procedure RttixRegisterAllFormatter;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.winsta,
-  Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.WinUser, Ntapi.ObjBase, NtUtils,
+  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi,
+  Ntapi.WinNt, Ntapi.winsta, Ntapi.ntrtl, Ntapi.WinUser, Ntapi.ObjBase, NtUtils,
   NtUtils.SysUtils, NtUtils.Errors, NtUiLib.Errors, NtUtils.Synchronization,
   NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads, NtUtils.WinStation,
   NtUtils.Lsa.Logon, NtUtils.Security.Sid, NtUtils.Lsa.Sid, DelphiUiLib.Strings,
@@ -641,12 +641,18 @@ begin
   begin
     Result.Text := UiLibUIntToDec(SessionId);
 
-    if InfoValid and (Info.WinStationName <> '') then
-      Result.Text := Result.Text + ': ' + Info.WinStationName;
-
     if InfoValid then
+    begin
+      if Info.WinStationName <> '' then
+        Result.Text := Result.Text + ': ' + Info.WinStationName;
+
       Result.Text := Result.Text + ' (' + RtlxStringOrDefault(Info.FullUserName,
         'No User') + ')';
+    end
+    else if SessionId = RtlGetCurrentPeb.SessionID then
+      Result.Text := Result.Text + ' (Current)'
+    else if SessionId = 0 then
+      Result.Text := Result.Text + ' (Services)';
 
     Include(Result.ValidFormats, rfText);
   end;
