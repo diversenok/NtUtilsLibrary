@@ -650,9 +650,9 @@ begin
         'No User') + ')';
     end
     else if SessionId = RtlGetCurrentPeb.SessionID then
-      Result.Text := Result.Text + ' (Current)'
+      Result.Text := Result.Text + ': Current'
     else if SessionId = 0 then
-      Result.Text := Result.Text + ' (Services)';
+      Result.Text := Result.Text + ': Services';
 
     Include(Result.ValidFormats, rfText);
   end;
