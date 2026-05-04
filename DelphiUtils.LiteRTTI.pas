@@ -332,35 +332,6 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-{ Helpers }
-
-function ReadUTF8String(Cursor: Pointer): String;
-var
-  RawLength: Word;
-  ActualLength: Integer;
-begin
-  // The first two bytes are the length of the following UTF-8 buffer
-  RawLength := Word(Cursor^);
-
-  // A UTF-16 string is at most as long in characters as UTF-8
-  SetLength(Result, RawLength);
-
-  // Unpack UTF-8 into UTF-16. Note: the destination max chars includes the zero
-  // terminator but the source does not.
-  ActualLength := Utf8ToUnicode(PWideChar(Result), RawLength + 1,
-    Pointer(PByte(Cursor) + SizeOf(Word)), RawLength);
-
-  if ActualLength > 0 then
-    SetLength(Result, ActualLength - 1)
-  else
-    Result := '';
-end;
-
-function UTF8StringTail(Cursor: Pointer): Pointer;
-begin
-  Result := PByte(Cursor) + SizeOf(Word) + Word(Cursor^);
-end;
-
 { TLiteRttiAttributeExtension }
 
 function TLiteRttiAttributeExtension.IsAggregateAttribute;
