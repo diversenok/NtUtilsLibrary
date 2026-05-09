@@ -880,10 +880,18 @@ begin
 
   Uninitializer := Auto.Defer(
     procedure
+    var
+      Status: TNtxStatus;
     begin
       // Make sure uninitialization runs on the same thread
-      if CallingThread = NtCurrentTeb.ClientID.UniqueThread then
-        ComxUninitialize;
+      if CallingThread <> NtCurrentTeb.ClientID.UniqueThread then
+      begin
+        Status.Location := 'ComxUninitializeAuto';
+        Status.HResult := RPC_E_WRONG_THREAD;
+        Status.RaiseOnError;
+      end;
+
+      ComxUninitialize;
     end
   );
 end;
@@ -1005,16 +1013,32 @@ end;
 function ComxInitializeImplicitAuto;
 var
   Cookie: TCoMtaUsageCookie;
+  CallingThread: TThreadId;
 begin
   Result := ComxInitializeImplicit(@Cookie);
 
-  if Result.IsSuccess then
-    Uninitializer := Auto.Defer(
-      procedure
+  if not Result.IsSuccess then
+    Exit;
+
+  // Record the calling thread since COM init is thread-specific
+  CallingThread := NtCurrentTeb.ClientID.UniqueThread;
+
+  Uninitializer := Auto.Defer(
+    procedure
+    var
+      Status: TNtxStatus;
+    begin
+      // Make sure uninitialization runs on the same thread
+      if CallingThread <> NtCurrentTeb.ClientID.UniqueThread then
       begin
-        ComxUninitializeImplicit(Cookie);
-      end
-    );
+        Status.Location := 'ComxUninitializeImplicitAuto';
+        Status.HResult := RPC_E_WRONG_THREAD;
+        Status.RaiseOnError;
+      end;
+
+      ComxUninitializeImplicit(Cookie);
+    end
+  );
 end;
 
 var
@@ -1026,6 +1050,15 @@ function ComxInitializeImplicitOnce;
 var
   Init: IAcquiredRunOnce;
 begin
+  if NtCurrentTeb.ClientID.UniqueThread <> MainThreadID then
+  begin
+    // Only allow this function to be called on the main thread.
+    // Otherwise, uninitializing on module unload becomes a problem
+    Result.Location := 'ComxInitializeImplicitOnce';
+    Result.HResult := RPC_E_WRONG_THREAD;
+    Exit;
+  end;
+
   // Already called?
   if not RtlxRunOnceBegin(@ImplicitMTAInitialized, Init) then
     Exit(NtxSuccess);
@@ -1574,6 +1607,16 @@ function RoxInitializeOnce;
 var
   Init: IAcquiredRunOnce;
 begin
+  if NtCurrentTeb.ClientID.UniqueThread <> MainThreadID then
+  begin
+    // Only allow this function to be called on the main thread.
+    // Otherwise, uninitializing on module unload becomes a problem
+    Result.Location := 'RoxInitializeOnce';
+    Result.HResult := RPC_E_WRONG_THREAD;
+    Exit;
+  end;
+
+  // Already complete?
   if not RtlxRunOnceBegin(@RoxpInitialized, Init) then
     Exit(NtxSuccess);
 
