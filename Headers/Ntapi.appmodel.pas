@@ -14,18 +14,19 @@ uses
   Ntapi.WinUser, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
-  MrmCoreR = 'MrmCoreR.dll';
   ActivationManager = 'ActivationManager.dll';
   AppXDeploymentClient = 'AppXDeploymentClient.dll';
   srpapi = 'srpapi.dll';
 
 var
-  delayed_MrmCoreR: TDelayedLoadDll = (DllName: MrmCoreR);
   delayed_ActivationManager: TDelayedLoadDll = (DllName: ActivationManager);
   delayed_AppXDeploymentClient: TDelayedLoadDll = (DllName: AppXDeploymentClient);
   delayed_srpapi: TDelayedLoadDll = (DllName: srpapi);
 
 const
+  // rev
+  SECURITY_ATTRIBUTE_SYSAPPID = 'WIN://SYSAPPID';
+
   // SDK::appmodel.h - information flags
   PACKAGE_INFORMATION_BASIC = $00000000;
   PACKAGE_INFORMATION_FULL = $00000100;
@@ -163,6 +164,15 @@ const
   CLSID_DesktopAppXActivator: TGuid = '{168EB462-775F-42AE-9111-D714B2306C2E}';
 
 type
+  // rev - WIN://SYSAPPID attribute values
+  [NamingStyle(nsCamelCase, 'SysAppId_')]
+  TSysAppIdIndex = (
+    SysAppId_FullPackageName = 0,
+    SysAppId_RelativeAppId = 1,
+    SysAppId_FamilyName = 2,
+    SysAppId_DynamicId = 3
+  );
+
   // SDK::appmodel.h
   [MinOSVersion(OsWin8)]
   [SDKName('PACKAGE_VERSION')]
@@ -1534,35 +1544,6 @@ function GetPackageExecutionContextForPackageByFullName(
 var delayed_GetPackageExecutionContextForPackageByFullName: TDelayedLoadFunction = (
   Dll: @delayed_ActivationManager;
   FunctionName: 'GetPackageExecutionContextForPackageByFullName';
-);
-
-// PRI
-
-// rev
-[MinOSVersion(OsWin8)]
-function ResourceManagerQueueIsResourceReference(
-  [in] Source: PWideChar
-): HResult; stdcall; external MrmCoreR delayed;
-
-var delayed_ResourceManagerQueueIsResourceReference: TDelayedLoadFunction = (
-  Dll: @delayed_MrmCoreR;
-  FunctionName: 'ResourceManagerQueueIsResourceReference';
-);
-
-// rev
-[MinOSVersion(OsWin8)]
-function ResourceManagerQueueGetString(
-  [in] Source: PWideChar;
-  [in, opt] ParameterKey: PWideChar;
-  [in, opt] ParameterValue: PWideChar;
-  [out, WritesTo] Buffer: PWideChar;
-  [in, NumberOfElements] BufferLength: NativeUInt;
-  [out, opt, NumberOfElements] RequiredLength: PNativeUInt
-): HResult; stdcall; external MrmCoreR delayed;
-
-var delayed_ResourceManagerQueueGetString: TDelayedLoadFunction = (
-  Dll: @delayed_MrmCoreR;
-  FunctionName: 'ResourceManagerQueueGetString';
 );
 
 // SRP

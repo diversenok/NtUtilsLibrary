@@ -139,7 +139,7 @@ implementation
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntregapi,
   Ntapi.UserEnv, NtUtils.Ldr, NtUtils.Security.Sid, NtUtils.Tokens.Info,
-  NtUtils.Registry, DelphiUtils.Arrays, NtUtils.SysUtils, NtUtils.Packages;
+  NtUtils.Registry, DelphiUtils.Arrays, NtUtils.SysUtils, NtUtils.Packages.Mrm;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -341,8 +341,8 @@ begin
     // Display name might be a reference to a package resource string.
     // Resolving them is a relatively heavy operation, so we do it on demand
     // and cache the result.
-    if RtlxPrefixString('@{', FFriendlyName) then
-      PkgxExpandResourceStringVar(FFriendlyName);
+    if PkgxMrmResourceReferenceType(FFriendlyName) <> rkUnknown then
+      PkgxMrmResolveStringVar(FFriendlyName, Moniker);
   end;
 
   Result := FFriendlyName;

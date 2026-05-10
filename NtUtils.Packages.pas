@@ -413,23 +413,6 @@ function PkgxIsValidAppUserModelId(
   const AppUserModelId: String
 ): Boolean;
 
-{ PRI Resources }
-
-// Resolve a "@{PackageFullName?ms-resource://ResourceName}" string
-[RequiresCom]
-[MinOSVersion(OsWin8)]
-function PkgxExpandResourceString(
-  const ResourceDefinition: String;
-  out ResourceValue: String
-): TNtxStatus;
-
-// Resolve a "@{PackageFullName?ms-resource://ResourceName}" string in-place
-[RequiresCom]
-[MinOSVersion(OsWin8)]
-function PkgxExpandResourceStringVar(
-  var Resource: String
-): TNtxStatus;
-
 implementation
 
 uses
@@ -1563,109 +1546,6 @@ function PkgxIsValidAppUserModelId;
 begin
   Result := LdrxCheckDelayedImport(delayed_VerifyApplicationUserModelId).IsSuccess and
     (VerifyApplicationUserModelId(PWideChar(AppUserModelId)) = ERROR_SUCCESS);
-end;
-
-{ PRI }
-
-function PkgxExpandResourceStringWorker(
-  const ResourceDefinition: String;
-  out ResourceValue: String
-): TNtxStatus;
-const
-  INITIAL_SIZE = SizeOf(WideChar) * 80;
-var
-  Buffer: IMemory<PWideChar>;
-  RequiredLength: NativeUInt;
-begin
-  Result := LdrxCheckDelayedImport(delayed_ResourceManagerQueueGetString);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  IMemory(Buffer) := Auto.AllocateDynamic(INITIAL_SIZE);
-  Result.Location := 'ResourceManagerQueueGetString';
-
-  repeat
-    RequiredLength := 0;
-    Result.HResult := ResourceManagerQueueGetString(
-      PWideChar(ResourceDefinition), nil, nil, Buffer.Data,
-      Buffer.Size div SizeOf(WideChar), @RequiredLength);
-
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), RequiredLength *
-    SizeOf(WideChar));
-
-  if not Result.IsSuccess then
-    Exit;
-
-  ResourceValue := RtlxCaptureString(Buffer.Data,
-    Buffer.Size div SizeOf(WideChar));
-end;
-
-type
-  TPkgxResourceCacheEntry = record
-    Key: String;
-    Value: String;
-  end;
-
-var
-  PkgxResourceCacheInit: TRtlRunOnce;
-  PkgxResourceCacheLock: TRtlSRWLock;
-  PkgxResourceCache: TArray<TPkgxResourceCacheEntry>;
-
-function PkgxExpandResourceString;
-var
-  AcquiredInit: IAcquiredRunOnce;
-  Lock: IAutoReleasable;
-  Index: Integer;
-  Entry: TPkgxResourceCacheEntry;
-begin
-  if RtlxRunOnceBegin(@PkgxResourceCacheInit, AcquiredInit) then
-  begin
-    // MrmCoreR likes loading and unloading AppXDeploymentClient.dll
-    // Add a reference to prevent repeated unloading.
-    LdrxCheckDelayedModule(delayed_AppXDeploymentClient);
-    AcquiredInit.Complete;
-  end;
-
-  Lock := RtlxAcquireSRWLockExclusive(@PkgxResourceCacheLock);
-
-  Index := TArray.BinarySearchEx<TPkgxResourceCacheEntry>(
-    PkgxResourceCache,
-    function (const Entry: TPkgxResourceCacheEntry): Integer
-    begin
-      Result := RtlxCompareStrings(Entry.Key, ResourceDefinition)
-    end
-  );
-
-  if Index >= 0 then
-  begin
-    // Return from the cache
-    ResourceValue := PkgxResourceCache[Index].Value;
-    Result := NtxSuccess;
-  end
-  else
-  begin
-    // Cache miss; query
-    Result := PkgxExpandResourceStringWorker(ResourceDefinition, ResourceValue);
-
-    if not Result.IsSuccess then
-      Exit;
-
-    // Save
-    Entry.Key := ResourceDefinition;
-    Entry.Value := ResourceValue;
-    Insert(Entry, PkgxResourceCache, -(Index + 1));
-  end;
-end;
-
-function PkgxExpandResourceStringVar;
-var
-  Expanded: String;
-begin
-  Result := PkgxExpandResourceString(Resource, Expanded);
-
-  if Result.IsSuccess then
-    Resource := Expanded;
 end;
 
 end.
