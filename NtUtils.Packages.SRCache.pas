@@ -57,6 +57,12 @@ function PkgxSRCacheQueryPackageFamilyPublisher(
   out Publisher: String
 ): TNtxStatus;
 
+// Enumerate full package names belonging to a family (across all users)
+function PkgxSRCacheEnumeratePackagesInFamily(
+  const FamilyName: String;
+  out FullNames: TArray<String>
+): TNtxStatus;
+
 { Packages }
 
 // Enumerate package full names
@@ -381,6 +387,37 @@ end;
 function PkgxSRCacheQueryPackageFamilyPublisher;
 begin
   Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'Publisher', Publisher);
+end;
+
+function PkgxSRCacheEnumeratePackagesInFamily;
+var
+  FamilyId: TSRCachePackageFamilyId;
+  PackageId: TSRCachePackageId;
+  hxPackageKey: IHandle;
+  Name: String;
+begin
+  Result := PkgxSRCacheLookupPackageFamilyId(FamilyName, FamilyId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  FullNames := nil;
+
+  for PackageId in PkgxSRCacheIteratePackageIDsInFamily(@Result, FamilyId) do
+  begin
+    Result := PkgxSRCacheOpenPackage(PackageId, hxPackageKey);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result := PkgxSRCacheQueryPackageName(hxPackageKey, Name);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    SetLength(FullNames, Succ(Length(FullNames)));
+    FullNames[High(FullNames)] := Name;
+  end;
 end;
 
 { Packages }
