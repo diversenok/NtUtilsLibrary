@@ -278,11 +278,11 @@ type
   IResourceContext3 = interface (IUnknown)
     ['{998CAE81-2106-4253-9C01-1C0DB7B69F84}']
     function GetIntegerScale(
-      [out] out ScaleOut: Integer
+      [out] out ScaleOut: Cardinal
     ): HResult; stdcall;
 
     function SetIntegerScale(
-      [in] Scale: Integer
+      [in] Scale: Cardinal
     ): HResult; stdcall;
   end;
 
@@ -717,7 +717,7 @@ function GetMergedSystemPri(
   [in] MainPriPath: PWideChar;
   [in, NumberOfElements] cchResult: Cardinal;
   [out, WritesTo] ResultOut: PWideChar;
-  [out, opt, NumberOfElements] cchWritten: PCardinal
+  [out, opt, NumberOfElements] cchWritten: PNativeUInt
 ): HResult; stdcall; external MrmCoreR delayed;
 
 var delayed_GetMergedSystemPri: TDelayedLoadFunction = (
