@@ -21,7 +21,7 @@ type
 
   TDiaxFunctionFormatOptions = set of (
     dffoMultiLine, // Format a function with each parameter on a new line
-    dffoValidateArdDataMatch // Verify that argument types match param data types
+    dffoValidateAndDataMatch // Verify that argument types match param data types
   );
 
   TDiaxArgumentFormat = record
@@ -195,7 +195,7 @@ function DiaxSymbolFormatFunction(
   const Scope: IDiaSymbol;
   const Symbol: IDiaSymbol;
   out FormatString: String;
-  Options: TDiaxFunctionFormatOptions = [dffoMultiLine, dffoValidateArdDataMatch]
+  Options: TDiaxFunctionFormatOptions = [dffoMultiLine, dffoValidateAndDataMatch]
 ): TNtxStatus;
 
 // Format a function or a function type symbol
@@ -203,7 +203,7 @@ function DiaxSymbolFormatFunctionEx(
   const Scope: IDiaSymbol;
   const Symbol: IDiaSymbol;
   out Format: TDiaxFunctionFormat;
-  Options: TDiaxFunctionFormatOptions = [dffoValidateArdDataMatch]
+  Options: TDiaxFunctionFormatOptions = [dffoValidateAndDataMatch]
 ): TNtxStatus;
 
 implementation
@@ -629,6 +629,10 @@ begin
     // Callee cleanup, RTL
     CV_CALL_THISCALL:
       ConventionName := '__thiscall';
+
+    // Callee cleanup, LTR
+    CV_CALL_NEAR_PASCAL, CV_CALL_FAR_PASCAL:
+      ConventionName := '__pascal';
 
     // N/A cleanup, LTR
     CV_CALL_CLRCALL:
@@ -1075,22 +1079,24 @@ begin
         // We are only interested in parameters
         if DataKind = TDataKind.DataIsParam then
         begin
-          // Verify the data type matches the argument type
-          if (dffoValidateArdDataMatch in Options) and
-            (not DiaxSymbolsAreIdentical(ArgTypes[i], DataTypes[j],
-            ArgAndDataMatch).IsSuccess or not ArgAndDataMatch) then
-          begin
-            Result.Location := 'DiaxSymbolFormatFunctionEx';
-            Result.LastCall.UsesInfoClass(DataKind, icParse);
-            Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
-            Exit;
-          end;
-
           // Lookup the argument name
           Result := DiaxSymbolGetName(Datas[j], Format.Arguments[i].Name);
 
           if not Result.IsSuccess then
             Exit;
+
+          // Verify the data type matches the argument type
+          if (dffoValidateAndDataMatch in Options) and
+            (not DiaxSymbolsAreIdentical(ArgTypes[i], DataTypes[j],
+            ArgAndDataMatch).IsSuccess or not ArgAndDataMatch) then
+          begin
+            Result.Location := 'DiaxSymbolFormatFunctionEx';
+            Result.LastCall.Parameter := Format.Arguments[i].Name;
+            Result.LastCall.UsesInfoClass(DataKind, icParse);
+            Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
+            Exit;
+          end;
+
           Inc(j);
           Break;
         end;
