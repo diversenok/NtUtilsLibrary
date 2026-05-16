@@ -124,6 +124,17 @@ function DiaxSymbolGetName(
   out Name: String
 ): TNtxStatus;
 
+// Determine the name of a symbol
+function DiaxSymbolNameOrEmpty(
+  const Symbol: IDiaSymbol
+): String;
+
+// Determine the undecorated name of a symbol (if available)
+function DiaxSymbolGetUndecoratedName(
+  const Symbol: IDiaSymbol;
+  out Name: String
+): TNtxStatus;
+
 // Determine the length/size of a symbol
 function DiaxSymbolGetSize(
   const Symbol: IDiaSymbol;
@@ -183,7 +194,7 @@ function DiaxSymbolFormatCallingConvention(
 ): TNtxStatus;
 
 // Format a complex symbol type name
-function DiaxSymbolFormatType(
+function DiaxSymbolFormatTypeName(
   const Scope: IDiaSymbol;
   const Symbol: IDiaSymbol;
   out TypeName: String;
@@ -413,6 +424,28 @@ begin
     Name := WideName;
 end;
 
+function DiaxSymbolNameOrEmpty;
+begin
+  if not DiaxSymbolGetName(Symbol, Result).IsSuccess then
+    Result := '';
+end;
+
+function DiaxSymbolGetUndecoratedName;
+var
+  WideName: WideString;
+begin
+  Result.Location := 'IDiaSymbol::get_undecoratedName';
+  Result.HResult := Symbol.get_undecoratedName(WideName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if WideName = '' then
+    Result.HResult := S_FALSE;
+
+  Name := WideName;
+end;
+
 function DiaxSymbolGetSize;
 begin
   Result.Location := 'IDiaSymbol::get_length';
@@ -577,6 +610,10 @@ begin
       // Recurse
       Result := DiaxSymbolsAreIdentical(PointerA, PointerB, Identical);
     end;
+  else
+    Result.Location := 'DiaxSymbolsAreIdentical';
+    Result.LastCall.UsesInfoClass(TagA, icCompare);
+    Result.Status := STATUS_UNKNOWN_REVISION;
   end;
 end;
 
@@ -613,6 +650,7 @@ begin
           ConventionName := '__stdcall';
       else
         Result.Location := 'DiaxSymbolFormatCallingConvention';
+        DiaxSymbolGetName(Symbol, Result.LastCall.Parameter);
         Result.LastCall.UsesInfoClass(Machine, icParse);
         Result.Status := STATUS_UNKNOWN_REVISION;
       end;
@@ -643,12 +681,13 @@ begin
       ConventionName := '__vectorcall';
   else
     Result.Location := 'DiaxSymbolFormatCallingConvention';
-    Result.LastCall.UsesInfoClass(Convention, icParse);
+    DiaxSymbolGetName(Symbol, Result.LastCall.Parameter);
+    Result.LastCall.UsesInfoClass(Convention, icFormat);
     Result.Status := STATUS_UNKNOWN_REVISION;
   end;
 end;
 
-function DiaxSymbolFormatType;
+function DiaxSymbolFormatTypeName;
 var
   Tag: TSymTagEnum;
   BasicType: TBasicType;
@@ -656,7 +695,7 @@ var
   Size: UInt64;
   Count: Cardinal;
   IsConst: LongBool;
-  StringPart: String;
+  KindName: String;
   NestedType: IDiaSymbol;
 begin
   // Classify by symbol tag
@@ -669,28 +708,6 @@ begin
     // User-defined types use their name
     SymTagUDT, SymTagEnum:
     begin
-      if Tag = SymTagUDT then
-      begin
-        // Lookup the type kind
-        Result := DiaxSymbolGetUdtKind(Symbol, UdtKind);
-
-        if not Result.IsSuccess then
-          Exit;
-
-        case UdtKind of
-          UdtStruct: StringPart := 'struct ';
-          UdtClass: StringPart := 'class ';
-          UdtUnion: StringPart := 'union ';
-          UdtInterface: StringPart := 'interface ';
-        else
-          Result.Location := 'DiaxSymbolFormatSDKType';
-          Result.LastCall.UsesInfoClass(UdtKind, icParse);
-          Result.Status := STATUS_UNKNOWN_REVISION;
-        end;
-      end
-      else if Tag = SymTagEnum then
-        StringPart := 'enum ';
-
       // Lookup name
       Result := DiaxSymbolGetName(Symbol, TypeName);
 
@@ -700,7 +717,30 @@ begin
       if TypeName = '' then
         TypeName := '<unnamed type>';
 
-      TypeName := StringPart + TypeName;
+      if Tag = SymTagUDT then
+      begin
+        // Lookup the type kind
+        Result := DiaxSymbolGetUdtKind(Symbol, UdtKind);
+
+        if not Result.IsSuccess then
+          Exit;
+
+        case UdtKind of
+          UdtStruct:    KindName := 'struct ';
+          UdtClass:     KindName := 'class ';
+          UdtUnion:     KindName := 'union ';
+          UdtInterface: KindName := 'interface ';
+        else
+          Result.Location := 'DiaxSymbolFormatTypeName';
+          Result.LastCall.Parameter := TypeName;
+          Result.LastCall.UsesInfoClass(UdtKind, icFormat);
+          Result.Status := STATUS_UNKNOWN_REVISION;
+        end;
+      end
+      else if Tag = SymTagEnum then
+        KindName := 'enum ';
+
+      TypeName := KindName + TypeName;
     end;
 
     // Base types require identification
@@ -777,7 +817,7 @@ begin
       end
       else
       begin
-        Result.Location := 'DiaxSymbolFormatSDKType';
+        Result.Location := 'DiaxSymbolFormatTypeName';
         Result.LastCall.UsesInfoClass(BasicType, icParse);
         Result.Status := STATUS_UNKNOWN_REVISION;
 
@@ -794,7 +834,7 @@ begin
       if not Result.IsSuccess then
         Exit;
 
-      Result := DiaxSymbolFormatType(Scope, NestedType, TypeName);
+      Result := DiaxSymbolFormatTypeName(Scope, NestedType, TypeName);
 
       if not Result.IsSuccess then
         Exit;
@@ -804,7 +844,7 @@ begin
       if not Result.IsSuccess then
         Exit;
 
-      TypeName := RtlxFormatString('%s [%u]', [TypeName, Count]);
+      TypeName := RtlxFormatString('%s[%u]', [TypeName, Count]);
     end;
 
     // Pointers and typedefs require dereferencing
@@ -816,7 +856,7 @@ begin
         Exit;
 
       // Call recursively
-      Result := DiaxSymbolFormatType(Scope, NestedType, TypeName);
+      Result := DiaxSymbolFormatTypeName(Scope, NestedType, TypeName);
 
       if not Result.IsSuccess then
         Exit;
@@ -838,7 +878,8 @@ begin
 
   else
     // Might need more work
-    Result.Location := 'DiaxSymbolFormatSDKType';
+    Result.Location := 'DiaxSymbolGetName';
+    DiaxSymbolGetName(Symbol, Result.LastCall.Parameter);
     Result.LastCall.UsesInfoClass(Tag, icParse);
     Result.Status := STATUS_NOT_IMPLEMENTED;
 
@@ -1021,7 +1062,7 @@ begin
     Exit;
 
   // Format
-  Result := DiaxSymbolFormatType(Scope, ReturnType, Format.ReturnTypeName);
+  Result := DiaxSymbolFormatTypeName(Scope, ReturnType, Format.ReturnTypeName);
 
   if not Result.IsSuccess then
     Exit;
@@ -1058,7 +1099,7 @@ begin
       FormatOptions := [];
 
     // Format them
-    Result := DiaxSymbolFormatType(Scope, ArgTypes[i],
+    Result := DiaxSymbolFormatTypeName(Scope, ArgTypes[i],
       Format.Arguments[i].TypeName, FormatOptions);
   end;
 
