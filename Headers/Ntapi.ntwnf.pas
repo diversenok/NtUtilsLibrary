@@ -40,7 +40,8 @@ const
     '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications';
 
   // private - known names
-  WNF_FSRL_OPLOCK_BREAK = $D941D2BA3BC1075;           // TWnfFsrlOplockBreakData
+  WNF_FSRL_OPLOCK_BREAK = $D941D2BA3BC1075;           // TWnfPidList
+  WNF_FLT_RUNDOWN_WAIT = $4192022BA3BC0875;           // TWnfPidList
   WNF_SHEL_APPLICATION_STARTED = $D83063EA3BE0075;    // PWideChar (AppId)
   WNF_SHEL_APPLICATION_TERMINATED = $D83063EA3BE0875; // PWideChar (AppId)
   WNF_WER_SERVICE_START = $41940B3AA3BC0875;          // void
@@ -116,11 +117,11 @@ type
   ): NTSTATUS; stdcall;
 
   // rev
-  TWnfFsrlOplockBreakData = record
-    [NumberOfElements] Count: Cardinal;
+  TWnfPidList = record
+    [NumberOfElements] Count: Integer;
     ProcessId: TAnysizeArray<TProcessId32>;
   end;
-  PWnfFsrlOplockBreakData = ^TWnfFsrlOplockBreakData;
+  PWnfPidList = ^TWnfPidList;
 
 // PHNT::ntexapi.h
 [MinOSVersion(OsWin8)]
