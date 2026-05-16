@@ -180,55 +180,52 @@ begin
     ResourceMap);
 end;
 
-function PkgxMrmResourceMapGetString(
-  const ResourceMap: IResourceMap;
-  const ResourceId: String;
+function PkgxMrmResolveRelativeResourceString(
+  const PackageFullName: String;
+  const Reference: String;
   out Value: String
 ): TNtxStatus;
 var
+  ResourceMap: IResourceMap;
+  NamedResource: INamedResource;
+  Candidate: IResourceCandidate;
   Buffer: PWideChar;
   BufferDeallocator: IAutoReleasable;
-begin
-  Result.Location := 'IResourceMap::GetString';
-  Result.HResult := ResourceMap.GetString(PWideChar(ResourceId), Buffer);
-
-  if Result.IsSuccess then
-  begin
-    BufferDeallocator := DeferCoTaskMemFree(Buffer);
-    Value := String(Buffer);
-  end;
-end;
-
-function PkgxMrmResolveRelativeResourceString(
-  const PackageFullName: String;
-  const ResourceName: String;
-  out ResolvedValue: String
-): TNtxStatus;
-var
-  ResourceMap: IResourceMap;
 begin
   Result := PkgxMrmGetPackageResourceMap(PackageFullName, ResourceMap);
 
   if not Result.IsSuccess then
     Exit;
 
-  if RtlxPrefixString('//', ResourceName, True) then
+  // Try the direct string resolution first
+  Result.Location := 'IResourceMap::GetString';
+  Result.HResult := ResourceMap.GetString(PWideChar(Reference), Buffer);
+
+  // If failed, retry using a method with sligtly different parsing rules
+  if not Result.IsSuccess then
   begin
-    // This is an absolute path; use as-is (as ms-resource://Path)
-    Result := PkgxMrmResourceMapGetString(ResourceMap,
-      'ms-resource:' + ResourceName, ResolvedValue);
-    Exit;
+    Result.Location := 'IResourceMap::GetNamedResource';
+    Result.HResult := ResourceMap.GetNamedResource(PWideChar(Reference),
+      INamedResource, NamedResource);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result.Location := 'INamedResource::Resolve';
+    Result.HResult := NamedResource.Resolve(Candidate);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result.Location := 'IResourceCandidate::ToString';
+    Result.HResult := Candidate.ToString(Buffer);
   end;
 
-  // This is a relative path; use it under "/" (as ms-resource:///Path)
-  Result := PkgxMrmResourceMapGetString(ResourceMap,
-    'ms-resource:///' + ResourceName, ResolvedValue);
-
-  // If failed, retry relative to the main resources directory
-  if not Result.IsSuccess and not RtlxPrefixString('Resources/', ResourceName)
-    and PkgxMrmResourceMapGetString(ResourceMap, 'ms-resource:///Resources/' +
-      ResourceName, ResolvedValue).IsSuccess then
-    Result := NtxSuccess;
+  if Result.IsSuccess then
+  begin
+    BufferDeallocator := DeferCoTaskMemFree(Buffer);
+    Value := String(Buffer);
+  end;
 end;
 
 function PkgxMrmResourceReferenceType;
@@ -244,7 +241,6 @@ end;
 
 function PkgxMrmResolveString;
 var
-  ResourceName: String;
   HeadPackage: TArray<TPkgxPackageNameAndProperties>;
   i: Integer;
 begin
@@ -277,13 +273,10 @@ begin
         Exit;
       end;
 
-      ResourceName := Reference;
-      Delete(ResourceName, Low(String), Length('ms-resource:'));
-
       for i := 0 to High(HeadPackage) do
       begin
         Result := PkgxMrmResolveRelativeResourceString(HeadPackage[i].FullName,
-          ResourceName, Value);
+          Reference, Value);
 
         if Result.IsSuccess then
           Break;
