@@ -77,6 +77,8 @@ type
     Index: Integer;
     Parent: ^TTreeNode<T>;
     Children: TArray<^TTreeNode<T>>;
+    PreviousSibling: ^TTreeNode<T>;
+    NextSibling: ^TTreeNode<T>;
   end;
 
   TParentChecker<T> = reference to function (const Parent, Child: T): Boolean;
@@ -492,6 +494,7 @@ end;
 class function TArray.BuildTree<T>;
 var
   i, j, k, Count: Integer;
+  Parent, Previous: ^TTreeNode<T>;
 begin
   SetLength(Result, Length(Entries));
 
@@ -502,7 +505,7 @@ begin
     Result[i].Index := i;
   end;
 
-  // Fill parents as references to array elements
+  // Fill parents as references
   for i := 0 to High(Entries) do
     for j := 0 to High(Entries) do
       if (i <> j) and ParentChecker(Entries[j], Entries[i]) then
@@ -511,24 +514,67 @@ begin
         Break;
       end;
 
+  // Verify there are no cycles
+  for i := 0 to High(Result) do
+  begin
+    j := 0;
+    Parent := Result[i].Parent;
+
+    // Try to find the root which must be at most High(Entries) away
+    while Assigned(Parent) and (j <= High(Entries)) do
+    begin
+      Parent := Parent.Parent;
+      Inc(j);
+    end;
+
+    // A cycle detected; detach the parent to resolve it
+    if Assigned(Parent) then
+      Result[i].Parent := nil;
+  end;
+
   // Fill children, also as references
-  for i := 0 to High(Entries) do
+  for i := 0 to High(Result) do
   begin
     Count := 0;
-    for j := 0 to High(Entries) do
+    for j := 0 to High(Result) do
       if Result[j].Parent = @Result[i] then
         Inc(Count);
 
     SetLength(Result[i].Children, Count);
 
     k := 0;
-    for j := 0 to High(Entries) do
+    for j := 0 to High(Result) do
       if Result[j].Parent = @Result[i] then
       begin
         Result[i].Children[k] := @Result[j];
         Inc(k);
       end;
   end;
+
+  // Fill sibling references for root nodes
+  Previous := nil;
+
+  for i := 0 to High(Result) do
+    if not Assigned(Result[i].Parent) then
+    begin
+      Result[i].PreviousSibling := Previous;
+
+      if Assigned(Previous) then
+        Previous.NextSibling := @Result[i];
+
+      Previous := @Result[i];
+    end;
+
+  // Fill sibling references for parented nodes
+  for i := 0 to High(Result) do
+    for j := 0 to High(Result[i].Children) do
+    begin
+      if j > 0 then
+        Result[i].Children[j].PreviousSibling := Result[i].Children[j - 1];
+
+      if j < High(Result[i].Children) then
+        Result[i].Children[j].NextSibling := Result[i].Children[j + 1];
+    end;
 end;
 
 class function TArray.Collect<T>;
