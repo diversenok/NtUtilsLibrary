@@ -102,8 +102,14 @@ function NtxFindProcessByThreadId(
   TID: TThreadId
 ): PProcessEntry;
 
-// A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
-function ParentProcessChecker(
+// An equality checker to use with IHysteresisTree<TProcessEntry>
+function RtlxIsSameProcess(
+  const A, B: TProcessEntry
+): Boolean;
+
+// A parent checker to use with TArray.BuildTree<TProcessEntry> and
+// IHysteresisTree<TProcessEntry>
+function RtlxIsParentProcess(
   const Parent: TProcessEntry;
   const Child: TProcessEntry
 ): Boolean;
@@ -405,13 +411,19 @@ begin
   Result := nil;
 end;
 
-function ParentProcessChecker;
+function RtlxIsSameProcess;
+begin
+  Result := (A.Basic.ProcessID = B.Basic.ProcessID) and
+    (A.Basic.CreateTime = B.Basic.CreateTime);
+end;
+
+function RtlxIsParentProcess;
 begin
   // Note: since PIDs can be reused we need to ensure
-  // that parents were created earlier than children.
+  // that children were not created before the parent.
 
   Result := (Child.Basic.InheritedFromProcessId = Parent.Basic.ProcessId)
-    and (Child.Basic.CreateTime > Parent.Basic.CreateTime)
+    and (Child.Basic.CreateTime >= Parent.Basic.CreateTime);
 end;
 
 end.
