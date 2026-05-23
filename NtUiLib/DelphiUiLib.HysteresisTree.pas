@@ -104,38 +104,37 @@ type
     property FirstChild: THysteresisNode<T> read GetFirstChild;
   end;
 
-  THysteresisTree = class abstract (TInterfacedObject)
-  protected
-    FNodeClass: THysteresisNodeClass;
-    FNodes, FDeletedNodes: TArray<THysteresisNode>;
-    FDefaultTTL: Integer;
-    FFirstUpdateComplete: Boolean;
-    FHasParentCheck: Boolean;
-    function EffectiveTTL: Integer;
+  IHysteresisTree = interface
+    ['{61D4C719-6821-4D0B-A97A-9119C08DABCF}']
+    function GetFirstNode: THysteresisNode;
+    function GetNodes: TArray<THysteresisNode>;
+    function GetFirstDeletedNode: THysteresisNode;
+    function GetDeletedNodes: TArray<THysteresisNode>;
     function GetTransitionTime: Integer;
     procedure SetTransitionTime(Value: Integer);
-    procedure Update(const Data: TArray<Pointer>);
-    procedure Step1AdvanceTTL;
-    procedure Step2aInsertAt(Node: THysteresisNode; Index: Integer);
-    procedure Step2bEnsureMerged(Node: THysteresisNode);
-    procedure Step2MergeData(const Data: TArray<Pointer>);
-    procedure Step3ExtractDeleted;
-    procedure Step4BuildTree;
-    function EquivalencyCheck(Node: THysteresisNode; Data: Pointer): Boolean; virtual; abstract;
-    function ParentCheck(const Parent, Child: THysteresisNode): Boolean; virtual; abstract;
-    constructor Create(NodeClass: THysteresisNodeClass; HasParentCheck: Boolean; TTL: Integer);
-  public
-    destructor Destroy; override;
+
+    // The top root node in the hierarchy
+    property FirstNode: THysteresisNode read GetFirstNode;
+
+    // The full tree node hierarchy
+    property Nodes: TArray<THysteresisNode> read GetNodes;
+
+    // The first node in the list of deleted on the last update. Use for cleanup
+    property FirstDeletedNode: THysteresisNode read GetFirstDeletedNode;
+
+    // All nodes deleted from the tree at the last update. Use for cleanup
+    property DeletedNodes: TArray<THysteresisNode> read GetDeletedNodes;
+
+    // The number of updates nodes remain "recent" when added or removed
+    property TransitionTime: Integer read GetTransitionTime write SetTransitionTime;
   end;
 
-  IHysteresisTree<T> = interface
+  IHysteresisTree<T> = interface (IHysteresisTree)
     ['{FEB19DB8-8F3E-4FF1-AD4D-9ADAC723F164}']
     function GetFirstNode: THysteresisNode<T>;
     function GetNodes: TArray<THysteresisNode<T>>;
     function GetFirstDeletedNode: THysteresisNode<T>;
     function GetDeletedNodes: TArray<THysteresisNode<T>>;
-    function GetTransitionTime: Integer;
-    procedure SetTransitionTime(Value: Integer);
 
     // Refresh the tree with the new data snapshot
     procedure Update(const Entries: TArray<T>);
@@ -151,9 +150,34 @@ type
 
     // All nodes deleted from the tree at the last update. Use for cleanup
     property DeletedNodes: TArray<THysteresisNode<T>> read GetDeletedNodes;
+  end;
 
-    // The number of updates nodes remain "recent" when added or removed
-    property TransitionTime: Integer read GetTransitionTime write SetTransitionTime;
+  THysteresisTree = class abstract (TInterfacedObject, IHysteresisTree)
+  protected
+    FNodeClass: THysteresisNodeClass;
+    FNodes, FDeletedNodes: TArray<THysteresisNode>;
+    FDefaultTTL: Integer;
+    FFirstUpdateComplete: Boolean;
+    FHasParentCheck: Boolean;
+    function EffectiveTTL: Integer;
+    function GetFirstNode: THysteresisNode;
+    function GetNodes: TArray<THysteresisNode>;
+    function GetFirstDeletedNode: THysteresisNode;
+    function GetDeletedNodes: TArray<THysteresisNode>;
+    function GetTransitionTime: Integer;
+    procedure SetTransitionTime(Value: Integer);
+    procedure Update(const Data: TArray<Pointer>);
+    procedure Step1AdvanceTTL;
+    procedure Step2aInsertAt(Node: THysteresisNode; Index: Integer);
+    procedure Step2bEnsureMerged(Node: THysteresisNode);
+    procedure Step2MergeData(const Data: TArray<Pointer>);
+    procedure Step3ExtractDeleted;
+    procedure Step4BuildTree;
+    function EquivalencyCheck(Node: THysteresisNode; Data: Pointer): Boolean; virtual; abstract;
+    function ParentCheck(const Parent, Child: THysteresisNode): Boolean; virtual; abstract;
+    constructor Create(NodeClass: THysteresisNodeClass; HasParentCheck: Boolean; TTL: Integer);
+  public
+    destructor Destroy; override;
   end;
 
   THysteresisTree<T> = class (THysteresisTree, IHysteresisTree<T>)
@@ -248,6 +272,32 @@ begin
     Result := FDefaultTTL
   else
     Result := 0; // Suppress recently added State on the first update
+end;
+
+function THysteresisTree.GetDeletedNodes;
+begin
+  Result := FDeletedNodes;
+end;
+
+function THysteresisTree.GetFirstDeletedNode;
+begin
+  if Length(FDeletedNodes) > 0 then
+    Result := FDeletedNodes[0]
+  else
+    Result := nil;
+end;
+
+function THysteresisTree.GetFirstNode;
+begin
+  if Length(FNodes) > 0 then
+    Result := FNodes[0]
+  else
+    Result := nil;
+end;
+
+function THysteresisTree.GetNodes;
+begin
+  Result := FNodes;
 end;
 
 function THysteresisTree.GetTransitionTime;
