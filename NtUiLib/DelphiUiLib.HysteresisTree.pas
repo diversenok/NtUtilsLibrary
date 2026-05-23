@@ -12,41 +12,72 @@ uses
   DelphiUtils.Arrays, DelphiApi.Reflection;
 
 type
-  [NamingStyle(nsCamelCase, 'hns')]
-  THysteresisNodeState = (
-    hnsNormal,
-    hnsRecentlyAdded,
-    hnsRecentlyRemoved
+  // Typical node lifetime (time measures in the number of Tree.Update calls):
+  //
+  //   <-- New data entry appears in the snapshot given to Tree.Update -->
+  //  1. NewlyAdded & RecentlyAdded - for one update
+  //  2. RecentlyAdded - for TTL-1 updates
+  //  3. Normal - for as long as the data exists in the snapshot
+  //   <-- The data entry dissapears from the snapshot -->
+  //  4. RecentlyRemoved - for TTL updates
+  //  5. Deleted - for one update
+  //
+  // Notes:
+  // - RecentlyAdded is suppressed (replaced by Normal) for nodes added on the
+  //   very first tree update.
+  // - Nodes can go directly from RecentlyAdded to RecentlyRemoved if the
+  //   corresponding data entry dissapears from the snapshot befor the node has
+  //   time to transition to Normal.
+
+  [NamingStyle(nsCamelCase, 'hnt')]
+  THysteresisNodeTransition = (
+    hntNormal,
+    hntRecentlyAdded,
+    hntRecentlyRemoved
   );
 
   THysteresisNode = class abstract
   private
-    FContext: IUnknown;
+    FContext: Pointer;
     FParent: THysteresisNode;
     FPreviousSibling: THysteresisNode;
     FNextSibling: THysteresisNode;
-    FChildren: TArray<THysteresisNode>;
-    FRelatedNode: THysteresisNode;
+    FFirstChild: THysteresisNode;
     FIndex: Integer;
     FTransitionTTL: Integer;
-    FState: THysteresisNodeState;
+    FTransitionState: THysteresisNodeTransition;
+    FNewlyAdded: Boolean;
     FDeleted: Boolean;
   protected
+    function GetDataStart: Pointer; virtual; abstract;
     procedure UpdateData(Address: Pointer); virtual; abstract;
-    procedure AssignData(Source: THysteresisNode); virtual; abstract;
+    property DataStart: Pointer read GetDataStart;
   public
     // A user-defined context to attach to this node. The value is migrated to
     // the node with an equivalent resource upon updates.
-    property Context: IUnknown read FContext write FContext;
+    property Context: Pointer read FContext write FContext;
 
     // Whether the node undergoes a transition (as recently added or removed)
-    property State: THysteresisNodeState read FState;
+    property TransitionState: THysteresisNodeTransition read FTransitionState;
 
     // The number of updates until the transition completes
     property TransitionTTL: Integer read FTransitionTTL;
 
+    // Indicates that the node was added during the last update
+    property NewlyAdded: Boolean read FNewlyAdded;
+
+    // The node has been deleted from the tree on the last update. It now
+    // belongs to the deleted list and offers the last chance to clean-up.
+    property Deleted: Boolean read FDeleted;
+
     // The index of the current node in the global list returned by the tree
     property Index: Integer read FIndex;
+
+    // Connected nodes in the hiearachy
+    property Parent: THysteresisNode read FParent;
+    property PreviousSibling: THysteresisNode read FPreviousSibling;
+    property NextSibling: THysteresisNode read FNextSibling;
+    property FirstChild: THysteresisNode read FFirstChild;
   end;
 
   THysteresisNodeClass = class of THysteresisNode;
@@ -58,10 +89,10 @@ type
     function GetParent: THysteresisNode<T>;
     function GetPreviousSibling: THysteresisNode<T>;
     function GetNextSibling: THysteresisNode<T>;
-    function GetChildren: TArray<THysteresisNode<T>>;
+    function GetFirstChild: THysteresisNode<T>;
   protected
+    function GetDataStart: Pointer; override;
     procedure UpdateData(Address: Pointer); override;
-    procedure AssignData(Source: THysteresisNode); override;
   public
     // The underlying resource
     property Data: T read FData;
@@ -70,13 +101,13 @@ type
     property Parent: THysteresisNode<T> read GetParent;
     property PreviousSibling: THysteresisNode<T> read GetPreviousSibling;
     property NextSibling: THysteresisNode<T> read GetNextSibling;
-    property Children: TArray<THysteresisNode<T>> read GetChildren;
+    property FirstChild: THysteresisNode<T> read GetFirstChild;
   end;
 
   THysteresisTree = class abstract (TInterfacedObject)
   protected
     FNodeClass: THysteresisNodeClass;
-    FCurrentNodes, FNewNodes: TArray<THysteresisNode>;
+    FNodes, FDeletedNodes: TArray<THysteresisNode>;
     FDefaultTTL: Integer;
     FFirstUpdateComplete: Boolean;
     FHasParentCheck: Boolean;
@@ -85,14 +116,12 @@ type
     procedure SetTransitionTime(Value: Integer);
     procedure Update(const Data: TArray<Pointer>);
     procedure Step1AdvanceTTL;
-    procedure Step2ConvertEntries(const Data: TArray<Pointer>);
-    procedure Step3LinkRelatedNodes;
-    procedure Step4aInsertAt(NewNode: THysteresisNode; Index: Integer);
-    procedure Step4bEnsureInserted(OldNode: THysteresisNode);
-    procedure Step4InsertRecentlyRemoved;
-    procedure Step5CleanupAndSwapLists;
-    procedure Step6BuildTree;
-    function EquivalencyCheck(const A, B: THysteresisNode): Boolean; virtual; abstract;
+    procedure Step2aInsertAt(Node: THysteresisNode; Index: Integer);
+    procedure Step2bEnsureMerged(Node: THysteresisNode);
+    procedure Step2MergeData(const Data: TArray<Pointer>);
+    procedure Step3ExtractDeleted;
+    procedure Step4BuildTree;
+    function EquivalencyCheck(Node: THysteresisNode; Data: Pointer): Boolean; virtual; abstract;
     function ParentCheck(const Parent, Child: THysteresisNode): Boolean; virtual; abstract;
     constructor Create(NodeClass: THysteresisNodeClass; HasParentCheck: Boolean; TTL: Integer);
   public
@@ -101,15 +130,27 @@ type
 
   IHysteresisTree<T> = interface
     ['{FEB19DB8-8F3E-4FF1-AD4D-9ADAC723F164}']
+    function GetFirstNode: THysteresisNode<T>;
     function GetNodes: TArray<THysteresisNode<T>>;
+    function GetFirstDeletedNode: THysteresisNode<T>;
+    function GetDeletedNodes: TArray<THysteresisNode<T>>;
     function GetTransitionTime: Integer;
     procedure SetTransitionTime(Value: Integer);
 
-    // Refresh the tree with the new details
+    // Refresh the tree with the new data snapshot
     procedure Update(const Entries: TArray<T>);
 
-    // Inspect the tree nodes
+    // The top root node in the hierarchy
+    property FirstNode: THysteresisNode<T> read GetFirstNode;
+
+    // The full tree node hierarchy
     property Nodes: TArray<THysteresisNode<T>> read GetNodes;
+
+    // The first node in the list of deleted on the last update. Use for cleanup
+    property FirstDeletedNode: THysteresisNode<T> read GetFirstDeletedNode;
+
+    // All nodes deleted from the tree at the last update. Use for cleanup
+    property DeletedNodes: TArray<THysteresisNode<T>> read GetDeletedNodes;
 
     // The number of updates nodes remain "recent" when added or removed
     property TransitionTime: Integer read GetTransitionTime write SetTransitionTime;
@@ -119,9 +160,12 @@ type
   protected
     FEquivalencyCheck: TEqualityCheck<T>;
     FParentCheck: TParentChecker<T>;
-    function EquivalencyCheck(const A, B: THysteresisNode): Boolean; override;
+    function EquivalencyCheck(Node: THysteresisNode; Data: Pointer): Boolean; override;
     function ParentCheck(const Parent, Child: THysteresisNode): Boolean; override;
+    function GetFirstNode: THysteresisNode<T>;
     function GetNodes: TArray<THysteresisNode<T>>;
+    function GetFirstDeletedNode: THysteresisNode<T>;
+    function GetDeletedNodes: TArray<THysteresisNode<T>>;
     procedure Update(const Entries: TArray<T>); reintroduce;
     constructor Create(
       const AEquivalencyCheck: TEqualityCheck<T>;
@@ -131,8 +175,8 @@ type
   public
     // Make an empty tree instance
     class function Initialize(
-      const EquivalencyCheck: TEqualityCheck<T>;
-      [opt] const ParentCheck: TParentChecker<T> = nil;
+      EquivalencyCheck: TEqualityCheck<T>;
+      [opt] ParentCheck: TParentChecker<T> = nil;
       [opt] TTL: Integer = 0
     ): IHysteresisTree<T>; static;
   end;
@@ -145,19 +189,14 @@ implementation
 
 { THysteresisNode<T> }
 
-procedure THysteresisNode<T>.AssignData;
+function THysteresisNode<T>.GetDataStart;
 begin
-  FData := THysteresisNode<T>(Source).Data;
+  Result := @FData;
 end;
 
-function THysteresisNode<T>.GetChildren;
-var
-  i: Integer;
+function THysteresisNode<T>.GetFirstChild;
 begin
-  SetLength(Result, Length(FChildren));
-
-  for i := 0 to High(Result) do
-    Result[i] := THysteresisNode<T>(FChildren[i]);
+  Result := THysteresisNode<T>(FFirstChild);
 end;
 
 function THysteresisNode<T>.GetNextSibling;
@@ -194,10 +233,12 @@ destructor THysteresisTree.Destroy;
 var
   Node: THysteresisNode;
 begin
-  for Node in FCurrentNodes do
+  for Node in FNodes do
     Node.Free;
 
-  FCurrentNodes := nil;
+  for Node in FDeletedNodes do
+    Node.Free;
+
   inherited;
 end;
 
@@ -206,7 +247,7 @@ begin
   if FFirstUpdateComplete then
     Result := FDefaultTTL
   else
-    Result := 0; // Suppress recently added state on the first update
+    Result := 0; // Suppress recently added State on the first update
 end;
 
 function THysteresisTree.GetTransitionTime;
@@ -222,23 +263,24 @@ begin
     FDefaultTTL := Value;
 end;
 
-// Advance state for recently added and removed nodes
+// Advance transition state for recently added and removed nodes
 procedure THysteresisTree.Step1AdvanceTTL;
 var
   Node: THysteresisNode;
 begin
-  for Node in FCurrentNodes do
-    case Node.FState of
-      hnsRecentlyAdded:
+  for Node in FNodes do
+  begin
+    case Node.FTransitionState of
+      hntRecentlyAdded:
       begin
         Dec(Node.FTransitionTTL);
 
         // Promote recently added nodes to normal after a timeout
         if Node.FTransitionTTL <= 0 then
-          Node.FState := hnsNormal;
+          Node.FTransitionState := hntNormal;
       end;
 
-      hnsRecentlyRemoved:
+      hntRecentlyRemoved:
       begin
         Dec(Node.FTransitionTTL);
 
@@ -247,217 +289,207 @@ begin
           Node.FDeleted := True;
       end;
     end;
-end;
 
-// Convert entries into node placeholders
-procedure THysteresisTree.Step2ConvertEntries;
-var
-  i: Integer;
-begin
-  SetLength(FNewNodes, Length(Data));
-
-  for i := 0 to High(Data) do
-  begin
-    // When TTL is enabled, assume all new entries as recently added until we
-    // find them a match among the old ones.
-    FNewNodes[i] := FNodeClass.Create;
-    FNewNodes[i].UpdateData(Data[i]);
-
-    if EffectiveTTL > 0 then
-    begin
-      FNewNodes[i].FState := hnsRecentlyAdded;
-      FNewNodes[i].FTransitionTTL := EffectiveTTL;
-    end
-    else
-      FNewNodes[i].FState := hnsNormal;
-
-    FNewNodes[i].FIndex := i;
+    // All existing nodes are old now
+    Node.FNewlyAdded := False;
   end;
-end;
-
-// Link old and new nodes that refer to the same underlying resource
-procedure THysteresisTree.Step3LinkRelatedNodes;
-var
-  OldNode, NewNode: THysteresisNode;
-begin
-  // Note 1: recently removed nodes cannot be resurrected, so they are skipped
-  // during matching. Even if there is a match, it should be treated
-  // independently as a recently added node.
-
-  // Note 2: the equality check can potentially match more than one node. We
-  // reserve the first new node for the first old node and so on.
-
-  for OldNode in FCurrentNodes do
-    Assert(not Assigned(OldNode.FRelatedNode), 'Stale reference on old node');
-
-  for NewNode in FNewNodes do
-    Assert(not Assigned(NewNode.FRelatedNode), 'Stale reference on new node');
-
-  for OldNode in FCurrentNodes do
-    if OldNode.FState <> hnsRecentlyRemoved then
-      for NewNode in FNewNodes do
-        if not Assigned(NewNode.FRelatedNode) and
-          EquivalencyCheck(NewNode, OldNode) then
-        begin
-          // Link equivalent nodes and copy the state to the new node
-          OldNode.FRelatedNode := NewNode;
-          NewNode.FRelatedNode := OldNode;
-          NewNode.FState := OldNode.FState;
-          NewNode.FTransitionTTL := OldNode.FTransitionTTL;
-          NewNode.FContext := OldNode.FContext;
-          Break;
-        end;
 end;
 
 // A helper for inserting a node at a specific location
-procedure THysteresisTree.Step4aInsertAt;
+procedure THysteresisTree.Step2aInsertAt;
 var
   i: Integer;
 begin
-  System.Insert(NewNode, FNewNodes, Index);
+  System.Insert(Node, FNodes, Index);
 
   // Update cached indexes to keep them correct
-  for i := Index to High(FNewNodes) do
-    FNewNodes[i].FIndex := i;
+  for i := Index to High(FNodes) do
+    FNodes[i].FIndex := i;
 end;
 
-// Insert an old node into the new list if necessary
-procedure THysteresisTree.Step4bEnsureInserted;
+// Insert a node at the best location for it, if necessary
+procedure THysteresisTree.Step2bEnsureMerged;
 var
-  NewNode: THysteresisNode;
-  Index: Integer;
+  RelativeTo: THysteresisNode;
 begin
-  // Already complete?
-  if Assigned(OldNode.FRelatedNode) then
+  // Already in the new generation?
+  if (Node.FIndex <= High(FNodes)) and (FNodes[Node.FIndex] = Node) then
     Exit;
 
-  // Prepare a new node. At this stage, only recently removed ones remain
-  NewNode := FNodeClass.Create;
-  NewNode.AssignData(OldNode);
-  NewNode.FState := hnsRecentlyRemoved;
-
-  if OldNode.FState = hnsRecentlyRemoved then
-    NewNode.FTransitionTTL := OldNode.FTransitionTTL
+  // We prefer being next the previous sibling or at least the parent
+  if Assigned(Node.FPreviousSibling) then
+    RelativeTo := Node.FPreviousSibling
+  else if Assigned(Node.FParent) then
+    RelativeTo := Node.FParent
   else
-    NewNode.FTransitionTTL := EffectiveTTL;
+    RelativeTo := nil;
 
-  NewNode.FDeleted := OldNode.FDeleted or (NewNode.FTransitionTTL <= 0);
-  NewNode.FContext := OldNode.FContext;
-
-  if Assigned(OldNode.FPreviousSibling) then
+  if Assigned(RelativeTo) then
   begin
-    if not Assigned(OldNode.FPreviousSibling.FRelatedNode) then
-      Step4bEnsureInserted(OldNode.FPreviousSibling);
+    // Recurse on the related node
+    Step2bEnsureMerged(RelativeTo);
 
-    // Insert right after the previous sibling
-    Index := OldNode.FPreviousSibling.FRelatedNode.FIndex + 1;
-  end
-  else if Assigned(OldNode.FParent) then
-  begin
-    if not Assigned(OldNode.FParent.FRelatedNode) then
-      Step4bEnsureInserted(OldNode.FParent);
-
-    // Insert right after the parent
-    Index := OldNode.FParent.FRelatedNode.FIndex + 1;
+    // Insert next to it
+    Step2aInsertAt(Node, RelativeTo.Index + 1);
   end
   else
-  begin
-    // We are the first node overall, remain such
-    Index := 0;
-  end;
-
-  // Insert at the preferred location
-  Step4aInsertAt(NewNode, Index);
-
-  // Link old <--> new
-  NewNode.FRelatedNode := OldNode;
-  OldNode.FRelatedNode := NewNode;
+    // We are the first node overall; remain such
+    Step2aInsertAt(Node, 0);
 end;
 
-// Insert all remaining old nodes as recently removed
-procedure THysteresisTree.Step4InsertRecentlyRemoved;
-var
-  OldNode: THysteresisNode;
-begin
-  // Process all nodes that are not inserted yet
-  for OldNode in FCurrentNodes do
-    if not Assigned(OldNode.FRelatedNode) then
-      Step4bEnsureInserted(OldNode);
-end;
-
-// Remove deleted nodes and clear links
-procedure THysteresisTree.Step5CleanupAndSwapLists;
+// Update and reshuffle nodes based on the data snapshot
+procedure THysteresisTree.Step2MergeData;
 var
   i, j: Integer;
+  FOldGeneration: TArray<THysteresisNode>;
 begin
-  // Cleanup links for the old nodes
-  for i := 0 to High(FCurrentNodes) do
-    FCurrentNodes[i].FRelatedNode := nil;
+  // Prepare for a new generation of nodes
+  FOldGeneration := FNodes;
+  FNodes := nil;
+  SetLength(FNodes, Length(Data));
 
-  // Cleanup links for the new nodes
-  for i := 0 to High(FNewNodes) do
-    FNewNodes[i].FRelatedNode := nil;
+  for i := 0 to High(Data) do
+  begin
+    // Try to find a matching node from the previous generation. Note: recently
+    // removed nodes cannot be revived, so we skip them here
+    for j := 0 to High(FOldGeneration) do
+      if Assigned(FOldGeneration[j]) and
+        (FOldGeneration[j].FTransitionState <> hntRecentlyRemoved) and
+        EquivalencyCheck(FOldGeneration[j], Data[i]) then
+        begin
+          // The node matches the data - move the node to the next generation
+          // under the (new) data's index
+          FNodes[i] := FOldGeneration[j];
+          FOldGeneration[j] := nil;
+          FNodes[i].FIndex := i;
+          FNodes[i].UpdateData(Data[i]);
+          Break;
+        end;
 
-  // Remove deleted entries from the new nodes. We don't need them anymore since
-  // they have already impacted the ordering of other nodes.
+    // If no match, create a new node
+    if not Assigned(FNodes[i]) then
+    begin
+      FNodes[i] := FNodeClass.Create;
+      FNodes[i].UpdateData(Data[i]);
+      FNodes[i].FNewlyAdded := True;
+      FNodes[i].FIndex := i;
+      FNodes[i].FTransitionTTL := EffectiveTTL;
+
+      if FNodes[i].FTransitionTTL > 0 then
+        FNodes[i].FTransitionState := hntRecentlyAdded
+      else
+        FNodes[i].FTransitionState := hntNormal;
+    end;
+  end;
+
+  // Nodes without a match become recently removed but still merge
+  for j := 0 to High(FOldGeneration) do
+    if Assigned(FOldGeneration[j]) then
+    begin
+      if FOldGeneration[j].FTransitionState <> hntRecentlyRemoved then
+      begin
+        FOldGeneration[j].FTransitionState := hntRecentlyRemoved;
+        FOldGeneration[j].FTransitionTTL := EffectiveTTL;
+        FOldGeneration[j].FDeleted := FOldGeneration[j].FTransitionTTL <= 0;
+      end;
+
+      Step2bEnsureMerged(FOldGeneration[j]);
+      FOldGeneration[j] := nil; // transferred ownership
+    end;
+
+  // Erase links (to be rebuilt on the next steps)
+  for i := 0 to High(FNodes) do
+  begin
+    FNodes[i].FParent := nil;
+    FNodes[i].FPreviousSibling := nil;
+    FNodes[i].FNextSibling := nil;
+    FNodes[i].FFirstChild := nil;
+  end;
+end;
+
+// Move deleted nodes from the current generation to a dedicated array
+procedure THysteresisTree.Step3ExtractDeleted;
+var
+  i, j, k: Integer;
+  Previous: THysteresisNode;
+begin
+  // Free deleted nodes from the previous generation
+  for k := 0 to High(FDeletedNodes) do
+    FDeletedNodes[k].Free;
+
+  // Count new deleted nodes
+  k := 0;
+  for i := 0 to High(FNodes) do
+    if FNodes[i].FDeleted then
+      Inc(k);
+
+  // Extract them
+  SetLength(FDeletedNodes, k);
+
   j := 0;
-  for i := 0 to High(FNewNodes) do
-    if not FNewNodes[i].FDeleted then
+  k := 0;
+  for i := 0 to High(FNodes) do
+    if FNodes[i].FDeleted then
+    begin
+      // Move to the deleted list
+      FDeletedNodes[k] := FNodes[i];
+      FDeletedNodes[k].FIndex := k;
+      Inc(k);
+    end
+    else
     begin
       // Compact non-deleted nodes and adjust indexes
       if i <> j then
       begin
-        FNewNodes[j].Free;
-        FNewNodes[j] := FNewNodes[i];
-        FNewNodes[j].FIndex := j;
-        FNewNodes[i] := nil; // We have transferred owenrship
+        FNodes[j] := FNodes[i];
+        FNodes[j].FIndex := j;
       end;
 
       Inc(j);
     end;
 
-  // Free trailing deleted nodes
-  for i := j to High(FNewNodes) do
-    FNewNodes[i].Free;
-
   // Trim after compaction
-  SetLength(FNewNodes, j);
+  SetLength(FNodes, j);
 
-  // Free the old nodes
-  for i := 0 to High(FCurrentNodes) do
-    FCurrentNodes[i].Free;
+  // Link deleted nodes with each other
+  Previous := nil;
 
-  // The new can finally become the current
-  FCurrentNodes := FNewNodes;
-  FNewNodes := nil;
+  for k := 0 to High(FDeletedNodes) do
+  begin
+    FDeletedNodes[k].FPreviousSibling := Previous;
+
+    if Assigned(Previous) then
+      Previous.FNextSibling := FDeletedNodes[k];
+
+    Previous := FDeletedNodes[k];
+  end;
 end;
 
-// Connect nodes based on parent-child relationships
-procedure THysteresisTree.Step6BuildTree;
+// Link nodes based on parent-child relationships
+procedure THysteresisTree.Step4BuildTree;
 var
-  i, j, k, Count: Integer;
+  i, j: Integer;
   Parent, Previous: THysteresisNode;
 begin
   if FHasParentCheck then
   begin
     // Fill parent references
-    for i := 0 to High(FCurrentNodes) do
-      for j := 0 to High(FCurrentNodes) do
-        if (i <> j) and ParentCheck(FCurrentNodes[j],
-          FCurrentNodes[i]) then
+    for i := 0 to High(FNodes) do
+      for j := 0 to High(FNodes) do
+        if (i <> j) and ParentCheck(FNodes[j], FNodes[i]) then
         begin
-          FCurrentNodes[i].FParent := FCurrentNodes[j];
+          FNodes[i].FParent := FNodes[j];
           Break;
         end;
 
     // Verify there are no cycles
-    for i := 0 to High(FCurrentNodes) do
+    for i := 0 to High(FNodes) do
     begin
       j := 0;
-      Parent := FCurrentNodes[i].FParent;
+      Parent := FNodes[i].FParent;
 
-      // Try to find the root which must be at most High(FCurrentNodes) away
-      while Assigned(Parent) and (j <= High(FCurrentNodes)) do
+      // Try to find the root which must be at most High(FNodes) away
+      while Assigned(Parent) and (j <= High(FNodes)) do
       begin
         Parent := Parent.FParent;
         Inc(j);
@@ -465,65 +497,51 @@ begin
 
       // A cycle detected; detach the parent to resolve it
       if Assigned(Parent) then
-        FCurrentNodes[i].FParent := nil;
+        FNodes[i].FParent := nil;
     end;
 
-    // Fill child references
-    for i := 0 to High(FCurrentNodes) do
+    // Fill the first child and sibling references for parented nodes
+    for i := 0 to High(FNodes) do
     begin
-      Count := 0;
-      for j := 0 to High(FCurrentNodes) do
-        if FCurrentNodes[j].FParent = FCurrentNodes[i] then
-          Inc(Count);
+      Previous := nil;
 
-      SetLength(FCurrentNodes[i].FChildren, Count);
-
-      k := 0;
-      for j := 0 to High(FCurrentNodes) do
-        if FCurrentNodes[j].FParent = FCurrentNodes[i] then
+      for j := 0 to High(FNodes) do
+        if FNodes[j].FParent = FNodes[i] then
         begin
-          FCurrentNodes[i].FChildren[k] := FCurrentNodes[j];
-          Inc(k);
+          if not Assigned(FNodes[i].FFirstChild) then
+            FNodes[i].FFirstChild := FNodes[j];
+
+          FNodes[j].FPreviousSibling := Previous;
+
+          if Assigned(Previous) then
+            Previous.FNextSibling := FNodes[j];
+
+          Previous := FNodes[j];
         end;
     end;
-
-    // Fill sibling references for parented nodes
-    for i := 0 to High(FCurrentNodes) do
-      for j := 0 to High(FCurrentNodes[i].FChildren) do
-      begin
-        if j > 0 then
-          FCurrentNodes[i].FChildren[j].FPreviousSibling :=
-            FCurrentNodes[i].FChildren[j - 1];
-
-        if j < High(FCurrentNodes[i].FChildren) then
-          FCurrentNodes[i].FChildren[j].FNextSibling :=
-            FCurrentNodes[i].FChildren[j + 1];
-      end;
   end;
 
   // Fill sibling references for root nodes
   Previous := nil;
 
-  for i := 0 to High(FCurrentNodes) do
-    if not Assigned(FCurrentNodes[i].FParent) then
+  for i := 0 to High(FNodes) do
+    if not Assigned(FNodes[i].FParent) then
     begin
-      FCurrentNodes[i].FPreviousSibling := Previous;
+      FNodes[i].FPreviousSibling := Previous;
 
       if Assigned(Previous) then
-        Previous.FNextSibling := FCurrentNodes[i];
+        Previous.FNextSibling := FNodes[i];
 
-      Previous := FCurrentNodes[i];
+      Previous := FNodes[i];
     end;
 end;
 
 procedure THysteresisTree.Update;
 begin
   Step1AdvanceTTL;
-  Step2ConvertEntries(Data);
-  Step3LinkRelatedNodes;
-  Step4InsertRecentlyRemoved;
-  Step5CleanupAndSwapLists;
-  Step6BuildTree;
+  Step2MergeData(Data);
+  Step3ExtractDeleted;
+  Step4BuildTree;
   FFirstUpdateComplete := True;
 end;
 
@@ -538,15 +556,33 @@ end;
 
 function THysteresisTree<T>.EquivalencyCheck;
 begin
-  Result := FEquivalencyCheck(
-    THysteresisNode<T>(A).FData,
-    THysteresisNode<T>(B).FData
-  );
+  Result := FEquivalencyCheck(THysteresisNode<T>(Node).FData, T(Data^));
+end;
+
+function THysteresisTree<T>.GetDeletedNodes;
+begin
+  Result := TArray<THysteresisNode<T>>(FDeletedNodes);
+end;
+
+function THysteresisTree<T>.GetFirstDeletedNode;
+begin
+  if Length(FDeletedNodes) > 0 then
+    Result := THysteresisNode<T>(FDeletedNodes[0])
+  else
+    Result := nil;
+end;
+
+function THysteresisTree<T>.GetFirstNode;
+begin
+  if Length(FNodes) > 0 then
+    Result := THysteresisNode<T>(FNodes[0])
+  else
+    Result := nil;
 end;
 
 function THysteresisTree<T>.GetNodes;
 begin
-  Result := TArray<THysteresisNode<T>>(FCurrentNodes);
+  Result := TArray<THysteresisNode<T>>(FNodes);
 end;
 
 class function THysteresisTree<T>.Initialize;
@@ -559,7 +595,7 @@ end;
 
 function THysteresisTree<T>.ParentCheck;
 begin
-  Result := Assigned(FParentCheck) and FParentCheck(
+  Result := FParentCheck(
     THysteresisNode<T>(Parent).FData,
     THysteresisNode<T>(Child).FData
   );
