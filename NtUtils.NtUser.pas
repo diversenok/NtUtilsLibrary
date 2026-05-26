@@ -302,11 +302,25 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntpebteb, Ntapi.ntrtl,
   NtUtils.Objects, NtUtils.SysUtils, DelphiUtils.AutoObjects,
-  DelphiUtils.Arrays, NtUtils.Ldr;
+  DelphiUtils.Arrays, NtUtils.Ldr, DelphiApi.DelayLoad;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+function LdrxCheckDelayedImportWithUser32(
+  var Routine: TDelayedLoadFunction
+): TNtxStatus;
+begin
+  // win32u.dll does not set KernelCallbackTable in PEB. We need user32 for that
+  // (at least for now).
+  Result := LdrxCheckDelayedModule(delayed_user32);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LdrxCheckDelayedImport(Routine);
+end;
 
 { Legacy calls }
 
@@ -324,7 +338,7 @@ begin
     Exit;
   end;
 
-  Result := LdrxCheckDelayedImport(delayed_NtUserCallNoParam);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserCallNoParam);
 
   if not Result.IsSuccess then
     Exit;
@@ -353,7 +367,7 @@ begin
     Exit;
   end;
 
-  Result := LdrxCheckDelayedImport(delayed_NtUserCallOneParam);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserCallOneParam);
 
   if not Result.IsSuccess then
     Exit;
@@ -382,7 +396,7 @@ begin
     Exit;
   end;
 
-  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwnd);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserCallHwnd);
 
   if not Result.IsSuccess then
     Exit;
@@ -411,7 +425,7 @@ begin
     Exit;
   end;
 
-  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwndOpt);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserCallHwndOpt);
 
   if not Result.IsSuccess then
     Exit;
@@ -441,7 +455,7 @@ begin
     Exit;
   end;
 
-  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwndParam);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserCallHwndParam);
 
   if not Result.IsSuccess then
     Exit;
@@ -470,7 +484,7 @@ begin
     Exit;
   end;
 
-  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwndLock);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserCallHwndLock);
 
   if not Result.IsSuccess then
     Exit;
@@ -500,7 +514,7 @@ begin
     Exit;
   end;
 
-  Result := LdrxCheckDelayedImport(delayed_NtUserCallHwndParamLock);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserCallHwndParamLock);
 
   if not Result.IsSuccess then
     Exit;
@@ -530,7 +544,7 @@ begin
     Exit;
   end;
 
-  Result := LdrxCheckDelayedImport(delayed_NtUserCallTwoParam);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserCallTwoParam);
 
   if not Result.IsSuccess then
     Exit;
@@ -554,7 +568,7 @@ var
   Buffer: IMemory<PNameList>;
   Required: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserBuildNameList);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserBuildNameList);
 
   if not Result.IsSuccess then
     Exit;
@@ -606,7 +620,7 @@ var
   ObjAttr: PObjectAttributes;
   hWinSta: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserOpenWindowStation);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserOpenWindowStation);
 
   if not Result.IsSuccess then
     Exit;
@@ -637,7 +651,7 @@ var
   ObjAttr: PObjectAttributes;
   hDesktop: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserOpenDesktop);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserOpenDesktop);
 
   if not Result.IsSuccess then
     Exit;
@@ -660,7 +674,7 @@ function NtxOpenInputDesktop;
 var
   hDesktop: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserOpenInputDesktop);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserOpenInputDesktop);
 
   if not Result.IsSuccess then
     Exit;
@@ -680,7 +694,7 @@ const
 var
   hDesktop: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserOpenThreadDesktop);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserOpenThreadDesktop);
 
   if not Result.IsSuccess then
     Exit;
@@ -697,7 +711,7 @@ end;
 
 function NtxSetThreadDesktop;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserSetThreadDesktop);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserSetThreadDesktop);
 
   if not Result.IsSuccess then
     Exit;
@@ -712,7 +726,7 @@ function NtxEnumerateWindows;
 var
   Count: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserBuildHwndList);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserBuildHwndList);
 
   if not Result.IsSuccess then
     Exit;
@@ -750,7 +764,8 @@ function NtxOpenProcessByWindow;
 var
   hProcess: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserGetWindowProcessHandle);
+  Result := LdrxCheckDelayedImportWithUser32(
+    delayed_NtUserGetWindowProcessHandle);
 
   if not Result.IsSuccess then
     Exit;
@@ -768,6 +783,12 @@ class function NtxWindow.Query<T>;
 var
   BufferData: NativeUInt absolute Buffer;
 begin
+  // Note: inline LdrxCheckDelayedImportWithUser32 here due to generics
+  Result := LdrxCheckDelayedModule(delayed_user32);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result := LdrxCheckDelayedImport(delayed_NtUserQueryWindow);
 
   if not Result.IsSuccess then
@@ -794,7 +815,7 @@ end;
 
 function NtxGetGuiInfoThread;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserGetGUIThreadInfo);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserGetGUIThreadInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -817,7 +838,7 @@ function NtxSendMessage;
 var
   xParam: TSndMsgTimeout;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserMessageCall);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserMessageCall);
 
   if not Result.IsSuccess then
     Exit;
@@ -840,7 +861,7 @@ end;
 
 function NtxPostMessage;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserPostMessage);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserPostMessage);
 
   if not Result.IsSuccess then
     Exit;
@@ -853,7 +874,8 @@ function NtxRegisterWindowMessage;
 var
   MessageStr: TNtUnicodeString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserRegisterWindowMessage);
+  Result := LdrxCheckDelayedImportWithUser32(
+    delayed_NtUserRegisterWindowMessage);
 
   if not Result.IsSuccess then
     Exit;
@@ -876,7 +898,7 @@ var
   AtomNameStr: TNtUnicodeString;
   Returned: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserGetAtomName);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserGetAtomName);
 
   if not Result.IsSuccess then
     Exit;
@@ -1001,7 +1023,7 @@ function NtxEnumerateProps;
 var
   RequiredCount: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserBuildPropList);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserBuildPropList);
 
   if not Result.IsSuccess then
     Exit;
@@ -1026,7 +1048,7 @@ end;
 
 function NtxGetProp;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserGetProp);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserGetProp);
 
   if not Result.IsSuccess then
     Exit;
@@ -1040,7 +1062,7 @@ end;
 
 function NtxSetProp;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserSetProp);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserSetProp);
 
   if not Result.IsSuccess then
     Exit;
@@ -1055,7 +1077,7 @@ function NtxRemoveProp;
 var
   Value: NativeUInt;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserRemoveProp);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserRemoveProp);
 
   if not Result.IsSuccess then
     Exit;
@@ -1078,8 +1100,8 @@ type
 
 destructor TAutoClipboard.Destroy;
 begin
-  if not FDiscardOwnership and
-    LdrxCheckDelayedImport(delayed_NtUserCloseClipboard).IsSuccess then
+  if not FDiscardOwnership and LdrxCheckDelayedImportWithUser32(
+    delayed_NtUserCloseClipboard).IsSuccess then
     NtUserCloseClipboard;
 end;
 
@@ -1087,7 +1109,7 @@ function NtxOpenClipboard;
 var
   EmptyClientValue: LongBool;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserOpenClipboard);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserOpenClipboard);
 
   if not Result.IsSuccess then
     Exit;
@@ -1108,7 +1130,8 @@ function NtxCaptureMemHandle;
 var
   Needed: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserCreateLocalMemHandle);
+  Result := LdrxCheckDelayedImportWithUser32(
+    delayed_NtUserCreateLocalMemHandle);
 
   if not Result.IsSuccess then
     Exit;
@@ -1124,7 +1147,7 @@ end;
 
 function NtxGetClipboardDataHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserGetClipboardData);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserGetClipboardData);
 
   if not Result.IsSuccess then
     Exit;
@@ -1155,7 +1178,7 @@ type
 
 destructor TNtxAutoWindowHook.Destroy;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(
+  if (FHandle <> 0) and LdrxCheckDelayedImportWithUser32(
     delayed_NtUserUnhookWindowsHookEx).IsSuccess then
     NtUserUnhookWindowsHookEx(FHandle);
 end;
@@ -1165,7 +1188,7 @@ var
   LibStr: TNtUnicodeString;
   hHook: THHook;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserSetWindowsHookEx);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserSetWindowsHookEx);
 
   if not Result.IsSuccess then
     Exit;
@@ -1187,7 +1210,7 @@ end;
 
 function NtxLockWorkstation;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserLockWorkStation);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserLockWorkStation);
 
   if not Result.IsSuccess then
     Exit;
@@ -1198,7 +1221,7 @@ end;
 
 function NtxMapDesktopObject;
 begin
-  Result := LdrxCheckDelayedImport(delayed_NtUserMapDesktopObject);
+  Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserMapDesktopObject);
 
   if Result.IsSuccess then
   begin

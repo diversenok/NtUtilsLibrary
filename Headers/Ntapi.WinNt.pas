@@ -569,6 +569,7 @@ type
 
   [SDKName('HWND'), Hex]
   THwnd = type NativeUInt;
+  PHwnd = ^THwnd;
 
   THandle32 = type Cardinal;
   TProcessId = type NativeUInt;
