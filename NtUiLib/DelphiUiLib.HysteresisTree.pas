@@ -3,7 +3,7 @@ unit DelphiUiLib.HysteresisTree;
 {
   This unit provides a hysteresis tree, which is a data structure for storing a
   (flat or tree-like) collection of elements that has a short memory of its
-  previous states and can identify recently added/removed elements.
+  previous states and can identify recently added/removed entries.
 }
 
 interface
@@ -113,6 +113,9 @@ type
     function GetTransitionTime: Integer;
     procedure SetTransitionTime(Value: Integer);
 
+    // Refresh the tree with the new data snapshot
+    procedure Update(const Data: TArray<Pointer>);
+
     // The top root node in the hierarchy
     property FirstNode: THysteresisNode read GetFirstNode;
 
@@ -180,7 +183,7 @@ type
     destructor Destroy; override;
   end;
 
-  THysteresisTree<T> = class (THysteresisTree, IHysteresisTree<T>)
+  THysteresisTree<T> = class sealed (THysteresisTree, IHysteresisTree<T>)
   protected
     FEquivalencyCheck: TEqualityCheck<T>;
     FParentCheck: TParentChecker<T>;
