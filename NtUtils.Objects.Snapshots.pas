@@ -16,7 +16,9 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TProcessHandleEntry = record
+  TNtxObjectTypeInfo = NtUtils.Objects.TNtxObjectTypeInfo;
+
+  TNtxProcessHandleEntry = record
     ProcessId: TProcessId;
     HandleValue: THandle;
     HandleCount: NativeUInt;
@@ -26,19 +28,19 @@ type
     HandleAttributes: TObjectAttributesFlags;
   end;
 
-  TSystemHandleEntry = Ntapi.ntexapi.TSystemHandleTableEntryInfoEx;
-  THandleGroup = TArrayGroup<TProcessId, TSystemHandleEntry>;
+  TNtxSystemHandleEntry = Ntapi.ntexapi.TSystemHandleTableEntryInfoEx;
+  TNtxSystemHandleGroup = TArrayGroup<TProcessId, TNtxSystemHandleEntry>;
 
-  TObjectEntry = record
+  TNtxObjectEntry = record
     ObjectName: String;
     Other: TSystemObjectInformation;
   end;
-  PObjectEntry = ^TObjectEntry;
+  PNtxObjectEntry = ^TNtxObjectEntry;
 
-  TObjectTypeEntry = record
+  TNtxObjectTypeEntry = record
     TypeName: String;
     Other: TSystemObjectTypeInformation;
-    Objects: TArray<TObjectEntry>;
+    Objects: TArray<TNtxObjectEntry>;
   end;
 
 { Process handles }
@@ -46,7 +48,7 @@ type
 // Snapshot handles of a specific process
 function NtxEnumerateHandlesProcess(
   [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
-  out Handles: TArray<TProcessHandleEntry>
+  out Handles: TArray<TNtxProcessHandleEntry>
 ): TNtxStatus;
 
 { System Handles }
@@ -54,26 +56,26 @@ function NtxEnumerateHandlesProcess(
 // Snapshot all handles on the system
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForExtendedFunctionality)]
 function NtxEnumerateHandles(
-  out Handles: TArray<TSystemHandleEntry>
+  out Handles: TArray<TNtxSystemHandleEntry>
 ): TNtxStatus;
 
 // Snapshot all handles on the system and groups them by process IDs
 function NtxEnumerateHandlesGroupByPid(
-  out HandleGroups: TArray<THandleGroup>;
-  [opt] Filter: TCondition<TSystemHandleEntry> = nil
+  out HandleGroups: TArray<TNtxSystemHandleGroup>;
+  [opt] Filter: TCondition<TNtxSystemHandleEntry> = nil
 ): TNtxStatus;
 
 // Find a handle entry
 function RtlxFindHandleEntry(
-  const Handles: TArray<TSystemHandleEntry>;
+  const Handles: TArray<TNtxSystemHandleEntry>;
   PID: TProcessId;
   HandleValue: THandle;
-  out Entry: TSystemHandleEntry
+  out Entry: TNtxSystemHandleEntry
 ): TNtxStatus;
 
 // Filter handles that reference the same object as a local handle
 function RtlxFilterHandlesByHandle(
-  var Handles: TArray<TSystemHandleEntry>;
+  var Handles: TArray<TNtxSystemHandleEntry>;
   const Handle: IHandle
 ): TNtxStatus;
 
@@ -84,26 +86,26 @@ function RtlxObjectEnumerationSupported: Boolean;
 
 // Snapshot objects on the system
 function NtxEnumerateObjects(
-  out Types: TArray<TObjectTypeEntry>
+  out Types: TArray<TNtxObjectTypeEntry>
 ): TNtxStatus;
 
 // Find object entry by a object's address
 function RtlxFindObjectByAddress(
-  const Types: TArray<TObjectTypeEntry>;
+  const Types: TArray<TNtxObjectTypeEntry>;
   [in] Address: Pointer
-): PObjectEntry;
+): PNtxObjectEntry;
 
 { Types }
 
 // Enumerate kernel object types on the system
 function NtxEnumerateKernelTypes(
-  out Types: TArray<TObjectTypeInfo>
+  out Types: TArray<TNtxObjectTypeInfo>
 ): TNtxStatus;
 
 // Find information about a kernel object type by its name
 function RtlxFindKernelType(
   const TypeName: String;
-  out Info: TObjectTypeInfo;
+  out Info: TNtxObjectTypeInfo;
   [ThreadSafe] UseCaching: Boolean = True
 ): TNtxStatus;
 
@@ -113,29 +115,29 @@ function RtlxFindKernelType(
 
 function ByType(
   TypeIndex: Word
-): TCondition<TProcessHandleEntry>;
+): TCondition<TNtxProcessHandleEntry>;
 
 function ByAccess(
   AccessMask: TAccessMask
-): TCondition<TProcessHandleEntry>;
+): TCondition<TNtxProcessHandleEntry>;
 
 // System handles
 
 function ByProcess(
   PID: TProcessId
-): TCondition<TSystemHandleEntry>;
+): TCondition<TNtxSystemHandleEntry>;
 
 function ByAddress(
   [in] Address: Pointer
-): TCondition<TSystemHandleEntry>;
+): TCondition<TNtxSystemHandleEntry>;
 
 function ByTypeIndex(
   TypeIndex: Word
-): TCondition<TSystemHandleEntry>;
+): TCondition<TNtxSystemHandleEntry>;
 
 function ByGrantedAccess(
   AccessMask: TAccessMask
-): TCondition<TSystemHandleEntry>;
+): TCondition<TNtxSystemHandleEntry>;
 
 implementation
 
@@ -155,7 +157,7 @@ var
   xMemory: IMemory<PProcessHandleSnapshotInformation>;
   i: Integer;
   BasicInfo: TProcessBasicInformation;
-  AllHandles: TArray<TSystemHandleEntry>;
+  AllHandles: TArray<TNtxSystemHandleEntry>;
 begin
   if Assigned(hxProcess) and (hxProcess.Handle <> NtCurrentProcess) then
   begin
@@ -200,7 +202,7 @@ begin
       Exit;
 
     // Include only handles from the target process
-    TArray.FilterInline<TSystemHandleEntry>(AllHandles,
+    TArray.FilterInline<TNtxSystemHandleEntry>(AllHandles,
       ByProcess(BasicInfo.UniqueProcessID));
 
     SetLength(Handles, Length(AllHandles));
@@ -247,7 +249,7 @@ end;
 
 function NtxEnumerateHandlesGroupByPid;
 var
-  Handles: TArray<TSystemHandleEntry>;
+  Handles: TArray<TNtxSystemHandleEntry>;
 begin
   // Get all handles
   Result := NtxEnumerateHandles(Handles);
@@ -257,11 +259,11 @@ begin
 
   // Optionally, apply the filter
   if Assigned(Filter) then
-    TArray.FilterInline<TSystemHandleEntry>(Handles, Filter);
+    TArray.FilterInline<TNtxSystemHandleEntry>(Handles, Filter);
 
   // Group using owning PID as a key
-  HandleGroups := TArray.GroupBy<TSystemHandleEntry, TProcessId>(Handles,
-    function (const Entry: TSystemHandleEntry): TProcessId
+  HandleGroups := TArray.GroupBy<TNtxSystemHandleEntry, TProcessId>(Handles,
+    function (const Entry: TNtxSystemHandleEntry): TProcessId
     begin
       Result := Entry.UniqueProcessId;
     end
@@ -286,7 +288,7 @@ end;
 
 function RtlxFilterHandlesByHandle;
 var
-  Entry: TSystemHandleEntry;
+  Entry: TNtxSystemHandleEntry;
 begin
   Result := RtlxFindHandleEntry(Handles, NtCurrentProcessId,
     HandleOrDefault(Handle), Entry);
@@ -303,7 +305,7 @@ begin
     Exit;
   end;
 
-  TArray.FilterInline<TSystemHandleEntry>(Handles, ByAddress(Entry.PObject));
+  TArray.FilterInline<TNtxSystemHandleEntry>(Handles, ByAddress(Entry.PObject));
 end;
 
 { Objects }
@@ -464,11 +466,11 @@ end;
 
 var
   TypesCacheInitialized: TRtlRunOnce;
-  TypesCache: TArray<TObjectTypeInfo>;
+  TypesCache: TArray<TNtxObjectTypeInfo>;
 
 function RtlxFindKernelType;
 var
-  Types: TArray<TObjectTypeInfo>;
+  Types: TArray<TNtxObjectTypeInfo>;
   InitState: IAcquiredRunOnce;
   i: Integer;
 begin
@@ -510,7 +512,7 @@ end;
 
 function ByType;
 begin
-  Result := function (const HandleEntry: TProcessHandleEntry): Boolean
+  Result := function (const HandleEntry: TNtxProcessHandleEntry): Boolean
     begin
       Result := HandleEntry.ObjectTypeIndex = TypeIndex;
     end;
@@ -518,7 +520,7 @@ end;
 
 function ByAccess;
 begin
-  Result := function (const HandleEntry: TProcessHandleEntry): Boolean
+  Result := function (const HandleEntry: TNtxProcessHandleEntry): Boolean
     begin
       Result := HandleEntry.GrantedAccess = AccessMask;
     end;
@@ -528,7 +530,7 @@ end;
 
 function ByProcess;
 begin
-  Result := function (const HandleEntry: TSystemHandleEntry): Boolean
+  Result := function (const HandleEntry: TNtxSystemHandleEntry): Boolean
     begin
       Result := HandleEntry.UniqueProcessId = PID;
     end;
@@ -536,7 +538,7 @@ end;
 
 function ByAddress;
 begin
-  Result := function (const HandleEntry: TSystemHandleEntry): Boolean
+  Result := function (const HandleEntry: TNtxSystemHandleEntry): Boolean
     begin
       Result := HandleEntry.PObject = Address;
     end;
@@ -544,7 +546,7 @@ end;
 
 function ByTypeIndex;
 begin
-  Result := function (const HandleEntry: TSystemHandleEntry): Boolean
+  Result := function (const HandleEntry: TNtxSystemHandleEntry): Boolean
     begin
       Result := HandleEntry.ObjectTypeIndex = TypeIndex;
     end;
@@ -552,7 +554,7 @@ end;
 
 function ByGrantedAccess;
 begin
-  Result := function (const HandleEntry: TSystemHandleEntry): Boolean
+  Result := function (const HandleEntry: TNtxSystemHandleEntry): Boolean
     begin
       Result := HandleEntry.GrantedAccess = AccessMask;
     end;

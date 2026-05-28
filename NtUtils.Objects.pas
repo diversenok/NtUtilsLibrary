@@ -11,7 +11,7 @@ uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils, DelphiApi.Reflection;
 
 type
-  TObjectTypeInfo = record
+  TNtxObjectTypeInfo = record
     TypeName: String;
     [Aggregate] Native: TObjectTypeInformation;
   end;
@@ -163,7 +163,7 @@ function NtxQueryNameObject(
 // Query object type information
 function NtxQueryTypeObject(
   [Access(0)] const hxObject: IHandle;
-  out Info: TObjectTypeInfo
+  out Info: TNtxObjectTypeInfo
 ): TNtxStatus;
 
 // Set flags for a handle
@@ -328,7 +328,7 @@ end;
 function NtxDuplicateHandleLocal;
 var
   Basic: TObjectBasicInformation;
-  ObjectType: TObjectTypeInfo;
+  ObjectType: TNtxObjectTypeInfo;
   Status: NTSTATUS;
   hObject: THandle;
   AccumulatedAccess: TAccessMask;
@@ -505,7 +505,7 @@ end;
 function NtxEnsureAccessHandle;
 var
   Info: TObjectBasicInformation;
-  ObjectType: TObjectTypeInfo;
+  ObjectType: TNtxObjectTypeInfo;
 begin
   // Expand generic rights
   if HasAny(DesiredAccess and (GENERIC_RIGHTS_ALL or MAXIMUM_ALLOWED)) then

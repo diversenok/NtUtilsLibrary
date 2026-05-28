@@ -136,8 +136,8 @@ end;
 
 function NtxCompareObjects;
 var
-  Type1, Type2: TObjectTypeInfo;
-  Handles: TArray<TSystemHandleEntry>;
+  Type1, Type2: TNtxObjectTypeInfo;
+  Handles: TArray<TNtxSystemHandleEntry>;
   HashFunction: THashingRoutine;
   RequiredAccess: TAccessMask;
   i, j: Integer;
@@ -224,7 +224,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  TArray.FilterInline<TSystemHandleEntry>(Handles,
+  TArray.FilterInline<TNtxSystemHandleEntry>(Handles,
     ByProcess(NtCurrentProcessId));
 
   for i := 0 to High(Handles) do

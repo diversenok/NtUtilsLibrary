@@ -64,7 +64,7 @@ uses
 
 function RtlxInheritAllHandles;
 var
-  Handles: TArray<TProcessHandleEntry>;
+  Handles: TArray<TNtxProcessHandleEntry>;
   i: Integer;
 begin
   // Snapshot all our handles
