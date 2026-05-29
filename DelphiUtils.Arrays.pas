@@ -76,7 +76,7 @@ type
     Entry: T;
     Index: Integer;
     Parent: ^TTreeNode<T>;
-    Children: TArray<^TTreeNode<T>>;
+    FirstChild: ^TTreeNode<T>;
     PreviousSibling: ^TTreeNode<T>;
     NextSibling: ^TTreeNode<T>;
   end;
@@ -498,7 +498,7 @@ end;
 
 class function TArray.BuildTree<T>;
 var
-  i, j, k, Count: Integer;
+  i, j: Integer;
   Parent, Previous: ^TTreeNode<T>;
 begin
   SetLength(Result, Length(Entries));
@@ -537,22 +537,23 @@ begin
       Result[i].Parent := nil;
   end;
 
-  // Fill children, also as references
+  // Fill the first child and sibling references for parented nodes
   for i := 0 to High(Result) do
   begin
-    Count := 0;
-    for j := 0 to High(Result) do
-      if Result[j].Parent = @Result[i] then
-        Inc(Count);
+    Previous := nil;
 
-    SetLength(Result[i].Children, Count);
-
-    k := 0;
     for j := 0 to High(Result) do
       if Result[j].Parent = @Result[i] then
       begin
-        Result[i].Children[k] := @Result[j];
-        Inc(k);
+        if not Assigned(Result[i].FirstChild) then
+          Result[i].FirstChild := @Result[j];
+
+        Result[j].PreviousSibling := Previous;
+
+        if Assigned(Previous) then
+          Previous.NextSibling := @Result[j];
+
+        Previous := @Result[j];
       end;
   end;
 
@@ -568,17 +569,6 @@ begin
         Previous.NextSibling := @Result[i];
 
       Previous := @Result[i];
-    end;
-
-  // Fill sibling references for parented nodes
-  for i := 0 to High(Result) do
-    for j := 0 to High(Result[i].Children) do
-    begin
-      if j > 0 then
-        Result[i].Children[j].PreviousSibling := Result[i].Children[j - 1];
-
-      if j < High(Result[i].Children) then
-        Result[i].Children[j].NextSibling := Result[i].Children[j + 1];
     end;
 end;
 
