@@ -111,7 +111,9 @@ function RtlxIsSameProcess(
 // IHysteresisTree<TProcessEntry>
 function RtlxIsParentProcess(
   const Parent: TProcessEntry;
-  const Child: TProcessEntry
+  ParentIndex: Integer;
+  const Child: TProcessEntry;
+  ChildIndex: Integer
 ): Boolean;
 
 implementation
@@ -419,11 +421,10 @@ end;
 
 function RtlxIsParentProcess;
 begin
-  // Note: since PIDs can be reused we need to ensure
-  // that children were not created before the parent.
-
-  Result := (Child.Basic.InheritedFromProcessId = Parent.Basic.ProcessId)
-    and (Child.Basic.CreateTime >= Parent.Basic.CreateTime);
+  // Note: process enumeration APIs order processes by creation time, even when
+  // the system time has changed. Use that to detect PID reuse.
+  Result := (ParentIndex < ChildIndex) and
+    (Child.Basic.InheritedFromProcessId = Parent.Basic.ProcessId);
 end;
 
 end.

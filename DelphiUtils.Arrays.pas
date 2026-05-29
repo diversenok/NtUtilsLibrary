@@ -81,7 +81,12 @@ type
     NextSibling: ^TTreeNode<T>;
   end;
 
-  TParentChecker<T> = reference to function (const Parent, Child: T): Boolean;
+  TParentChecker<T> = reference to function (
+    const Parent: T;
+    ParentIndex: Integer;
+    const Child: T;
+    ChildIndex: Integer
+  ): Boolean;
 
   TArray = class abstract
     { ------------------------ Conditional operations ------------------------ }
@@ -508,7 +513,7 @@ begin
   // Fill parents as references
   for i := 0 to High(Entries) do
     for j := 0 to High(Entries) do
-      if (i <> j) and ParentChecker(Entries[j], Entries[i]) then
+      if (i <> j) and ParentChecker(Entries[j], j, Entries[i], i) then
       begin
         Result[i].Parent := @Result[j];
         Break;

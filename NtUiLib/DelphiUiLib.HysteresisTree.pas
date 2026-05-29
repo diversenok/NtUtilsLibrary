@@ -650,7 +650,9 @@ function THysteresisTree<T>.ParentCheck;
 begin
   Result := FParentCheck(
     THysteresisNode<T>(Parent).FData,
-    THysteresisNode<T>(Child).FData
+    Parent.Index,
+    THysteresisNode<T>(Child).FData,
+    Child.Index
   );
 end;
 
