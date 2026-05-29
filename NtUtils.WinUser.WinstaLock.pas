@@ -123,8 +123,8 @@ begin
 {$ENDIF}
 
   // Find Winlogon and open it for code injection
-  Result := NtxOpenProcessByName(hxProcess, 'winlogon.exe',
-    PROCESS_REMOTE_EXECUTE, [pnCurrentSessionOnly]);
+  Result := NtxOpenProcessByName(hxProcess, NtxEnumerateProcessesCurrentSession,
+    'winlogon.exe', PROCESS_REMOTE_EXECUTE, []);
 
   if not Result.IsSuccess then
     Exit;

@@ -242,7 +242,7 @@ function NtxEnumerateUsingProcessesFile(
 ): TNtxStatus;
 
 // Enumerate processes that are using ntdll
-function NtxEnumerateProcessesByNtdll(
+function NtxEnumerateUsingProcessesNtdll(
   out PIDs: TArray<TProcessId>
 ): TNtxStatus;
 
@@ -769,7 +769,7 @@ var
   NtdllHandleInitialized: TRtlRunOnce;
   NtdllHandle: IHandle;
 
-function NtxEnumerateProcessesByNtdll;
+function NtxEnumerateUsingProcessesNtdll;
 var
   Init: IAcquiredRunOnce;
   FileName: String;
