@@ -430,7 +430,7 @@ type
   TSystemThreadInformation = record
     KernelTime: TULargeInteger;
     UserTime: TULargeInteger;
-    CreateTime: TULargeInteger;
+    CreateTime: TLargeInteger;
     WaitTime: Cardinal;
     StartAddress: Pointer;
     ClientID: TClientId;
