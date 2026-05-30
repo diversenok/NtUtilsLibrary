@@ -42,9 +42,11 @@ type
 
   TNtxThreadEntry = record
     hxThread: IHandle;
+    IsTerminated: Boolean; // heuristics-based
     [Aggregate] Basic: TSystemThreadInformation;
     [Aggregate] Extended: TSystemThreadInformationExtension; // extended & full
   end;
+  PNtxThreadEntry = ^TNtxThreadEntry;
 
   TNtxProcessEntry = record
     hxProcess: IHandle;
@@ -59,6 +61,8 @@ type
   TNtxProcessEnumerationMethod = function (
     out Processes: TArray<TNtxProcessEntry>
   ): TNtxStatus;
+
+{ Processes }
 
 // Enumerate processes on the system via SystemProcessInformation
 function NtxEnumerateProcesses(
@@ -103,16 +107,22 @@ function NtxEnumerateProcessesBruteforce(
   out Processes: TArray<TNtxProcessEntry>
 ): TNtxStatus;
 
+{ Thread (on-demand) }
+
 // Enumerate threads of a process on-demand via NtGetNextThread
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxEnumerateThreadsGetNext(
-  var Process: TNtxProcessEntry
+  ProcessId: TProcessId;
+  out Threads: TArray<TNtxThreadEntry>
 ): TNtxStatus;
 
 // Enumerate threads of a process on-demand via NtOpenThread
 function NtxEnumerateThreadsBruteforce(
-  var Process: TNtxProcessEntry
+  ProcessId: TProcessId;
+  out Threads: TArray<TNtxThreadEntry>
 ): TNtxStatus;
+
+{ By name }
 
 // Open a process by an image name
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
@@ -139,13 +149,13 @@ function ByPid(
 ): TCondition<TNtxProcessEntry>;
 
 // Find a process in the snapshot using a process ID
-function NtxFindProcessById(
+function RtlxFindProcessById(
   const Processes: TArray<TNtxProcessEntry>;
   PID: TProcessId
 ): PNtxProcessEntry;
 
 // Find a process in the snapshot using a thread ID
-function NtxFindProcessByThreadId(
+function RtlxFindProcessByThreadId(
   const Processes: TArray<TNtxProcessEntry>;
   TID: TThreadId
 ): PNtxProcessEntry;
@@ -578,13 +588,12 @@ var
   Basic: TThreadBasicInformation;
   Entry: TNtxThreadEntry;
 begin
-  Result := NtxOpenProcess(hxProcess, Process.Basic.ProcessID,
-    PROCESS_QUERY_INFORMATION);
+  Result := NtxOpenProcess(hxProcess, ProcessID, PROCESS_QUERY_INFORMATION);
 
   if not Result.IsSuccess then
     Exit;
 
-  Process.Threads := nil;
+  Threads := nil;
 
   for hxThread in NtxIterateGetNextThread(@Result, hxProcess,
     THREAD_QUERY_LIMITED_INFORMATION) do
@@ -595,8 +604,9 @@ begin
       Entry.Basic.ClientID := Basic.ClientId;
       Entry.Basic.Priority := Basic.Priority;
       Entry.Basic.BasePriority := Basic.BasePriority;
-      SetLength(Process.Threads, Succ(Length(Process.Threads)));
-      Process.Threads[High(Process.Threads)] := Entry;
+      Entry.IsTerminated := Basic.ExitStatus <> STATUS_PENDING;
+      SetLength(Threads, Succ(Length(Threads)));
+      Threads[High(Threads)] := Entry;
     end;
 end;
 
@@ -617,11 +627,11 @@ begin
 
   // We should be able to find IDs for all processes within the range up
   // to the high watermark sum for PIDs and TIDs (as they share the namespace)
-  Process.Threads := nil;
+  Threads := nil;
   RemainingGuesses := AlignUp(ProcessType.Native.HighWaterNumberOfObjects +
     ThreadType.Native.HighWaterNumberOfObjects, HANDLES_PER_PAGE[RtlIsWoW64]);
 
-  ClientId.UniqueProcess := Process.Basic.ProcessID;
+  ClientId.UniqueProcess := ProcessID;
   ClientId.UniqueThread := 8;
   InitializeObjectAttributes(ObjectAttributes);
 
@@ -637,8 +647,8 @@ begin
     if Status <> STATUS_INVALID_CID then
     begin
       // A successful guess; save the TID
-      SetLength(Process.Threads, Succ(Length(Process.Threads)));
-      Process.Threads[High(Process.Threads)].Basic.ClientID := ClientId;
+      SetLength(Threads, Succ(Length(Threads)));
+      Threads[High(Threads)].Basic.ClientID := ClientId;
     end;
 
     // Advance to the next
@@ -741,7 +751,7 @@ begin
     end;
 end;
 
-function NtxFindProcessById;
+function RtlxFindProcessById;
 var
   i: Integer;
 begin
@@ -752,7 +762,7 @@ begin
   Result := nil;
 end;
 
-function NtxFindProcessByThreadId;
+function RtlxFindProcessByThreadId;
 var
   i, j: Integer;
 begin
@@ -772,7 +782,8 @@ end;
 
 function RtlxIsSameThread;
 begin
-  Result := A.Basic.ClientID = B.Basic.ClientID;
+  Result := (A.Basic.ClientID.UniqueProcess = B.Basic.ClientID.UniqueProcess)
+    and (A.Basic.ClientID.UniqueThread = B.Basic.ClientID.UniqueThread);
 end;
 
 function RtlxIsParentProcess;
