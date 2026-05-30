@@ -44,6 +44,11 @@ function NtxCaptureRemoteHandle(
   hObject: THandle
 ): TNtxStatus;
 
+// Release a handle if it's the last one keeping the object alive
+procedure NtxCloseHandleIfLast(
+  var hxObject: IHandle
+);
+
 // ------------------------------ Duplication ------------------------------ //
 
 // Note: all handle duplication routines here support MAXIMUM_ALLOWED
@@ -297,6 +302,29 @@ begin
 
   Result.Location := 'NtxCaptureHandle';
   Result.Status := STATUS_INVALID_HANDLE;
+end;
+
+procedure NtxCloseHandleIfLast;
+var
+  Debug: IInterfaceDebug;
+  Basic: TObjectBasicInformation;
+begin
+  // Already complete?
+  if not Assigned(hxObject) then
+    Exit;
+
+  // First, check if this handle is shared locally
+  if (hxObject.QueryInterface(IInterfaceDebug, Debug) <> S_OK) or
+    (Debug.ReferenceCount > 2) then
+    Exit;
+
+  // Second, check if there are other handles to the same object
+  if not NT_SUCCESS(NtQueryObject(hxObject.Handle, ObjectBasicInformation,
+    @Basic, SizeOf(Basic), nil)) or (Basic.HandleCount > 1) then
+    Exit;
+
+  // Release
+  hxObject := nil;
 end;
 
 procedure RtlxpTryDuplicateAccess(
