@@ -51,11 +51,13 @@ type
   protected
     function GetDataStart: Pointer; virtual; abstract;
     procedure UpdateData(Address: Pointer); virtual; abstract;
-    property DataStart: Pointer read GetDataStart;
   public
     // A user-defined context to attach to this node. The value is migrated to
     // the node with an equivalent resource upon updates.
     property Context: Pointer read FContext write FContext;
+
+    // A pointer to the address of the underlying resource storage
+    property DataStart: Pointer read GetDataStart;
 
     // Whether the node undergoes a transition (as recently added or removed)
     property TransitionState: THysteresisNodeTransition read FTransitionState;
