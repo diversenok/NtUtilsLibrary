@@ -307,7 +307,8 @@ begin
           end;
 
           // We are only interested in specific events from the injected thread
-          if WaitState.AppClientId = ThreadInfo.ClientId then
+          if WaitState.AppClientId.UniqueThread =
+            ThreadInfo.ClientId.UniqueThread then
             case WaitState.NewState of
               DbgExitThreadStateChange:
               begin
