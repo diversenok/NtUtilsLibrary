@@ -140,6 +140,8 @@ type
     function GetNodes: TArray<THysteresisNode<T>>;
     function GetFirstDeletedNode: THysteresisNode<T>;
     function GetDeletedNodes: TArray<THysteresisNode<T>>;
+    function GetParentCheck: TParentChecker<T>;
+    procedure SetParentCheck(Value: TParentChecker<T>);
 
     // Refresh the tree with the new data snapshot
     procedure Update(const Entries: TArray<T>);
@@ -155,6 +157,9 @@ type
 
     // All nodes deleted from the tree at the last update. Use for cleanup
     property DeletedNodes: TArray<THysteresisNode<T>> read GetDeletedNodes;
+
+    // A callback for identifying parent-child relationships in a tree
+    property ParentCheck: TParentChecker<T> read GetParentCheck write SetParentCheck;
   end;
 
   THysteresisTree = class abstract (TInterfacedObject, IHysteresisTree)
@@ -180,7 +185,7 @@ type
     procedure Step4BuildTree;
     function EquivalencyCheck(Node: THysteresisNode; Data: Pointer): Boolean; virtual; abstract;
     function ParentCheck(const Parent, Child: THysteresisNode): Boolean; virtual; abstract;
-    constructor Create(NodeClass: THysteresisNodeClass; HasParentCheck: Boolean; TTL: Integer);
+    constructor Create(NodeClass: THysteresisNodeClass);
   public
     destructor Destroy; override;
   end;
@@ -195,18 +200,16 @@ type
     function GetNodes: TArray<THysteresisNode<T>>;
     function GetFirstDeletedNode: THysteresisNode<T>;
     function GetDeletedNodes: TArray<THysteresisNode<T>>;
+    function GetParentCheck: TParentChecker<T>;
+    procedure SetParentCheck(Value: TParentChecker<T>);
     procedure Update(const Entries: TArray<T>); reintroduce;
     constructor Create(
-      const AEquivalencyCheck: TEqualityCheck<T>;
-      [opt] const AParentCheck: TParentChecker<T>;
-      [opt] TTL: Integer
+      const AEquivalencyCheck: TEqualityCheck<T>
     );
   public
     // Make an empty tree instance
     class function Initialize(
-      EquivalencyCheck: TEqualityCheck<T>;
-      [opt] ParentCheck: TParentChecker<T> = nil;
-      [opt] TTL: Integer = 0
+      EquivalencyCheck: TEqualityCheck<T>
     ): IHysteresisTree<T>; static;
   end;
 
@@ -254,8 +257,6 @@ constructor THysteresisTree.Create;
 begin
   inherited Create;
   FNodeClass := NodeClass;
-  FDefaultTTL := TTL;
-  FHasParentCheck := HasParentCheck;
 end;
 
 destructor THysteresisTree.Destroy;
@@ -604,9 +605,8 @@ end;
 
 constructor THysteresisTree<T>.Create;
 begin
-  inherited Create(THysteresisNode<T>, Assigned(AParentCheck), TTL);
+  inherited Create(THysteresisNode<T>);
   FEquivalencyCheck := AEquivalencyCheck;
-  FParentCheck := AParentCheck;
 end;
 
 function THysteresisTree<T>.EquivalencyCheck;
@@ -640,12 +640,17 @@ begin
   Result := TArray<THysteresisNode<T>>(FNodes);
 end;
 
+function THysteresisTree<T>.GetParentCheck;
+begin
+  Result := FParentCheck;
+end;
+
 class function THysteresisTree<T>.Initialize;
 begin
   if not Assigned(EquivalencyCheck) then
     Error(reInvalidPtr);
 
-  Result := THysteresisTree<T>.Create(EquivalencyCheck, ParentCheck, TTL);
+  Result := THysteresisTree<T>.Create(EquivalencyCheck);
 end;
 
 function THysteresisTree<T>.ParentCheck;
@@ -656,6 +661,12 @@ begin
     THysteresisNode<T>(Child).FData,
     Child.Index
   );
+end;
+
+procedure THysteresisTree<T>.SetParentCheck;
+begin
+  FParentCheck := Value;
+  FHasParentCheck := Assigned(Value);
 end;
 
 procedure THysteresisTree<T>.Update;
