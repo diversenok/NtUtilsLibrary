@@ -381,7 +381,6 @@ type
   // WDK::wdm.h
   {$SCOPEDENUMS ON}
   [SDKName('KWAIT_REASON')]
-  [NamingStyle(nsCamelCase, 'Wr')]
   TWaitReason = (
     Executive = 0,
     FreePage = 1,
@@ -420,8 +419,12 @@ type
     WrFastMutex = 34,
     WrGuardedMutex = 35,
     WrRundown = 36,
-    WrAlertByThreadId = 37,
-    WrDeferredPreempt = 38
+    WrAlertByThreadId = 37, // Win 8+
+    WrDeferredPreempt = 38, // Win 8+
+    WrPhysicalFault = 39,   // Win 10 RS3+
+    WrIoRing = 40,          // Win 11 21H2+
+    WrMdlCache = 41,        // Win 11 22H2+
+    WrRcu = 42              // Win 11 24H2+
   );
   {$SCOPEDENUMS OFF}
 
