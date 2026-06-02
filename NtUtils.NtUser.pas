@@ -817,12 +817,18 @@ function NtxGetGuiInfoThread;
 begin
   Result := LdrxCheckDelayedImportWithUser32(delayed_NtUserGetGUIThreadInfo);
 
-  if not Result.IsSuccess then
-    Exit;
-
   Info.Size := SizeOf(TGuiThreadInfo);
-  Result.Location := 'NtUserGetGUIThreadInfo';
-  Result.Win32Result := NtUserGetGUIThreadInfo(ThreadId, Info);
+
+  if Result.IsSuccess then
+  begin
+    Result.Location := 'NtUserGetGUIThreadInfo';
+    Result.Win32Result := NtUserGetGUIThreadInfo(ThreadId, Info);
+  end
+  else
+  begin
+    Result.Location := 'GetGUIThreadInfo';
+    Result.Win32Result := GetGUIThreadInfo(ThreadId, Info);
+  end;
 end;
 
 function NtxIsGuiThread;
