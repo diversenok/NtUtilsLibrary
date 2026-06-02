@@ -1377,7 +1377,7 @@ function NtCancelIoFileEx(
 
 // PHNT::ntioapi.h
 function NtCancelSynchronousIoFile(
-  [in] FileHandle: THandle;
+  [in, Access(THREAD_TERMINATE)] ThreadHandle: THandle;
   [in, opt] IoRequestToCancel: PIoStatusBlock;
   [out] out IoStatusBlock: TIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;

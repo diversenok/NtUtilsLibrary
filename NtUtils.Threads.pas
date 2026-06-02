@@ -208,6 +208,11 @@ function NtxTerminateThread(
   ExitStatus: NTSTATUS
 ): TNtxStatus;
 
+// Cancel synchronous I/O of a thread
+function NtxCancelSynchronousIoThread(
+  [Access(THREAD_TERMINATE)] const hxThread: IHandle
+): TNtxStatus;
+
 // Resume a thread when the object goes out of scope
 function NtxDeferResumeThread(
   [Access(THREAD_SUSPEND_RESUME)] const hxThread: IHandle
@@ -295,8 +300,8 @@ function RtlxSubscribeThreadNotification(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr, NtUtils.Objects,
-  NtUtils.Ldr, NtUtils.Processes, DelphiUtils.AutoObjects,
+  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr,Ntapi.ntioapi,
+  NtUtils.Objects, NtUtils.Ldr, NtUtils.Processes, DelphiUtils.AutoObjects,
   NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
@@ -627,6 +632,16 @@ begin
   Result.Location := 'NtTerminateThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_TERMINATE);
   Result.Status := NtTerminateThread(HandleOrDefault(hxThread), ExitStatus);
+end;
+
+function NtxCancelSynchronousIoThread;
+var
+  IoStatusBlock: TIoStatusBlock;
+begin
+  Result.Location := 'NtCancelSynchronousIoFile';
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_TERMINATE);
+  Result.Status := NtCancelSynchronousIoFile(HandleOrDefault(hxThread), nil,
+    IoStatusBlock);
 end;
 
 function NtxDeferResumeThread;
