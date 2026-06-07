@@ -393,6 +393,16 @@ var delayed_NetworkIsolationFreeAppContainers: TDelayedLoadFunction = (
 );
 
 // rev
+procedure FwFree(
+  [in] Buffer: Pointer
+); stdcall; external firewallapi delayed;
+
+var delayed_FwFree: TDelayedLoadFunction = (
+  Dll: @delayed_firewallapi;
+  FunctionName: 'FwFree';
+);
+
+// rev
 [MinOSVersion(OsWin10TH1)]
 function NetworkIsolationGetAppContainer(
   [Reserved] Flags: Cardinal;

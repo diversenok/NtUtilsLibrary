@@ -232,42 +232,49 @@ begin
       BinaryBuffer: PPWideChar;
       i, j: Integer;
     begin
-      if not LdrxCheckDelayedImport(
-        delayed_NetworkIsolationFreeAppContainers).IsSuccess then
+      if not LdrxCheckDelayedImport(delayed_FwFree).IsSuccess then
         Exit;
+
+      // One might think using NetworkIsolationFreeAppContainers would be a
+      // better choice, but the way that function frees memory is inconsistent
+      // with how it's allocated. On versions before 11 24H2, it leaks all
+      // nested pointers. Starting from 24H2, it cleans up pointers correctly,
+      // but only for a single-AppContainer info query. AppContainer enumeration
+      // continues to leak memory. We fix it here with a manual cleanup
+      // implementation.
 
       Cursor := Buffer;
 
       for i := 0 to Pred(Count) do
       begin
-        NetworkIsolationFreeAppContainers(Cursor.AppContainerSid);
-        NetworkIsolationFreeAppContainers(Cursor.UserSid);
-        NetworkIsolationFreeAppContainers(Cursor.AppContainerName);
-        NetworkIsolationFreeAppContainers(Cursor.DisplayName);
-        NetworkIsolationFreeAppContainers(Cursor.Description);
+        FwFree(Cursor.AppContainerSid);
+        FwFree(Cursor.UserSid);
+        FwFree(Cursor.AppContainerName);
+        FwFree(Cursor.DisplayName);
+        FwFree(Cursor.Description);
 
         CapabilityBuffer := Cursor.Capabilities.Capabilities;
         for j := 0 to Pred(Cursor.Capabilities.Count) do
         begin
-          NetworkIsolationFreeAppContainers(CapabilityBuffer.SID);
+          FwFree(CapabilityBuffer.SID);
           Inc(CapabilityBuffer);
         end;
-        NetworkIsolationFreeAppContainers(Cursor.Capabilities.Capabilities);
+        FwFree(Cursor.Capabilities.Capabilities);
 
         BinaryBuffer := Cursor.Binaries.Binaries;
         for j := 0 to Pred(Cursor.Binaries.Count) do
         begin
-          NetworkIsolationFreeAppContainers(BinaryBuffer^);
+          FwFree(BinaryBuffer^);
           Inc(BinaryBuffer);
         end;
-        NetworkIsolationFreeAppContainers(Cursor.Binaries.Binaries);
+        FwFree(Cursor.Binaries.Binaries);
 
-        NetworkIsolationFreeAppContainers(Cursor.WorkingDirectory);
-        NetworkIsolationFreeAppContainers(Cursor.PackageFullName);
+        FwFree(Cursor.WorkingDirectory);
+        FwFree(Cursor.PackageFullName);
         Inc(Cursor);
       end;
 
-      NetworkIsolationFreeAppContainers(Buffer);
+      FwFree(Buffer);
     end
   );
 end;
