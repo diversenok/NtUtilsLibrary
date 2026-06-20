@@ -8,8 +8,8 @@ unit NtUtils.Com;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.winrt, DelphiApi.Reflection,
-  Ntapi.Versions, NtUtils, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.winrt, Ntapi.ntseapi,
+  DelphiApi.Reflection, Ntapi.Versions, NtUtils, DelphiUtils.AutoObjects;
 
 const
   COINIT_APARTMENTTHREADED = Ntapi.ObjBase.COINIT_APARTMENTTHREADED;
@@ -284,6 +284,30 @@ function ComxCreateInstanceInSession(
 function ComxGetSecurity(
   ComSDType: TComSD;
   out SecDesc: ISecurityDescriptor
+): TNtxStatus;
+
+// Determine the proxy's server location
+function ComxQueryServerLocality(
+  Proxy: IUnknown;
+  out Locality: TRpcOptServerLocalityValues
+): TNtxStatus;
+
+// Determine the proxy's server process ID
+[MinOSVersion(OsWin8)]
+function ComxQueryServerProcessId(
+  Proxy: IUnknown;
+  out PID: TProcessId32
+): TNtxStatus;
+
+// Determine if AppID activation/lauch is allowed without performing it
+function ComxIsObjectCreationAllowed(
+  const AppId: TGuid;
+  out Access: LongBool;
+  out Disposition: TSecurityOptionsDisposition;
+  [opt, Access(TOKEN_IMPERSONATE)] hxToken: IHandle = nil;
+  Bitness: TSecurityOptionsBitness = CurrentBitness;
+  Local: LongBool = True;
+  [out, opt] GroupPolicy: PLongBool = nil
 ): TNtxStatus;
 
 { IMalloc }
@@ -1307,6 +1331,68 @@ begin
 
   if Result.IsSuccess then
     IPointer(SecDesc) := CaptureLocalFreePointer(Buffer);
+end;
+
+function ComxQueryServerLocality;
+var
+  RpcOptions: IRpcOptions;
+  Value: NativeUInt;
+begin
+  Result := Comx.QueryInterface(Proxy, RpcOptions);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IRpcOptions::Query';
+  Result.LastCall.UsesInfoClass(COMBND_SERVER_LOCALITY, icQuery);
+  Result.HResult := RpcOptions.Query(Proxy, COMBND_SERVER_LOCALITY, Value);
+
+  if Result.IsSuccess then
+    Locality := TRpcOptServerLocalityValues(Value);
+end;
+
+function ComxQueryServerProcessId;
+var
+  ServerIdentity: IProxyServerIdentity;
+begin
+  Result := Comx.QueryInterface(Proxy, ServerIdentity);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IProxyServerIdentity::GetServerProcessId';
+  Result.HResult := ServerIdentity.GetServerProcessId(PID);
+end;
+
+function ComxIsObjectCreationAllowed;
+var
+  SecurityOptions: ISecurityOptions;
+begin
+  Result := ComxInitializeSecurityOnce;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := ComxCreateInstance(CLSID_GlobalOptions, ISecurityOptions,
+    SecurityOptions, 'CLSID_GlobalOptions');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Assigned(hxToken) then
+  begin
+    Result := NtxExpandToken(hxToken, TOKEN_IMPERSONATE);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  Result.Location := 'ISecurityOptions::IsObjectCreationAllowed';
+  Result.HResult := SecurityOptions.IsObjectCreationAllowed(HandleOrDefault(
+    hxToken), AppId, Bitness, Local, 0, Access, GroupPolicy, @Disposition);
+
+  if Assigned(hxToken) then
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_IMPERSONATE);
 end;
 
 { IMalloc }

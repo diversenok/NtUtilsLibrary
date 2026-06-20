@@ -9,8 +9,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.WinUser, DelphiApi.Reflection,
-  DelphiApi.DelayLoad;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.WinUser, Ntapi.ntpsapi, DelphiApi.DelayLoad,
+  DelphiApi.Reflection, Ntapi.Versions;
 
 const
   oleacchooks = 'oleacchooks.dll';
@@ -30,6 +30,15 @@ const
   ACTIVATIONTYPE_FROM_STORAGE = $04;
   ACTIVATIONTYPE_FROM_STREAM = $08;
   ACTIVATIONTYPE_FROM_FILE = $10;
+
+  // private
+  ACCESS_DENIED_FOR_ACTIVATION_VIA_RESTRICTION = $01;
+  ACCESS_DENIED_FOR_LAUNCH_VIA_RESTRICTION = $02;
+  ACCESS_DENIED_FOR_ACTIVATION_VIA_PERMISSION = $04;
+  ACCESS_DENIED_FOR_LAUNCH_VIA_PERMISSION = $08;
+  ACCESS_DENIED_FOR_CALL_VIA_RESTRICTION = $010;
+  ACCESS_DENIED_FOR_CALL_VIA_PERMISSION = $20;
+  ACCESS_DENIED_VIA_DEFAULTPERMISSION = $40;
 
   // SDK::rpcdcep.h - a flag for iMethod
   RPC_FLAGS_VALID_BIT = $00008000;
@@ -99,6 +108,9 @@ const
   SWFO_NEEDDISPATCH = $01;
   SWFO_INCLUDEPENDING = $02;
   SWFO_COOKIEPASSED = $04;
+
+  // private
+  CLSID_GlobalOptions: TGuid = '{0000034B-0000-0000-C000-000000000046}';
 
   // SDK::ExDisp.h
   CLSID_ShellWindows: TGuid = '{9BA05972-F6A8-11CF-A442-00A0C90A8F39}';
@@ -225,6 +237,99 @@ type
     Reserved2: Cardinal;
   end;
   POrpcInitArgs = ^TOrpcInitArgs;
+
+  // private
+  [SDKName('RPCOPT_PROPERTIES'), MinValue(1)]
+  TRpcOptProperties = (
+    [Reserved] COMBND_RESERVED0 = 0,
+    COMBND_RPCTIMEOUT = 1,     // q, s: Cardinal (0-10)
+    COMBND_SERVER_LOCALITY = 2 // q: TRpcOptServerLocalityValues
+  );
+
+  // private
+  [SDKName('RPCOPT_SERVER_LOCALITY_VALUES')]
+  [NamingStyle(nsSnakeCase, 'SERVER_LOCALITY')]
+  TRpcOptServerLocalityValues = (
+    SERVER_LOCALITY_PROCESS_LOCAL = 0,
+    SERVER_LOCALITY_MACHINE_LOCAL = 1,
+    SERVER_LOCALITY_REMOTE = 2
+  );
+
+  // private
+  IRpcOptions = interface (IUnknown)
+    ['{00000144-0000-0000-C000-000000000046}']
+    function &Set(
+      [in] Proxy: IUnknown;
+      [in] &Property: TRpcOptProperties;
+      [in] Value: NativeUInt
+    ): HResult; stdcall;
+
+    function Query(
+      [in] Proxy: IUnknown;
+      [in] &Property: TRpcOptProperties;
+      [in] out Value: NativeUInt
+    ): HResult; stdcall;
+  end;
+
+  // private
+  [MinOSVersion(OsWin8)]
+  IProxyServerIdentity = interface (IUnknown)
+    ['{5524FE34-8DA7-40A8-8165-E8B37A8B4A4B}']
+    function GetServerProcessId(
+      [out] out ProcessId: TProcessId32
+    ): HResult; stdcall;
+
+    function GetServerProcessHandle(
+      [in] DesiredAccess: TProcessAccessMask;
+      [in] InheritHandle: LongBool;
+      [out, ReleaseWith('NtClose')] out hProcess: THandle
+    ): HResult; stdcall;
+  end;
+
+  // private
+  [SDKName('SecurityOptionsBitness')]
+  TSecurityOptionsBitness = (
+    CurrentBitness = 0,
+    Wow6432Bitness = 1,
+    Wow6464Bitness = 2
+  );
+
+  // private
+  [SDKName('SecurityOptionsDisposition')]
+  [FlagName(ACCESS_DENIED_FOR_ACTIVATION_VIA_RESTRICTION, 'ACCESS_DENIED_FOR_ACTIVATION_VIA_RESTRICTION')]
+  [FlagName(ACCESS_DENIED_FOR_LAUNCH_VIA_RESTRICTION, 'ACCESS_DENIED_FOR_LAUNCH_VIA_RESTRICTION')]
+  [FlagName(ACCESS_DENIED_FOR_ACTIVATION_VIA_PERMISSION, 'ACCESS_DENIED_FOR_ACTIVATION_VIA_PERMISSION')]
+  [FlagName(ACCESS_DENIED_FOR_LAUNCH_VIA_PERMISSION, 'ACCESS_DENIED_FOR_LAUNCH_VIA_PERMISSION')]
+  [FlagName(ACCESS_DENIED_FOR_CALL_VIA_RESTRICTION, 'ACCESS_DENIED_FOR_CALL_VIA_RESTRICTION')]
+  [FlagName(ACCESS_DENIED_FOR_CALL_VIA_PERMISSION, 'ACCESS_DENIED_FOR_CALL_VIA_PERMISSION')]
+  [FlagName(ACCESS_DENIED_VIA_DEFAULTPERMISSION, 'ACCESS_DENIED_VIA_DEFAULTPERMISSION')]
+  TSecurityOptionsDisposition = type Cardinal;
+  PSecurityOptionsDisposition = ^TSecurityOptionsDisposition;
+
+  // private
+  ISecurityOptions = interface (IUnknown)
+    ['{0000015F-0000-0000-C000-000000000046}']
+
+    function IsObjectCreationAllowed(
+      [in, opt] hToken: THandle;
+      [in] const Appid: TGuid;
+      [in] Bitness: TSecurityOptionsBitness;
+      [in] Local: LongBool;
+      [Reserved] Reserved: Cardinal;
+      [out] out Access: LongBool;
+      [out, opt] GroupPolicy: PLongBool;
+      [out, opt] AccessDeniedDisposition: PSecurityOptionsDisposition
+    ): HResult; stdcall;
+
+    function IsMethodInvocationAllowed(
+      [in, opt] hToken: THandle;
+      [in] Local: LongBool;
+      [Reserved] Reserved: Cardinal;
+      [out] out Access: LongBool;
+      [out, opt] GroupPolicy: PLongBool;
+      [out, opt] AccessDeniedDisposition: PSecurityOptionsDisposition
+    ): HResult; stdcall;
+  end;
 
   // SDK::objidl.h
   [SDKName('IEnumString')]
