@@ -43,8 +43,8 @@ uses
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function AdvxCreateProcess(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithTokenW
@@ -62,8 +62,8 @@ function AdvxCreateProcess(
 [SupportedOption(spoLogonFlags)]
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function AdvxCreateProcessWithToken(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithLogonW
@@ -80,8 +80,8 @@ function AdvxCreateProcessWithToken(
 [SupportedOption(spoLogonFlags)]
 [SupportedOption(spoCredentials, omRequired)]
 function AdvxCreateProcessWithLogon(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 implementation
@@ -102,7 +102,7 @@ type
   IPtAttributes = IMemory<PProcThreadAttributeList>;
 
   TPtAutoMemory = class (TAutoMemory)
-    Options: TCreateProcessOptions;
+    Options: TNtxCreateProcessOptions;
     hParent: THandle;
     HandleList: TArray<THandle>;
     Capabilities: TArray<TSidAndAttributes>;
@@ -142,7 +142,7 @@ begin
 end;
 
 procedure ConvertMitigationPolicyToWin32(
-  const Mitigations: TCreateProcessMitigations;
+  const Mitigations: TNtxCreateProcessMitigations;
   out Value1: UInt64;
   out Value2: UInt64
 );
@@ -375,7 +375,7 @@ begin
 end;
 
 function AllocPtAttributes(
-  const Options: TCreateProcessOptions;
+  const Options: TNtxCreateProcessOptions;
   out xMemory: IPtAttributes
 ): TNtxStatus;
 var
@@ -659,7 +659,7 @@ end;
 procedure PrepareStartupInfo(
   out SI: TStartupInfoW;
   out CreationFlags: TProcessCreateFlags;
-  const Options: TCreateProcessOptions
+  const Options: TNtxCreateProcessOptions
 );
 begin
   SI := Default(TStartupInfoW);
@@ -739,7 +739,7 @@ var
   RunAsInvokerReverter, DebugPortReverter: IDeferredOperation;
   hOldDebugPort: THandle;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
   PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
 
   // Prepare process-thread attribute list
@@ -867,7 +867,7 @@ end;
 procedure RtlxpCaptureReparentedHandles(
   const hxParentProcess: IHandle;
   var ProcessInfo: TProcessInformation;
-  var Info: TProcessInfo
+  var Info: TNtxProcessInfo
 );
 begin
   if not Assigned(hxParentProcess) then
@@ -897,7 +897,7 @@ var
   ProcessInfo: TProcessInformation;
   ProcessIdReverter: IDeferredOperation;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
 
   hxExpandedToken := Options.hxToken;
@@ -968,7 +968,7 @@ var
   ProcessInfo: TProcessInformation;
   ProcessIdReverter: IDeferredOperation;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
 
   if Assigned(Options.hxParentProcess) then

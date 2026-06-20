@@ -14,8 +14,8 @@ uses
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSessionId)]
 function CsrxCreateProcess(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 implementation

@@ -33,7 +33,7 @@ function RtlxAttachToParentConsole: TNtxStatus;
 // Clone the current process.
 // The function returns STATUS_PROCESS_CLONED in the cloned process.
 function RtlxCloneCurrentProcess(
-  out Info: TProcessInfo;
+  out Info: TNtxProcessInfo;
   Flags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES;
   [opt, Access(TOKEN_ASSIGN_PRIMARY)] const hxPrimaryToken: IHandle = nil;
   [opt, Access(DEBUG_PROCESS_ASSIGN)] const hxDebugPort: IHandle = nil;
@@ -127,7 +127,7 @@ var
   RtlProcessInfo: TRtlUserProcessInformation;
   ModifiedFlags: TRtlProcessCloneFlags;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
   ModifiedFlags := Flags;
 
   // Suspend the clone whenever swapping the primary token
@@ -209,7 +209,7 @@ function RtlxExecuteInClone;
 var
   SharedMemory: IMemory<PCloneSharedData>;
   hxJob: IHandle;
-  Info: TProcessInfo;
+  Info: TNtxProcessInfo;
   Completed: Boolean;
 begin
   Result := RtlxpPrepareJobForClone(hxJob);

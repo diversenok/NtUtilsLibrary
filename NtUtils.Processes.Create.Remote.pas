@@ -26,8 +26,8 @@ const
 [SupportedOption(spoParentProcess, omRequired)]
 [SupportedOption(spoTimeout)]
 function AdvxCreateProcessRemote(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 implementation
@@ -145,7 +145,7 @@ const
   );
 
 function GetCreationFlags(
-  const Options: TCreateProcessOptions
+  const Options: TNtxCreateProcessOptions
 ): TProcessCreateFlags;
 begin
   Result := 0;
@@ -191,7 +191,7 @@ var
   DynamicPartLocal, DynamicPartRemote: Pointer;
   Timeout: Int64;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // We need a target for injection
   if not Assigned(Options.hxParentProcess) then

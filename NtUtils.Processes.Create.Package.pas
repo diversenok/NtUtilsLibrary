@@ -23,8 +23,8 @@ uses
 [SupportedOption(spoPackageBreakaway)]
 [SupportedOption(spoAppUserModeId, omRequired)]
 function PkgxCreateProcessInPackage(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Activate a Windows Store application
@@ -54,7 +54,7 @@ type
   TAppxActivatorHookContext = record
     CurrentThreadId: TThreadId;
     TargetProcessId: TProcessId;
-    Options: TCreateProcessOptions;
+    Options: TNtxCreateProcessOptions;
     ShellExecHookReverter: IDeferredOperation;
     OpenProcessHookReverter: IDeferredOperation;
   end;
@@ -160,7 +160,7 @@ var
   HookContext: IAppxActivatorHookContext;
   hProcess: THandle;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // Create the activator without asking for any specific interface
   Result := ComxCreateInstanceWithFallback(RtlxAppxActivatorHost,

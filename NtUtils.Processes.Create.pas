@@ -13,7 +13,7 @@ uses
   NtUtils;
 
 type
-  TNewProcessFlags = set of (
+  TNtxCreateProcessFlags = set of (
     poNativePath,
     poForceCommandLine,
     poSuspended,
@@ -35,7 +35,7 @@ type
     poDetectManifest
   );
 
-  TProcessInfoFields = set of (
+  TNtxProcessInfoFields = set of (
     piProcessID,
     piThreadID,
     piProcessHandle,
@@ -52,8 +52,8 @@ type
     piManifest
   );
 
-  TProcessInfo = record
-    ValidFields: TProcessInfoFields;
+  TNtxProcessInfo = record
+    ValidFields: TNtxProcessInfoFields;
     ClientId: TClientId;
     hxProcess: IHandle;
     hxThread: IHandle;
@@ -69,12 +69,12 @@ type
     Manifest: TMemory;
   end;
 
-  TCreateProcessMitigations = array [TPsMitigationOption] of
+  TNtxCreateProcessMitigations = array [TPsMitigationOption] of
     TPsMitigationOptionState;
 
-  TCreateProcessOptions = record
+  TNtxCreateProcessOptions = record
     Application, Parameters: String;
-    Flags: TNewProcessFlags;
+    Flags: TNtxCreateProcessFlags;
     CurrentDirectory: String;
     Desktop: String;
     Environment: IEnvironment;
@@ -95,8 +95,8 @@ type
     [Access(DEBUG_PROCESS_ASSIGN)] hxDebugPort: IHandle;
     MemoryReserve: TArray<TPsMemoryReserve>;
     PriorityClass: TProcessPriorityClassValue;
-    Mitigations: TCreateProcessMitigations;
-    MitigationsAudit: TCreateProcessMitigations;
+    Mitigations: TNtxCreateProcessMitigations;
+    MitigationsAudit: TNtxCreateProcessMitigations;
     ChildPolicy: TProcessChildFlags;   // Win 10 TH1+
     AppContainer: ISid;                // Win 8+
     Capabilities: TArray<TGroup>;      // Win 8+
@@ -117,12 +117,12 @@ type
   end;
 
   // A prototype for process creation routines
-  TCreateProcessMethod = function (
-    const Options: TCreateProcessOptions;
-    out Info: TProcessInfo
+  TNtxCreateProcessMethod = function (
+    const Options: TNtxCreateProcessOptions;
+    out Info: TNtxProcessInfo
   ): TNtxStatus;
 
-  TSupportedCreateProcessOptions = (
+  TNtxSupportedCreateProcessOptions = (
     spoParameters,
     spoCurrentDirectory,
     spoSuspended,
@@ -168,22 +168,22 @@ type
     spoDetectManifest
   );
 
-  TCreateProcessOptionMode = (
+  TNtxCreateProcessOptionMode = (
     omOptional,
     omRequired
   );
 
   // Annotation for indicating supported options for a process creation routine
   SupportedOptionAttribute = class (TCustomAttribute)
-    Option: TSupportedCreateProcessOptions;
-    Mode: TCreateProcessOptionMode;
+    Option: TNtxSupportedCreateProcessOptions;
+    Mode: TNtxCreateProcessOptionMode;
     constructor Create(
-      Option: TSupportedCreateProcessOptions;
-      Mode: TCreateProcessOptionMode = omOptional
+      Option: TNtxSupportedCreateProcessOptions;
+      Mode: TNtxCreateProcessOptionMode = omOptional
     ); overload;
 
     constructor Create(
-      Option: TSupportedCreateProcessOptions;
+      Option: TNtxSupportedCreateProcessOptions;
       MinimalVersion: TWindowsVersion
     ); overload;
   end;
@@ -199,8 +199,8 @@ function RtlxApplyCompatLayer(
 // Note: use with the poDetectManifest flag; otherwise, the process will be
 // registered without a manifest.
 function CsrxRegisterProcessCreation(
-  const Options: TCreateProcessOptions;
-  const Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  const Info: TNtxProcessInfo
 ): TNtxStatus;
 
 implementation
@@ -215,7 +215,7 @@ uses
 
 { TCreateProcessOptions }
 
-function TCreateProcessOptions.ApplicationNative;
+function TNtxCreateProcessOptions.ApplicationNative;
 begin
   if poNativePath in Flags then
     Result := Application
@@ -223,7 +223,7 @@ begin
     Result := RtlxDosPathToNativePath(Application);
 end;
 
-function TCreateProcessOptions.ApplicationWin32;
+function TNtxCreateProcessOptions.ApplicationWin32;
 begin
   if poNativePath in Flags then
     Result := RtlxNativePathToDosPath(Application)
@@ -231,7 +231,7 @@ begin
     Result := Application;
 end;
 
-function TCreateProcessOptions.CommandLine;
+function TNtxCreateProcessOptions.CommandLine;
 begin
   if poForceCommandLine in Flags then
     Result := Parameters
@@ -247,8 +247,8 @@ end;
 { SupportedOptionAttribute }
 
 constructor SupportedOptionAttribute.Create(
-  Option: TSupportedCreateProcessOptions;
-  Mode: TCreateProcessOptionMode = omOptional
+  Option: TNtxSupportedCreateProcessOptions;
+  Mode: TNtxCreateProcessOptionMode = omOptional
 );
 begin
   Self.Option := Option;
@@ -256,7 +256,7 @@ begin
 end;
 
 constructor SupportedOptionAttribute.Create(
-  Option: TSupportedCreateProcessOptions;
+  Option: TNtxSupportedCreateProcessOptions;
   MinimalVersion: TWindowsVersion
 );
 begin
@@ -310,7 +310,7 @@ end;
 
 function CsrxRegisterProcessCreation;
 var
-  RequiredFields: TProcessInfoFields;
+  RequiredFields: TNtxProcessInfoFields;
   Manifest: TMemory;
 begin
   RequiredFields := [piProcessHandle, piThreadHandle, piProcessID,

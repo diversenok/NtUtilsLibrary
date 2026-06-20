@@ -21,8 +21,8 @@ uses
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 function WmixCreateProcess(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Ask Explorer via IShellDispatch2 to create a process on our behalf
@@ -32,8 +32,8 @@ function WmixCreateProcess(
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoWindowMode)]
 function ComxShellDispatchExecute(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process MMC20.Application
@@ -42,8 +42,8 @@ function ComxShellDispatchExecute(
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoWindowMode)]
 function MmcxExecuteShellCommand(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via WDC
@@ -52,8 +52,8 @@ function MmcxExecuteShellCommand(
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 function WdcxRunAsInteractive(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via Task Scheduler using Task Manager's interactive task
@@ -63,16 +63,16 @@ function WdcxRunAsInteractive(
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoSessionId)]
 function SchxRunAsInteractive(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via a BITS job trigger
 [RequiresCOM]
 [SupportedOption(spoParameters)]
 function ComxCreateProcessBITS(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via Connection Manager's LUA interface
@@ -84,16 +84,16 @@ function ComxCreateProcessBITS(
 [SupportedOption(spoOwnerWindow)]
 [SupportedOption(spoWindowMode)]
 function CmxShellExecute(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via the Help Pane server
 [RequiresCOM]
 [SupportedOption(spoSessionId)]
 function HlpxShellExecute(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 implementation
@@ -158,7 +158,7 @@ var
   ResultCode: TVarData;
   DesktopAsWide, CommandLineAsWide, CurrentDirAsWide: WideString;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // We pass the token to WMI by impersonating it
   if Assigned(Options.hxToken) then
@@ -411,7 +411,7 @@ var
   vOperation, vShow: TVarData;
   ParametersAsWide, CurrentDirAsWide: WideString;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // Retrieve the Shell Dispatch object
   Result := ComxGetShellDispatch(ShellDispatch);
@@ -455,7 +455,7 @@ var
   ActiveView: IMMCView;
   WindowMode: String;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   Result := ComxCreateInstance(CLSID_MMCApplication, IMMCApplication,
     Application, 'CLSID_MMCApplication', CLSCTX_LOCAL_SERVER);
@@ -501,7 +501,7 @@ function WdcxRunAsInteractive;
 var
   SeclFlags: TSeclFlags;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   Result := LdrxCheckDelayedImport(delayed_WdcRunTaskAsInteractiveUser);
 
@@ -541,7 +541,7 @@ var
   LastResult: HResult;
 begin
   // This method does not provide any information about the new process
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // Open Task Manager's run-as-interactive task.
   Result := ComxTaskSchedulerOpenTask(Task, TASK_MANAGER_TASK_PATH);
@@ -647,8 +647,8 @@ end;
 { ----------------------------------- BITS -----------------------------------}
 
 function ComxCreateProcessBITS(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 const
   TIMEOUT_DELAY = 64 * MILLISEC;
@@ -663,7 +663,7 @@ var
   RemainingTimeoutChecks: NativeInt;
 begin
   // No info about the new process on output
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // Connect to BITS
   Result := ComxCreateInstance(CLSID_BackgroundCopyManager,
@@ -777,7 +777,7 @@ var
   ShowMode: TShowMode32;
 begin
   // No info about the new process on output
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   if poRequireElevation in Options.Flags then
     RunLevel := RUNLEVEL_ADMIN
@@ -813,7 +813,7 @@ var
   HelpPane: IHxHelpPaneServer;
 begin
   // No info about the new process on output
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   Path := Options.ApplicationWin32;
 

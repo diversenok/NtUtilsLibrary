@@ -15,7 +15,7 @@ type
 
 // Allocate user process parameters
 function RtlxCreateProcessParameters(
-  const Options: TCreateProcessOptions;
+  const Options: TNtxCreateProcessOptions;
   out xMemory: IRtlUserProcessParameters
 ): TNtxStatus;
 
@@ -37,8 +37,8 @@ function RtlxCreateProcessParameters(
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcess(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcessEx
@@ -61,8 +61,8 @@ function RtlxCreateUserProcess(
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcessEx(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via NtCreateUserProcess
@@ -100,8 +100,8 @@ function RtlxCreateUserProcessEx(
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxCreateUserProcess(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 implementation
@@ -231,7 +231,7 @@ end;
 type
   TPsAttributesRecord = record
   private
-    Source: TCreateProcessOptions;
+    Source: TNtxCreateProcessOptions;
     FImageName: String;
     FClientId: TClientId;
     FTebAddress: PTeb;
@@ -247,7 +247,7 @@ type
     Buffer: IMemory<PPsAttributeList>;
     function GetData: PPsAttributeList;
   public
-    function Create(const Options: TCreateProcessOptions): TNtxStatus;
+    function Create(const Options: TNtxCreateProcessOptions): TNtxStatus;
     property Data: PPsAttributeList read GetData;
     property ClientId: TClientId read FClientId;
     property ImageName: String read FImageName;
@@ -602,8 +602,8 @@ begin
 end;
 
 function RtlxDetectManifestAndSaveAddresses(
-  const Options: TCreateProcessOptions;
-  var Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  var Info: TNtxProcessInfo
 ): TNtxStatus;
 var
   Addresses: TProcessAddresses;
@@ -826,7 +826,7 @@ var
   ProcessObjAttr, ThreadObjAttr: PObjectAttributes;
   hxConsoleReference: IHandle;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // Prepare Rtl parameters
   Result := RtlxCreateProcessParameters(Options, ProcessParams);

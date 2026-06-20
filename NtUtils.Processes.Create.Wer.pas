@@ -13,8 +13,8 @@ uses
 // Create a new process via WER::NonElevatedProcessStart
 [SupportedOption(spoParameters)]
 function WerxExecuteNonElevated(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via a WER::SilentProcessExitReport trigger
@@ -22,8 +22,8 @@ function WerxExecuteNonElevated(
 [SupportedOption(spoParameters)]
 [SupportedOption(spoRequireElevation)]
 function WerxExecuteSilentProcessExit(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 implementation
@@ -43,7 +43,7 @@ var
 begin
   // We do get a handle for waiting on the worker WerMgr process, but not the
   // target process info.
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // Send a request to WER
   Result := WerxNonElevatedCommand(hxWerMgr, NonElevatedProcLaunchTypeOpen,
@@ -266,7 +266,7 @@ var
 begin
   // We do get a handle for waiting on the worker WerFault process, but not the
   // target process info.
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
   ImageName := RtlxExtractNamePath(ParamStr(0));
 
   // Set the target command line as the silent process exit monitor process on

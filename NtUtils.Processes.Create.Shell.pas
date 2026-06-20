@@ -23,8 +23,8 @@ type
 [SupportedOption(spoRunAsInvoker)]
 [SupportedOption(spoWindowMode)]
 function ShlxExecuteCmd(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create a new process via ShellExecuteExW
@@ -38,15 +38,15 @@ function ShlxExecuteCmd(
 [SupportedOption(spoOwnerWindow)]
 [SupportedOption(spoWindowMode)]
 function ShlxExecute(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 { Other functions }
 
 // Create a service provider for ICreatingProcess
 function ShlxMakeCreatingProcessProvider(
-  const Flags: TNewProcessFlags;
+  const Flags: TNtxCreateProcessFlags;
   [opt] InnerProvider: IServiceProvider = nil
 ): IServiceProvider;
 
@@ -74,7 +74,7 @@ var
   SeclFlags: TSeclFlags;
   RunAsInvoker: IDeferredOperation;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   // Allow running as invoker
   Result := RtlxApplyCompatLayer(
@@ -210,7 +210,7 @@ var
   RunAsInvoker: IDeferredOperation;
   CustomProvider: IServiceProvider;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
   ExecInfo := Default(TShellExecuteInfoW);
 
   ExecInfo.cbSize := SizeOf(TShellExecuteInfoW);

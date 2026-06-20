@@ -26,16 +26,16 @@ function NtxCreateProcessObject(
 
 // Prepare and write process parameters into a process
 function RtlxSetProcessParameters(
-  const Options: TCreateProcessOptions;
+  const Options: TNtxCreateProcessOptions;
   [Access(PROCESS_VM_OPERATION or PROCESS_VM_WRITE or
-    PROCESS_QUERY_LIMITED_INFORMATION)] var Info: TProcessInfo
+    PROCESS_QUERY_LIMITED_INFORMATION)] var Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Create the first thread in a process
 function RtlxCreateInitialThread(
-  const Options: TCreateProcessOptions;
+  const Options: TNtxCreateProcessOptions;
   [Access(SECTION_MAP_EXECUTE or SECTION_MAP_READ),
-    Access(PROCESS_CREATE_THREAD)] var Info: TProcessInfo
+    Access(PROCESS_CREATE_THREAD)] var Info: TNtxProcessInfo
 ): TNtxStatus;
 
 // Start a new process via NtCreateProcessEx
@@ -63,8 +63,8 @@ function RtlxCreateInitialThread(
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxCreateProcessEx(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
+  const Options: TNtxCreateProcessOptions;
+  out Info: TNtxProcessInfo
 ): TNtxStatus;
 
 implementation
@@ -323,7 +323,7 @@ var
   ProcessFlags: TProcessCreateFlags;
   TerminateOnFailure: IDeferredOperation;
 begin
-  Info := Default(TProcessInfo);
+  Info := Default(TNtxProcessInfo);
 
   if Assigned(Options.hxSection) then
     Info.hxSection := Options.hxSection

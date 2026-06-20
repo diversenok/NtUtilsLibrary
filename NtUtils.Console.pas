@@ -349,11 +349,11 @@ end;
 
 function RtlxLaunchConsoleServer;
 var
-  Options: TCreateProcessOptions;
+  Options: TNtxCreateProcessOptions;
   ProcessParameters: IRtlUserProcessParameters;
   hxServer, hxReference: IHandle;
 begin
-  Options := Default(TCreateProcessOptions);
+  Options := Default(TNtxCreateProcessOptions);
   Options.Application := CD_SERVER_LAUNCH_APPLICATION;
   Options.Parameters := CD_SERVER_LAUNCH_ARGUMENTS;
 
