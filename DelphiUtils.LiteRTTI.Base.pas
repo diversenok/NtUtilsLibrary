@@ -286,6 +286,11 @@ function TryGetIID(
   out IID: TGuid
 ): Boolean;
 
+// Determine a name of a type
+function TypeName(
+  AType: PLiteRttiTypeInfo
+): String;
+
 // Read a string from a marshaled attribute stream
 function ReadUTF8String(Cursor: Pointer): String;
 
@@ -1378,6 +1383,14 @@ begin
 
   if Result then
     IID := AType.InterfaceGuid;
+end;
+
+function TypeName;
+begin
+  if Assigned(AType) then
+    Result := AType.Name
+  else
+    Result := '';
 end;
 
 function ReadUTF8String;

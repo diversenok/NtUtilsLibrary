@@ -363,15 +363,15 @@ type
   TSOleAuthenticationInfo = record
     AuthnSvc: TRpcAuthnService;
     AuthzSvc: TRpcAuthzService;
-    AuthInfo: Pointer;
+    AuthInfo: PCoAuthIdentity;
   end;
   PSOleAuthenticationInfo = ^TSOleAuthenticationInfo;
 
   // SDK::objidlbase.h
   [SDKName('SOLE_AUTHENTICATION_LIST')]
   TSOleAuthenticationList = record
-    cAuthInfo: Cardinal;
-    aAuthInfo: PSOleAuthenticationInfo;
+    [NumberOfElements] Count: Cardinal;
+    AuthInfo: PSOleAuthenticationInfo;
   end;
   PSOleAuthenticationList = ^TSOleAuthenticationList;
 

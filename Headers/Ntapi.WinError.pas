@@ -71,6 +71,7 @@ const
   RPC_E_CHANGED_MODE = HResult($80010106);
   RPC_E_DISCONNECTED = HResult($80010108);
   RPC_E_WRONG_THREAD = HResult($8001010E);
+  RPC_E_TOO_LATE = HResult($80010119);
   DISP_E_EXCEPTION = HResult($80020009);
 
 implementation

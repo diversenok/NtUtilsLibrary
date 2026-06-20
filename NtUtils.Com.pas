@@ -16,6 +16,14 @@ const
   COINIT_MULTITHREADED = Ntapi.ObjBase.COINIT_MULTITHREADED;
 
 type
+  Comx = class abstract
+    // Use IUnknown::QueryInterface to cast one COM interface to another
+    class function QueryInterface<I: IUnknown>(
+      Source: IUnknown;
+      out pv: I
+    ): TNtxStatus; static;
+  end;
+
   IRtlxComDll = interface (IPointer)
     function GetLoadName: String;
     property LoadName: String read GetLoadName;
@@ -163,6 +171,17 @@ function ComxInitializeImplicitOnce(
 // Make sure COM is initialized (with any apartment type) and add a reference
 function ComxEnsureInitialized(
   out Uninitializer: IDeferredOperation
+): TNtxStatus;
+
+// Initializes default RPC/DCOM security for the current process (as a client)
+function ComxInitializeSecurity(
+  AuthnLevel: TRpcAuthnLevel = RPC_C_AUTHN_LEVEL_DEFAULT;
+  ImpLevel: TRpcImpLevel = RPC_C_IMP_LEVEL_IMPERSONATE;
+  Capabilities: TOleAuthenticationCapabilities = EOAC_APPID or EOAC_DYNAMIC_CLOAKING
+): TNtxStatus;
+
+// Ensures CoInitializeSecurity was called for the current process
+function ComxInitializeSecurityOnce(
 ): TNtxStatus;
 
 { Base COM }
@@ -497,11 +516,31 @@ uses
   Ntapi.WinError, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntregapi,
   NtUtils.Errors, NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens,
   NtUtils.Tokens.Info, NtUtils.Synchronization, NtUtils.Registry,
-  NtUtils.SysUtils, DelphiUtils.Arrays;
+  NtUtils.SysUtils, DelphiUtils.Arrays, DelphiUtils.LiteRTTI.Base;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+class function Comx.QueryInterface<I>;
+var
+  IID: TGuid;
+begin
+  if TryGetIID(TypeInfo(I), IID) then
+  begin
+    Result.Location := 'IUnknown::QueryInterface';
+    Result.HResult := Source.QueryInterface(IID, pv);
+  end
+  else
+  begin
+    Result.Location := 'Comx.QueryInterface';
+    Result.Status := STATUS_INVALID_PARAMETER;
+  end;
+
+  Result.LastCall.Parameter := TypeName(TypeInfo(I));
+end;
+
+{ IRtlxComDll }
 
 type
   TRtlxComDll = class (TCustomAutoPointer, IRtlxComDll)
@@ -1112,6 +1151,35 @@ begin
   Result := ComxInitializeExAuto(Uninitializer, PreferredMode);
 end;
 
+function ComxInitializeSecurity;
+begin
+  Result.Location := 'CoInitializeSecurity';
+  Result.HResult := CoInitializeSecurity(nil, -1, nil, 0, AuthnLevel, ImpLevel,
+    nil, Capabilities, 0);
+end;
+
+var
+  SecurityInitialized: TRtlRunOnce;
+
+function ComxInitializeSecurityOnce;
+var
+  Init: IAcquiredRunOnce;
+begin
+  // Already called?
+  if not RtlxRunOnceBegin(@SecurityInitialized, Init) then
+    Exit(NtxSuccess);
+
+  Result := ComxInitializeSecurity;
+
+  // Already complete?
+  if Result.HResult = RPC_E_TOO_LATE then
+    Result := NtxSuccess
+  else if not Result.IsSuccess then
+    Exit;
+
+  Init.Complete;
+end;
+
 { Base COM }
 
 function ComxGetClassObject;
@@ -1152,10 +1220,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IStandardActivator::QueryInterface';
-  Result.LastCall.Parameter := 'ISpecialSystemProperties';
-  Result.HResult := Activator.QueryInterface(ISpecialSystemProperties,
-    Properties);
+  Result := Comx.QueryInterface(Activator, Properties);
 end;
 
 function ComxGetClassObjectElevated;
