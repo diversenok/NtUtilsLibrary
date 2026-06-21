@@ -93,6 +93,14 @@ function RtlxCaptureStringWithRange(
   [in] BufferEnd: Pointer
 ): String;
 
+// Create string from a known buffer offset and length
+function RtlxCaptureStringFromOffset(
+  [in] BufferStart: Pointer;
+  BufferSize: NativeUInt;
+  Offset: Cardinal;
+  MaxChars: Cardinal
+): String;
+
 // Change byte order for each character of a string
 procedure RtlxSwapEndiannessString(
   var S: String
@@ -536,6 +544,21 @@ begin
   end;
 
   SetString(Result, BufferStart, Count);
+end;
+
+function RtlxCaptureStringFromOffset;
+var
+  CharsToBufferEnd: Cardinal;
+begin
+  if Offset >= BufferSize then
+    Exit('');
+
+  CharsToBufferEnd := (BufferSize - Offset) div SizeOf(WideChar);
+
+  if MaxChars > CharsToBufferEnd  then
+    MaxChars := CharsToBufferEnd;
+
+  SetString(Result, PWideChar(PByte(BufferStart) + Offset), MaxChars);
 end;
 
 procedure RtlxSwapEndiannessString;

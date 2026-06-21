@@ -584,6 +584,7 @@ type
 
   TLogonId = type TLuid;
   TSessionId = type Cardinal;
+  PSessionId = ^TSessionId;
 
   PEnvironment = type PWideChar;
 

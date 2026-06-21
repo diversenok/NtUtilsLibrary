@@ -217,7 +217,11 @@ type
   end;
 
   // An attribute for decorating functions that require admin permissions
-  RequiresAdmin = class(TCustomAttribute)
+  RequiresAdminAttribute = class(TCustomAttribute)
+  end;
+
+  // An attribute for decorating functions that require SYSTEM permissions
+  RequiresSystemAttribute = class(TCustomAttribute)
   end;
 
   // SDK::winnt.h
