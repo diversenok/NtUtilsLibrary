@@ -28,8 +28,8 @@ type
   TBiWorkItemActivationType = (
     ApplicationObjectExtension = 0,
     ActivationProxy = 1,
-    ActivationWin32Clsid = 2, // Win 20H1+
-    ActivationSuspendableWin32Clsid = 3 // since TODO
+    ActivationWin32Clsid = 2, // Win 10 20H1+
+    ActivationSuspendableWin32Clsid = 3 // Win 11 21H2+
   );
 
   // private - before RS3
@@ -98,9 +98,9 @@ type
     ChannelApplicationServicingStop = 6,
     ChannelLockScreenUpdate = 7,
     ChannelEventDeletion = 8,
-    ChannelQuietModeUpdate = 9,
-    ChannelNotifyNewSession = 10,
-    ChannelNotifyCloseSession = 11
+    ChannelQuietModeUpdate = 9,    // Win 8.1+
+    ChannelNotifyNewSession = 10,  // Win 8.1+
+    ChannelNotifyCloseSession = 11 // Win 8.1+
   );
 
   // private
