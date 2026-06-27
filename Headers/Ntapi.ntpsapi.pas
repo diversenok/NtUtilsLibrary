@@ -1824,7 +1824,7 @@ function NtGetNextThread(
 // Process State
 
 // rev
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtCreateProcessStateChange(
   [out, ReleaseWith('NtClose')] out StateChangeHandle: THandle;
   [in] DesiredAccess: TProcessStateAccessMask;
@@ -1839,7 +1839,7 @@ var delayed_NtCreateProcessStateChange: TDelayedLoadFunction = (
 );
 
 // rev
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtChangeProcessState(
   [in, Access(PROCESS_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
   [in, Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
@@ -1980,7 +1980,7 @@ function NtQueueApcThreadEx(
 // Thread State
 
 // rev
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtCreateThreadStateChange(
   [out, ReleaseWith('NtClose')] out StateChangeHandle: THandle;
   [in] DesiredAccess: TThreadStateAccessMask;
@@ -1995,7 +1995,7 @@ var delayed_NtCreateThreadStateChange: TDelayedLoadFunction = (
 );
 
 // rev
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtChangeThreadState(
   [in, Access(THREAD_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
   [in, Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;

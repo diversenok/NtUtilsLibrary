@@ -77,7 +77,7 @@ function NtxDeferTerminateProcess(
 ): IDeferredOperation;
 
 // Create a process state change object
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtxCreateProcessState(
   out hxProcessState: IHandle;
   [Access(PROCESS_CHANGE_STATE)] const hxProcess: IHandle;
@@ -85,7 +85,7 @@ function NtxCreateProcessState(
 ): TNtxStatus;
 
 // Suspend or resume a process via state change
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtxChangeStateProcess(
   [Access(PROCESS_STATE_CHANGE_STATE)] const hxProcessState: IHandle;
   [Access(PROCESS_CHANGE_STATE)] const hxProcess: IHandle;

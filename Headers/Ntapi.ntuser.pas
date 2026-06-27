@@ -1245,7 +1245,7 @@ var delayed_NtUserCallTwoParam: TDelayedLoadFunction = (
 
 // private
 [Result: MayReturnNil]
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtUserMapDesktopObject(
   [in] h: THandle
 ): Pointer; stdcall; external win32u delayed;

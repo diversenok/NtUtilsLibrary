@@ -172,7 +172,7 @@ begin
 
     AppModelPolicy_Type_AppInstancingErrorBehavior..
       AppModelPolicy_Type_ModsPowerNotification:
-      RequiredVersion := OsWin11;
+      RequiredVersion := OsWin1121H2;
   else
     Exit(False);
   end;

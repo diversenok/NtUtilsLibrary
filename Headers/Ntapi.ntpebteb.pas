@@ -376,16 +376,16 @@ type
     SystemAssemblyStorageMap: PAssemblyStorageMap;
     [Bytes] MinimumStackCommit: NativeUInt;
     [Unlisted] SparePointers: array [0..1] of Pointer;
-    [MinOSVersion(OsWin11)] PatchLoaderData: Pointer;
-    [MinOSVersion(OsWin11)] ChpeV2ProcessInfo: Pointer;
-    [MinOSVersion(OsWin11), Hex] AppModelFeatureState: Cardinal;
+    [MinOSVersion(OsWin1121H2)] PatchLoaderData: Pointer;
+    [MinOSVersion(OsWin1121H2)] ChpeV2ProcessInfo: Pointer;
+    [MinOSVersion(OsWin1121H2), Hex] AppModelFeatureState: Cardinal;
     [Unlisted] SpareUlongs: array [0..1] of Cardinal;
-    [MinOSVersion(OsWin11)] ActiveCodePage: Word;
-    [MinOSVersion(OsWin11)] OEMCodePage: Word;
-    [MinOSVersion(OsWin11)] UseCaseMapping: Word;
+    [MinOSVersion(OsWin1121H2)] ActiveCodePage: Word;
+    [MinOSVersion(OsWin1121H2)] OEMCodePage: Word;
+    [MinOSVersion(OsWin1121H2)] UseCaseMapping: Word;
     WERRegistrationData: Pointer;
     WERShipAssertPtr: Pointer;
-    [MinOSVersion(OsWin11)] EcCodeBitmap: Pointer;
+    [MinOSVersion(OsWin1121H2)] EcCodeBitmap: Pointer;
     pImageHeaderHash: Pointer;
     TracingFlags: TPebTracingFlags;
     [MinOSVersion(OsWin8), Hex] CSRServerReadOnlySharedMemoryBase: UInt64;
@@ -400,7 +400,7 @@ type
     [MinOSVersion(OsWin10RS5)] LeapSecondData: Pointer; // *_LEAP_SECOND_DATA
     [MinOSVersion(OsWin10RS5), Hex] LeapSecondFlags: Cardinal;
     [MinOSVersion(OsWin10RS5), Hex] NTGlobalFlag2: Cardinal;
-    [MinOSVersion(OsWin11), Hex] ExtendedFeatureDisableMask: Cardinal;
+    [MinOSVersion(OsWin1121H2), Hex] ExtendedFeatureDisableMask: Cardinal;
   end;
   PPeb = ^TPeb;
 
@@ -463,7 +463,7 @@ type
   PClientThreadInfoV1 = ^TClientThreadInfoV1;
 
   // private + rev
-  [MinOSVersion(OsWin11)]
+  [MinOSVersion(OsWin1121H2)]
   [SDKName('CLIENTTHREADINFO')]
   TClientThreadInfoV2 = record
     [Hex] CTIF_flags: Cardinal;
@@ -478,7 +478,7 @@ type
   TClientThreadInfo = record
   case TWindowsVersion of
     OsWinOld: (V1: TClientThreadInfoV1);
-    OsWin11: (V2: TClientThreadInfoV2);
+    OsWin1121H2: (V2: TClientThreadInfoV2);
   end;
   PClientThreadInfo = ^TClientThreadInfo;
 
@@ -706,8 +706,8 @@ type
     ThreadPoolData: Pointer;
     TLSExpansionSlots: PPointer;
   {$IFDEF WIN64}
-    [MinOSVersion(OsWin11)] ChpeV2CpuAreaInfo: Pointer;
-    [MinOSVersion(OsWin11), Unlisted] Unused: Pointer;
+    [MinOSVersion(OsWin1121H2)] ChpeV2CpuAreaInfo: Pointer;
+    [MinOSVersion(OsWin1121H2), Unlisted] Unused: Pointer;
   {$ENDIF}
     MUIGeneration: Cardinal;
     IsImpersonating: Cardinal;
@@ -732,9 +732,9 @@ type
     [MinOSVersion(OsWin8), Unlisted] ReservedForWDF: Pointer;
     [MinOSVersion(OsWin10TH1), Unlisted] ReservedForCRT: UInt64;
     [MinOSVersion(OsWin10TH1)] EffectiveContainerID: TGuid;
-    [MinOSVersion(OsWin11)] LastSleepCounter: UInt64;
-    [MinOSVersion(OsWin11)] SpinCallCount: Cardinal;
-    [MinOSVersion(OsWin11), Hex] ExtendedFeatureDisableMask: Cardinal;
+    [MinOSVersion(OsWin1121H2)] LastSleepCounter: UInt64;
+    [MinOSVersion(OsWin1121H2)] SpinCallCount: Cardinal;
+    [MinOSVersion(OsWin1121H2), Hex] ExtendedFeatureDisableMask: Cardinal;
   end;
   PTeb = ^TTeb;
 

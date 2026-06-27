@@ -230,7 +230,7 @@ function NtxDeferTerminateThread(
 ): IDeferredOperation;
 
 // Create a thread state change object
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtxCreateThreadState(
   out hxThreadState: IHandle;
   [Access(THREAD_CHANGE_STATE)] const hxThread: IHandle;
@@ -238,7 +238,7 @@ function NtxCreateThreadState(
 ): TNtxStatus;
 
 // Suspend or resume a thread via state change
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function NtxChangeStateThread(
   [Access(THREAD_STATE_CHANGE_STATE)] const hxThreadState: IHandle;
   [Access(THREAD_CHANGE_STATE)] const hxThread: IHandle;

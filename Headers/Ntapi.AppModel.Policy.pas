@@ -542,7 +542,7 @@ type
   );
 
   // Info class 0x38
-  [MinOSVersion(OsWin11)]
+  [MinOSVersion(OsWin1121H2)]
   [NamingStyle(nsCamelCase, 'AppModelPolicy_AppInstancingErrorBehavior_')]
   TAppModelPolicy_AppInstancingErrorBehavior = (
     AppModelPolicy_AppInstancingErrorBehavior_SuppressErrors = 0,
@@ -550,7 +550,7 @@ type
   );
 
   // Info class 0x39
-  [MinOSVersion(OsWin11)]
+  [MinOSVersion(OsWin1121H2)]
   [NamingStyle(nsCamelCase, 'AppModelPolicy_BackgroundTaskRegistrationType_')]
   TAppModelPolicy_BackgroundTaskRegistrationType = (
     AppModelPolicy_BackgroundTaskRegistrationType_Unsupported = 0,
@@ -559,7 +559,7 @@ type
   );
 
   // Info class 0x3A
-  [MinOSVersion(OsWin11)]
+  [MinOSVersion(OsWin1121H2)]
   [NamingStyle(nsCamelCase, 'AppModelPolicy_ModsPowerNotification_')]
   TAppModelPolicy_ModsPowerNotification = (
     AppModelPolicy_ModsPowerNotification_Disabled = 0,

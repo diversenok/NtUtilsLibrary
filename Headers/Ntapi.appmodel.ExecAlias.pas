@@ -134,7 +134,7 @@ var delayed_PersistAppExecutionAliasToFileHandleEx: TDelayedLoadFunction = (
 );
 
 // rev
-[MinOSVersion(OsWin11)]
+[MinOSVersion(OsWin1121H2)]
 function CreateAndPersistAppExecutionAliasEx(
   [in] PackageFamilyName: PWideChar;
   [in] ApplicationUserModelId: PWideChar;

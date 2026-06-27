@@ -141,7 +141,7 @@ end;
 
 function RtlxAppxActivatorHost: String;
 begin
-  if RtlOsVersionAtLeast(OsWin11) then
+  if RtlOsVersionAtLeast(OsWin1121H2) then
     Result := 'twinui.appcore.dll'
   else
     Result := 'twinui.dll';

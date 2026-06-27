@@ -612,7 +612,7 @@ type
   end;
 
   // private
-  [MinOSVersion(OsWin11)]
+  [MinOSVersion(OsWin1121H2)]
   [SDKName('IDesktopAppXActivator')]
   IDesktopAppXActivatorV3 = interface (IUnknown)
     ['{F158268A-D5A5-45CE-99CF-00D6C3F3FC0A}']

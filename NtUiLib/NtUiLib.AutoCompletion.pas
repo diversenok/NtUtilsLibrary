@@ -119,7 +119,7 @@ begin
   // provider (so we don't keep it alive indefinitely) and registering this
   // object as an expected memor leak (to prevent ReportMemoryLeaksOnShutdown
   // from complaining).
-  if RtlOsVersionAtLeast(OsWin11) then
+  if RtlOsVersionAtLeast(OsWin1121H2) then
   begin
     SysRegisterExpectedMemoryLeak(Self);
     SysRegisterExpectedMemoryLeak(FProvider.WeakReference as TObject);
