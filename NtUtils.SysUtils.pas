@@ -284,9 +284,14 @@ function RtlxFormatString(
 // Integers
 
 // Switch a 32-bit integer between big- and little-endian
-function RtlxSwapEndianness(
+function RtlxSwapEndianness32(
   Value: Cardinal
 ): Cardinal;
+
+// Switch a 32-bit integer between big- and little-endian
+function RtlxSwapEndianness16(
+  Value: Word
+): Word;
 
 // Format a buffer as a hex string
 function RtlxBytesToHexStr(
@@ -1274,10 +1279,15 @@ begin
   until False;
 end;
 
-function RtlxSwapEndianness;
+function RtlxSwapEndianness32;
 begin
   Result := (Value shr 24) or (Value shl 24) or
     ((Value and $00FF0000) shr 8) or ((Value and $0000FF00) shl 8);
+end;
+
+function RtlxSwapEndianness16;
+begin
+  Result := Word(Value shr 8) or Word(Value shl 8);
 end;
 
 function RtlxBytesToHexStr;

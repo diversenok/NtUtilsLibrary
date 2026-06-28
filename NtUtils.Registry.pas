@@ -1058,7 +1058,7 @@ begin
   Value := PCardinal(@Buffer.Data.Data)^;
 
   if Buffer.Data.ValueType = REG_DWORD_BIG_ENDIAN then
-    Value := RtlxSwapEndianness(Value);
+    Value := RtlxSwapEndianness32(Value);
 end;
 
 function NtxQueryValueKeyUInt64;
@@ -1181,7 +1181,7 @@ end;
 function NtxSetValueKeyUInt32;
 begin
   if ValueType = REG_DWORD_BIG_ENDIAN then
-    Value := RtlxSwapEndianness(Value)
+    Value := RtlxSwapEndianness32(Value)
   else if ValueType <> REG_DWORD then
   begin
     Result.Location := 'NtxSetValueKeyUInt32';
