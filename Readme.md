@@ -301,6 +301,7 @@ Support unit                                                                    
 [DelphiUtils.LiteRTTI](./DelphiUtils.LiteRTTI.pas)                                               | Lite RTTI and custom attribute parsing
 [DelphiUiLib.LiteReflection](./DelphiUiLib.LiteReflection.pas)                                   | Type representation via lite RTTI
 [DelphiUiLib.LiteReflection.Types](./DelphiUiLib.LiteReflection.Types.pas)                       | Lite RTTI formatting for some known types
+[DelphiUiLib.HysteresisTree](./NtUiLib/DelphiUiLib.HysteresisTree.pas)                           | Data structure for tracking changes in lists/trees
 [NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console UI helpers
 [NtUiLib.TaskDialog](./NtUiLib/NtUiLib.TaskDialog.pas)                                           | TaskDialog-based GUI
 [NtUiLib.Errors.Dialog](./NtUiLib/NtUiLib.Errors.Dialog.pas)                                     | GUI error dialog
@@ -312,6 +313,7 @@ System unit                                                                     
 ------------------------------------------------------------------------------------------------ | -----------
 [NtUtils.ActCtx](./NtUtils.ActCtx.pas)                                                           | Activation contexts
 [NtUtils.AntiHooking](./NtUtils.AntiHooking.pas)                                                 | Unhooking and direct syscall
+[NtUtils.BrokerInfra](./NtUtils.BrokerInfra.pas)                                                 | Background Broker Infrastructure
 [NtUtils.Com](./NtUtils.Com.pas)                                                                 | COM, IDispatch, WinRT
 [NtUtils.Console](./NtUtils.Console.pas)                                                         | Low-level console support
 [NtUtils.Csr](./NtUtils.Csr.pas)                                                                 | CSRSS/SxS registration
@@ -336,6 +338,7 @@ System unit                                                                     
 [NtUtils.Jobs](./NtUtils.Jobs.pas)                                                               | Job objects and silos
 [NtUtils.Jobs.Remote](./NtUtils.Jobs.Remote.pas)                                                 | Cross-process job object queries
 [NtUtils.Ldr](./NtUtils.Ldr.pas)                                                                 | LDR routines and parsing
+[NtUtils.Lpc](./NtUtils.Lpc.pas)                                                                 | Advanced Local Procedure Calls
 [NtUtils.Lsa](./NtUtils.Lsa.pas)                                                                 | LSA policy
 [NtUtils.Lsa.Audit](./NtUtils.Lsa.Audit.pas)                                                     | Audit policy
 [NtUtils.Lsa.Sid](./NtUtils.Lsa.Sid.pas)                                                         | SID lookup
@@ -352,6 +355,7 @@ System unit                                                                     
 [NtUtils.Objects.Compare](./NtUtils.Objects.Compare.pas)                                         | Handle comparison
 [NtUtils.Packages](./NtUtils.Packages.pas)                                                       | App packages & package families
 [NtUtils.Packages.ExecAlias](./NtUtils.Packages.ExecAlias.pas)                                   | App execution aliases
+[NtUtils.Packages.Mrm](./NtUtils.Packages.Mrm.pas)                                               | Packaged resources (.pri)
 [NtUtils.Packages.SRCache](./NtUtils.Packages.SRCache.pas)                                       | State repository cache
 [NtUtils.Packages.WinRT](./NtUtils.Packages.WinRT.pas)                                           | WinRT-based package info
 [NtUtils.Power](./NtUtils.Power.pas)                                                             | Power-related functions
@@ -363,6 +367,7 @@ System unit                                                                     
 [NtUtils.Processes.Create](./NtUtils.Processes.Create.pas)                                       | Common process creation definitions
 [NtUtils.Processes.Create.Win32](./NtUtils.Processes.Create.Win32.pas)                           | Win32 process creation methods
 [NtUtils.Processes.Create.Shell](./NtUtils.Processes.Create.Shell.pas)                           | Shell process creation methods
+[NtUtils.Processes.Create.Wer](./NtUtils.Processes.Create.Wer.pas)                               | Windows Error Reporting process creation methods
 [NtUtils.Processes.Create.Native](./NtUtils.Processes.Create.Native.pas)                         | NtCreateUserProcess and co.
 [NtUtils.Processes.Create.Manual](./NtUtils.Processes.Create.Manual.pas)                         | NtCreateProcessEx
 [NtUtils.Processes.Create.Com](./NtUtils.Processes.Create.Com.pas)                               | COM-based process creation
@@ -384,6 +389,7 @@ System unit                                                                     
 [NtUtils.Shellcode](./NtUtils.Shellcode.pas)                                                     | Code injection
 [NtUtils.Shellcode.Dll](./NtUtils.Shellcode.Dll.pas)                                             | DLL injection
 [NtUtils.Shellcode.Exe](./NtUtils.Shellcode.Exe.pas)                                             | EXE injection
+[NtUtils.SQLite](./NtUtils.SQLite.pas)                                                           | SQLite3 databases
 [NtUtils.Svc](./NtUtils.Svc.pas)                                                                 | SCM services
 [NtUtils.Svc.SingleTaskSvc](./NtUtils.Svc.SingleTaskSvc.pas)                                     | Service implementation
 [NtUtils.Synchronization](./NtUtils.Synchronization.pas)                                         | Synchronization primitives
@@ -400,6 +406,7 @@ System unit                                                                     
 [NtUtils.Transactions.Remote](./NtUtils.Transactions.Remote.pas)                                 | Forcing processes into transactions
 [NtUtils.UserManager](./NtUtils.UserManager.pas)                                                 | User Manager service (Umgr) API
 [NtUtils.VirtDisk](./NtUtils.VirtDisk.pas)                                                       | Virtual disk (\*.iso, \*.vhdx) API
+[NtUtils.Wer](./NtUtils.Wer.pas)                                                                 | Windows Error Reporting APIs
 [NtUtils.Wim](./NtUtils.Wim.pas)                                                                 | Windows Imaging (\*.wim) API
 [NtUtils.WinSafer](./NtUtils.WinSafer.pas)                                                       | Safer API
 [NtUtils.WinStation](./NtUtils.WinStation.pas)                                                   | Terminal server API
