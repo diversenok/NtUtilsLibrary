@@ -51,6 +51,18 @@ function DiaxRtlxLoadExe(
   const SearchPath: String = 'C:\Symbols'
 ): TNtxStatus;
 
+// Open the global scope of a session
+function DiaxSessionGetGlobalScope(
+  const Session: IDiaSession;
+  out Scope: IDiaSymbol
+): TNtxStatus;
+
+// Format a PDB identifier based on its GUID and age
+function DiaxScopeFormatGuidAge(
+  const Scope: IDiaSymbol;
+  out GuidAge: String
+): TNtxStatus;
+
 { Symbom enumeration }
 
 // Find the first matching child of a symbol
@@ -74,6 +86,15 @@ function DiaxSymbolIterateChildren(
 // Enumerate children of a symbol
 function DiaxSymbolEnumerateChildren(
   out Children: TArray<IDiaSymbol>;
+  const Symbol: IDiaSymbol;
+  SymTag: TSymTagEnum = TSymTagEnum.SymTagNull;
+  [opt] const Name: String = '';
+  CompareFlags: TNameSearchOptions = 0
+): TNtxStatus;
+
+// Count the number of children of a symbol
+function DiaxSymbolCountChildren(
+  out Count: Integer;
   const Symbol: IDiaSymbol;
   SymTag: TSymTagEnum = TSymTagEnum.SymTagNull;
   [opt] const Name: String = '';
@@ -268,6 +289,44 @@ begin
   Result.HResult := DataSource.OpenSession(Session);
 end;
 
+function DiaxSessionGetGlobalScope;
+begin
+  Result.Location := 'IDiaSession::get_globalScope';
+  Result.HResult := Session.get_globalScope(Scope);
+end;
+
+function DiaxScopeFormatGuidAge;
+var
+  Guid: TGuid;
+  GuidSize: Cardinal;
+  Age: Cardinal;
+begin
+  Result.Location := 'IDiaSymbol::get_guid';
+  Result.HResult := Scope.get_guid(Guid);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IDiaSymbol::get_age';
+  Result.HResult := Scope.get_age(Age);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Handle truncated {Value-0000-0000-0000-000000000000} GUIDs
+  if (PCardinal(@Guid.D2)^ = 0) and (PUInt64(@Guid.D4[0])^ = 0) then
+    GuidSize := SizeOf(Cardinal)
+  else
+    GuidSize := SizeOf(TGuid);
+
+  Guid.D1 := RtlxSwapEndianness32(Guid.D1);
+  Guid.D2 := RtlxSwapEndianness16(Guid.D2);
+  Guid.D3 := RtlxSwapEndianness16(Guid.D3);
+
+  // Format the identifier as the raw GUID bytes plus the age in hex
+  GuidAge := RtlxBytesToHexStr(@Guid, GuidSize) + RtlxIntToHex(Age, 0, False);
+end;
+
 { Symbol enumeration }
 
 function DiaxSymbolFindChild;
@@ -370,6 +429,20 @@ begin
     if Result.IsSuccess and (Fetched < Count) then
       SetLength(Children, Fetched);
   end;
+end;
+
+function DiaxSymbolCountChildren;
+var
+  Enum: IDiaEnumSymbols;
+begin
+  Result.Location := 'IDiaSymbol::findChildren';
+  Result.HResult := Symbol.findChildren(SymTag, Name, CompareFlags, Enum);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IDiaEnumSymbols::get_Count';
+  Result.HResult := Enum.get_Count(Count);
 end;
 
 { Symbol information }
