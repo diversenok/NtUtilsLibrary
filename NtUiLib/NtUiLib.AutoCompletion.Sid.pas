@@ -526,7 +526,7 @@ begin
   // Traverse the tasks and collect their names
   Status := NtxTraverseDirectoryFile(hxTaskDirectory, OpenParameters,
     function(
-      const FileInfo: TDirectoryFileEntry;
+      const FileInfo: TNtxDirectoryFileEntry;
       const Root: IHandle;
       const RootName: String;
       var ContinuePropagation: Boolean
@@ -557,9 +557,8 @@ begin
         Tasks[High(Tasks)] := TaskSid;
       end;
     end,
-    [ftInvokeOnFiles, ftIgnoreCallbackFailures, ftIgnoreTraverseFailures],
-    FileDirectoryInformation,
-    8
+    [tfoInvokeOnFiles, tfoIgnoreCallbackFailures, tfoIgnoreTraverseFailures],
+    nil, FileDirectoryInformation, 8
   );
 
   if Status.IsSuccess then

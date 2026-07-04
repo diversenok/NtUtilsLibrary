@@ -367,7 +367,7 @@ function RtlxpCollectForFile(
 ): TNtxStatus;
 var
   hxFolder: IHandle;
-  Files: TArray<TDirectoryFileEntry>;
+  Files: TArray<TNtxDirectoryFileEntry>;
   CurrentNonDirectoryType, KnownType: TNamespaceObjectType;
   i, Count: Integer;
   VolumeInfo: TFileFsDeviceInformation;

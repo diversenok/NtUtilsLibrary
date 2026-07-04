@@ -27,20 +27,20 @@ type
   A/S/T - Attributes, Size, Times
 }
 
-  TDirectoryFileFields = set of (
-    fcAttributes,
-    fcSize,
-    fcTimes,
-    fcShortName,
-    fcEaSize,
-    fcFileId,
-    fcFileId128,
-    fcReparseTag,
-    fcTransactionInfo
+  TNtxDirectoryFileFields = set of (
+    dfAttributes,
+    dfSize,
+    dfTimes,
+    dfShortName,
+    dfEaSize,
+    dfFileId,
+    dfFileId128,
+    dfReparseTag,
+    dfTransactionInfo
   );
 
-  TDirectoryFileEntry = record
-    OptionalFields: TDirectoryFileFields;
+  TNtxDirectoryFileEntry = record
+    OptionalFields: TNtxDirectoryFileFields;
     [Aggregate] Common: TFileDirectoryCommonInformation;
     FileName: String;
     ShortName: String;
@@ -51,80 +51,102 @@ type
     LockingTransactionId: TGuid;
     TxInfoFlags: TFileTxInfoFlags;
   end;
+  PNtxDirectoryFileEntry = ^TNtxDirectoryFileEntry;
+
+  TNtxTraverseFileOptions = set of (
+    tfoInvokeOnFiles,          // Invoke the callback on non-directories
+    tfoInvokeOnDirectories,    // Invoke the callback on directories
+    tfoIgnoreCallbackFailures, // Do not stop traversing when the callback fails
+    tfoIgnoreTraverseFailures, // Do not stop traversing when opening or enumrating content fails
+    tfoFollowReparsePoints,    // Follow junctions and directory symlinks
+    tfoIterateSingleEntry,     // Retrieve directory content one entry at a time
+    tfoPassRootNameAsRelative  // Use a relative path (from the start location) as RootName
+  );
+
+  [NamingStyle(nsCamelCase, 'tff')]
+  TNtxTraverseFileFailureKind = (
+    tffOpenFailed,
+    tffEnumerateFailed,
+    tffCallbackFailed
+  );
+
+  TNtxTraverseFileFailureCallback = reference to procedure (
+    FailureKind: TNtxTraverseFileFailureKind;
+    const Status: TNtxStatus;
+    const FileName: String;
+    const Root: IHandle;
+    const RootName: String;
+    var Handled: Boolean
+  );
 
   // Note: ContinueTraversing allows callers to explicitly cancel traversing of
-  // specific locations, as well as enable it back when skipping reparse points 
+  // specific locations, as well as enable it back when skipping reparse points
   // or reached the maximum depth.
-  TFileTraverseCallback = reference to function(
-    const FileInfo: TDirectoryFileEntry;
+  TNtxTraverseFileCallback = reference to function(
+    const FileInfo: TNtxDirectoryFileEntry;
     const Root: IHandle;
     const RootName: String;
     var ContinueTraversing: Boolean
   ): TNtxStatus;
 
-  TFileTraverseBulkCallback = reference to function(
-    const Files: TArray<TDirectoryFileEntry>;
+  TNtxTraverseFileCallbackBulk = reference to function(
+    const FileInfo: TArray<TNtxDirectoryFileEntry>;
     const Root: IHandle;
     const RootName: String;
     var ContinueTraversing: TArray<Boolean>
   ): TNtxStatus;
 
-  TFileTraverseOptions = set of (
-    ftInvokeOnFiles,
-    ftInvokeOnDirectories,
-    ftIgnoreCallbackFailures,
-    ftIgnoreTraverseFailures,
-    ftFollowReparsePoints
-  );
-
-// Iterate a content of a filesystem directory one entry at at time.
+// Iterate a content of a filesystem directory one entry at at time
 function NtxGetNextDirectoryFile(
   [Access(FILE_LIST_DIRECTORY)] const hxFile: IHandle;
-  out Entry: TDirectoryFileEntry;
+  out Entry: TNtxDirectoryFileEntry;
   var FirstScan: Boolean;
   InfoClass: TFileInformationClass = FileDirectoryInformation;
   [opt] const Pattern: String = ''
 ): TNtxStatus;
 
-// Enumerate files in a filesystem directory multiple entries at a time
+// Enumerate content of a filesystem directory multiple entries at a time
 function NtxIterateDirectoryFile(
   [Access(FILE_LIST_DIRECTORY)] const hxFile: IHandle;
-  out Files: TArray<TDirectoryFileEntry>;
+  out Files: TArray<TNtxDirectoryFileEntry>;
   var FirstScan: Boolean;
   InfoClass: TFileInformationClass = FileDirectoryInformation;
+  ReturnSingleEntry: Boolean = False;
   SuggestedBufferSize: NativeUInt = $1000;
   [opt] const Pattern: String = ''
 ): TNtxStatus;
 
-// Enumerate all files in a filesystem directory
+// Enumerate all content of a filesystem directory
 function NtxEnumerateDirectoryFile(
   [Access(FILE_LIST_DIRECTORY)] const hxFile: IHandle;
-  out Files: TArray<TDirectoryFileEntry>;
+  out Files: TArray<TNtxDirectoryFileEntry>;
   InfoClass: TFileInformationClass = FileDirectoryInformation;
   [opt] const Pattern: String = '';
   SuggestedBufferSize: NativeUInt = $4000
 ): TNtxStatus;
 
 // Recursively traverse a filesystem directory and its sub-directories.
-// Invokes the callback on one file at a time.
+// Invokes the callback one file at a time.
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxTraverseDirectoryFile(
   [opt, Access(FILE_LIST_DIRECTORY)] hxRoot: IHandle;
   [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileParameters;
-  Callback: TFileTraverseCallback;
-  Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnDirectories];
+  Callback: TNtxTraverseFileCallback;
+  Options: TNtxTraverseFileOptions = [tfoInvokeOnFiles, tfoInvokeOnDirectories];
+  FailureHandlingCallback: TNtxTraverseFileFailureCallback = nil;
   InfoClass: TFileInformationClass = FileDirectoryInformation;
   MaxDepth: Integer = 32767
 ): TNtxStatus;
 
 // Recursively traverse a filesystem directory and its sub-directories
-// Invokes the callback on all files in a directory at a time.
+// Invokes the callback on all files in each directory at a time.
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxTraverseDirectoryFileBulk(
   [opt, Access(FILE_LIST_DIRECTORY)] hxRoot: IHandle;
   [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileParameters;
-  Callback: TFileTraverseBulkCallback;
-  Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnDirectories];
+  Callback: TNtxTraverseFileCallbackBulk;
+  Options: TNtxTraverseFileOptions = [tfoInvokeOnFiles, tfoInvokeOnDirectories];
+  FailureHandlingCallback: TNtxTraverseFileFailureCallback = nil;
   InfoClass: TFileInformationClass = FileDirectoryInformation;
   MaxDepth: Integer = 32767
 ): TNtxStatus;
@@ -140,13 +162,10 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-type
-  PFolderEntry = ^TDirectoryFileEntry;
-
 function RtlxpCaptureDirectoryInfo(
   [in, out] var Buffer: Pointer;
   InfoClass: TFileInformationClass;
-  [out, opt] Entry: PFolderEntry
+  [out, opt] Entry: PNtxDirectoryFileEntry
 ): Boolean;
 var
   BufferNames: PFileNamesInformation absolute Buffer;
@@ -181,7 +200,7 @@ begin
       begin
         if Assigned(Entry) then
         begin
-          Entry.OptionalFields := [fcAttributes, fcSize, fcTimes];
+          Entry.OptionalFields := [dfAttributes, dfSize, dfTimes];
           Entry.Common := BufferDir.Common;
 
           SetString(Entry.FileName, BufferDir.FileName,
@@ -197,7 +216,7 @@ begin
       begin
         if Assigned(Entry) then
         begin
-          Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize];
+          Entry.OptionalFields := [dfAttributes, dfSize, dfTimes, dfEaSize];
           Entry.Common := BufferFull.Common;
           Entry.EaSize := BufferFull.EaSize;
 
@@ -213,8 +232,8 @@ begin
       begin
         if Assigned(Entry) then
         begin
-          Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
-            fcShortName];
+          Entry.OptionalFields := [dfAttributes, dfSize, dfTimes, dfEaSize,
+            dfShortName];
           Entry.Common := BufferBoth.Common;
           Entry.EaSize := BufferBoth.EaSize;
 
@@ -233,8 +252,8 @@ begin
       begin
         if Assigned(Entry) then
         begin
-          Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
-            fcShortName, fcFileId];
+          Entry.OptionalFields := [dfAttributes, dfSize, dfTimes, dfEaSize,
+            dfShortName, dfFileId];
           Entry.Common := BufferIdBoth.Common;
           Entry.EaSize := BufferIdBoth.EaSize;
           Entry.FileId := BufferIdBoth.FileId;
@@ -254,8 +273,8 @@ begin
       begin
         if Assigned(Entry) then
         begin
-          Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
-            fcFileId];
+          Entry.OptionalFields := [dfAttributes, dfSize, dfTimes, dfEaSize,
+            dfFileId];
           Entry.Common := BufferIdFull.Common;
           Entry.EaSize := BufferIdFull.EaSize;
           Entry.FileId := BufferIdFull.FileId;
@@ -273,8 +292,8 @@ begin
       begin
         if Assigned(Entry) then
         begin
-          Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcFileId,
-            fcTransactionInfo];
+          Entry.OptionalFields := [dfAttributes, dfSize, dfTimes, dfFileId,
+            dfTransactionInfo];
           Entry.Common := BufferIdGlobalTx.Common;
           Entry.FileId := BufferIdGlobalTx.FileId;
           Entry.LockingTransactionId := BufferIdGlobalTx.LockingTransactionId;
@@ -292,8 +311,8 @@ begin
       begin
         if Assigned(Entry) then
         begin
-          Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
-            fcFileId, fcFileId128, fcReparseTag];
+          Entry.OptionalFields := [dfAttributes, dfSize, dfTimes, dfEaSize,
+            dfFileId, dfFileId128, dfReparseTag];
           Entry.Common := BufferIdExtd.Common;
           Entry.EaSize := BufferIdExtd.EaSize;
           Entry.FileId128 := BufferIdExtd.FileId;
@@ -316,8 +335,8 @@ begin
       begin
         if Assigned(Entry) then
         begin
-          Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
-            fcFileId, fcFileId128, fcReparseTag, fcShortName];
+          Entry.OptionalFields := [dfAttributes, dfSize, dfTimes, dfEaSize,
+            dfFileId, dfFileId128, dfReparseTag, dfShortName];
           Entry.Common := BufferIdExtdBoth.Common;
           Entry.EaSize := BufferIdExtdBoth.EaSize;
           Entry.FileId128 := BufferIdExtdBoth.FileId;
@@ -405,6 +424,7 @@ begin
   else
     Result.Location := 'NtxGetNextDirectoryFile';
     Result.Status := STATUS_INVALID_INFO_CLASS;
+    Exit;
   end;
 
   Result := NtxQueryDirectoryFile(hxFile, InfoClass, Buffer, True, FirstScan,
@@ -437,10 +457,11 @@ begin
   else
     Result.Location := 'NtxIterateDirectoryFile';
     Result.Status := STATUS_INVALID_INFO_CLASS;
+    Exit;
   end;
 
-  Result := NtxQueryDirectoryFile(hxFile, InfoClass, Buffer, False, FirstScan,
-    SuggestedBufferSize, Pattern);
+  Result := NtxQueryDirectoryFile(hxFile, InfoClass, Buffer, ReturnSingleEntry,
+    FirstScan, SuggestedBufferSize, Pattern);
 
   if not Result.IsSuccess then
     Exit;
@@ -466,30 +487,37 @@ end;
 function NtxEnumerateDirectoryFile;
 var
   FirstScan: Boolean;
-  FilesPortion: TArray<TDirectoryFileEntry>;
+  FilesPortion: TArray<TNtxDirectoryFileEntry>;
 begin
   Files := nil;
   FirstScan := True;
 
   // Collect all entries
   while NtxIterateDirectoryFile(hxFile, FilesPortion, FirstScan, InfoClass,
-    SuggestedBufferSize, Pattern).HasEntry(Result) do
+    False, SuggestedBufferSize, Pattern).HasEntry(Result) do
     Files := Files + FilesPortion;
 end;
 
-function NtxTraverseDirectoryFileWorker(
+type
+  TNtxpTraverseContext = record
+    ParametersTemplate: IFileParameters;
+    Callback: TNtxTraverseFileCallback;
+    CallbackBulk: TNtxTraverseFileCallbackBulk;
+    FailureHandlingCallback: TNtxTraverseFileFailureCallback;
+    InfoClass: TFileInformationClass;
+    Options: TNtxTraverseFileOptions;
+  end;
+
+function NtxTraverseFileDirectoryWorker(
+  const Context: TNtxpTraverseContext;
   const hxRoot: IHandle;
   const AccumulatedPath: String;
-  const ParametersTemplate: IFileParameters;
-  const Callback: TFileTraverseCallback;
-  InfoClass: TFileInformationClass;
-  Options: TFileTraverseOptions;
   RemainingDepth: Integer
 ): TNtxStatus;
 var
-  Files: TArray<TDirectoryFileEntry>;
+  Files: TArray<TNtxDirectoryFileEntry>;
   hxSubDirectory: IHandle;
-  FirstScan, IsDirectory, ContinueTraversing, MoreEntries: Boolean;
+  FirstScan, IsDirectory, ContinueTraversing, Handled, MoreEntries: Boolean;
   i: Integer;
 begin
   FirstScan := True;
@@ -498,15 +526,22 @@ begin
   repeat
     // Retrieve a portion of files and sub-directories inside the root
     Result := NtxIterateDirectoryFile(hxRoot, Files, FirstScan,
-      InfoClass);
+      Context.InfoClass, tfoIterateSingleEntry in Context.Options);
 
     if Result.Status = STATUS_NO_MORE_ENTRIES then
       Break;
 
     if not Result.IsSuccess then
     begin
+      Handled := False;
+
+      // Let the failure handling callback decide if we can continue
+      if Assigned(Context.FailureHandlingCallback) then
+        Context.FailureHandlingCallback(tffEnumerateFailed, Result, '',
+          hxRoot, AccumulatedPath, Handled);
+
       // Allow skipping this location if we cannot traverse it
-      if ftIgnoreTraverseFailures in Options then
+      if Handled or (tfoIgnoreTraverseFailures in Context.Options) then
       begin
         MoreEntries := True;
         Break;
@@ -527,34 +562,50 @@ begin
 
       // Allow skipping junctions and symlinks
       ContinueTraversing := IsDirectory and (RemainingDepth > 0) and (
-        (ftFollowReparsePoints in Options) or not
+        (tfoFollowReparsePoints in Context.Options) or not
         BitTest(Files[i].Common.FileAttributes and FILE_ATTRIBUTE_REPARSE_POINT)
       );
 
       // Invoke the callback
-      if (IsDirectory and (ftInvokeOnDirectories in Options)) or
-        (not IsDirectory and (ftInvokeOnFiles in Options)) then
+      if (IsDirectory and (tfoInvokeOnDirectories in Context.Options)) or
+        (not IsDirectory and (tfoInvokeOnFiles in Context.Options)) then
       begin
-        Result := Callback(Files[i], hxRoot, AccumulatedPath,
+        Result := Context.Callback(Files[i], hxRoot, AccumulatedPath,
           ContinueTraversing);
 
-        // Fail with callback failures, unless told to ignore them
-        if not Result.IsSuccess and
-          not (ftIgnoreCallbackFailures in Options) then
-          Exit;
+        if not Result.IsSuccess then
+        begin
+          Handled := False;
+
+          // Allow the failure callback to handle the error
+          if Assigned(Context.FailureHandlingCallback) then
+            Context.FailureHandlingCallback(tffCallbackFailed, Result,
+              Files[i].FileName, hxRoot, AccumulatedPath, Handled);
+
+          if not Handled and
+            not (tfoIgnoreCallbackFailures in Context.Options) then
+            Exit;
+        end;
       end;
 
       if not IsDirectory or not ContinueTraversing then
         Continue;
         
       // Open the sub-directory for further traversing
-      Result := NtxOpenFile(hxSubDirectory, ParametersTemplate
+      Result := NtxOpenFile(hxSubDirectory, Context.ParametersTemplate
         .UseFileName(Files[i].FileName).UseRoot(hxRoot));
 
       if not Result.IsSuccess then
       begin
+        Handled := False;
+
+        // Let the failure handling callback decide if we can continue
+        if Assigned(Context.FailureHandlingCallback) then
+          Context.FailureHandlingCallback(tffOpenFailed, Result,
+            Files[i].FileName, hxRoot, AccumulatedPath, Handled);
+
         // Allow skipping directories we cannot access
-        if ftIgnoreTraverseFailures in Options then
+        if Handled or (tfoIgnoreTraverseFailures in Context.Options) then
         begin
           MoreEntries := True;
           Continue;
@@ -564,9 +615,9 @@ begin
       end;
 
       // Call recursively
-      Result := NtxTraverseDirectoryFileWorker(hxSubDirectory,
+      Result := NtxTraverseFileDirectoryWorker(Context, hxSubDirectory,
         RtlxCombinePaths(AccumulatedPath, Files[i].FileName),
-        ParametersTemplate, Callback, InfoClass, Options, RemainingDepth - 1);
+        RemainingDepth - 1);
 
       if Result.Status = STATUS_MORE_ENTRIES then
         MoreEntries := True
@@ -576,7 +627,7 @@ begin
   until False;
 
   // We reach here only if no unhandled errors occurred.
-  Result.Location := 'NtxTraverseFolderWorker';
+  Result.Location := 'NtxTraverseDirectoryFile';
 
   if MoreEntries then
     Result.Status := STATUS_MORE_ENTRIES
@@ -585,6 +636,10 @@ begin
 end;
 
 function NtxTraverseDirectoryFile;
+var
+  Context: TNtxpTraverseContext;
+  RootName: String;
+  HandledError: Boolean;
 begin
   // Check for supported info classes. Note: we don't allow FileNamesInformation
   // because we need to know attributes internally.
@@ -596,14 +651,20 @@ begin
   else
     Result.Location := 'NtxTraverseDirectoryFile';
     Result.Status := STATUS_INVALID_INFO_CLASS;
+    Exit;
   end;
 
-  // Always use synchronous I/O and at least directory listing access
+  // Always use at least directory listing access
   OpenParameters := FileParameters(OpenParameters);
   OpenParameters := OpenParameters
     .UseOptions(OpenParameters.Options or FILE_DIRECTORY_FILE)
-    .UseSyncMode(fsSynchronousNonAlert)
     .UseAccess(OpenParameters.Access or FILE_LIST_DIRECTORY);
+
+  // Choose what string we pass as the root
+  if not (tfoPassRootNameAsRelative in Options) then
+    RootName := OpenParameters.FileName
+  else
+    RootName := '';
 
   // Open the root folder if not provided
   if not Assigned(hxRoot) then
@@ -611,42 +672,67 @@ begin
     Result := NtxOpenFile(hxRoot, OpenParameters);
 
     if not Result.IsSuccess then
+    begin
+      // Allow the failure callback to handle the error, even on the root
+      if Assigned(FailureHandlingCallback) then
+      begin
+        HandledError := False;
+        FailureHandlingCallback(tffOpenFailed, Result, '', nil, RootName,
+          HandledError);
+
+        if HandledError then
+        begin
+          Result.Location := 'NtxTraverseDirectoryFile';
+          Result.Status := STATUS_MORE_ENTRIES;
+        end;
+      end;
+
       Exit;
+    end;
   end;
 
   // Since we want to reuse the open options, clear the file ID information
   OpenParameters := OpenParameters.UseFileId(0);
 
-  Result := NtxTraverseDirectoryFileWorker(hxRoot, OpenParameters.FileName,
-    OpenParameters, Callback, InfoClass, Options, MaxDepth);
+  Context.ParametersTemplate := OpenParameters;
+  Context.Callback := Callback;
+  Context.FailureHandlingCallback := FailureHandlingCallback;
+  Context.InfoClass := InfoClass;
+  Context.Options := Options;
+
+  Result := NtxTraverseFileDirectoryWorker(Context, hxRoot, RootName, MaxDepth);
 end;
 
-function NtxTraverseDirectoryFileBulkWorker(
+function NtxTraverseFileDirectoryBulkWorker(
+  const Context: TNtxpTraverseContext;
   const hxRoot: IHandle;
   const AccumulatedPath: String;
-  const ParametersTemplate: IFileParameters;
-  const Callback: TFileTraverseBulkCallback;
-  InfoClass: TFileInformationClass;
-  Options: TFileTraverseOptions;
   RemainingDepth: Integer
 ): TNtxStatus;
 var
-  Files, FilesFiltered: TArray<TDirectoryFileEntry>;
+  Files, FilesFiltered: TArray<TNtxDirectoryFileEntry>;
   ContinueTraversingFiltered: TArray<Boolean>;
   IndexToFilteredIndex: TArray<Integer>;
   hxSubDirectory: IHandle;
-  MoreEntries, IsDirectory, ContinueTraversing: Boolean;
+  MoreEntries, IsDirectory, ContinueTraversing, Handled: Boolean;
   i, j: Integer;
 begin
   MoreEntries := False;
 
   // Retrieve all files from the directory
-  Result := NtxEnumerateDirectoryFile(hxRoot, Files, InfoClass);
+  Result := NtxEnumerateDirectoryFile(hxRoot, Files, Context.InfoClass);
 
   if not Result.IsSuccess then
   begin
+    Handled := False;
+
+    // Let the failure handling callback decide if we can continue
+    if Assigned(Context.FailureHandlingCallback) then
+      Context.FailureHandlingCallback(tffEnumerateFailed, Result, '', hxRoot,
+        AccumulatedPath, Handled);
+
     // Allow skipping this location if we cannot traverse it
-    if ftIgnoreTraverseFailures in Options then
+    if Handled or (tfoIgnoreTraverseFailures in Context.Options) then
       MoreEntries := True
     else
       Exit;
@@ -663,8 +749,8 @@ begin
     IsDirectory := BitTest(Files[i].Common.FileAttributes and
       FILE_ATTRIBUTE_DIRECTORY);
 
-    if (IsDirectory and (ftInvokeOnDirectories in Options)) or
-      (not IsDirectory and (ftInvokeOnFiles in Options)) then
+    if (IsDirectory and (tfoInvokeOnDirectories in Context.Options)) or
+      (not IsDirectory and (tfoInvokeOnFiles in Context.Options)) then
       Inc(j);
   end;
 
@@ -686,15 +772,15 @@ begin
     IsDirectory := BitTest(Files[i].Common.FileAttributes and
       FILE_ATTRIBUTE_DIRECTORY);
 
-    if (IsDirectory and (ftInvokeOnDirectories in Options)) or
-      (not IsDirectory and (ftInvokeOnFiles in Options)) then
+    if (IsDirectory and (tfoInvokeOnDirectories in Context.Options)) or
+      (not IsDirectory and (tfoInvokeOnFiles in Context.Options)) then
     begin
       FilesFiltered[j] := Files[i];
       IndexToFilteredIndex[i] := j;
 
       // Choose if we plan to further traverse this directory
       ContinueTraversingFiltered[j] := IsDirectory and (RemainingDepth > 0) and (
-        (ftFollowReparsePoints in Options) or not
+        (tfoFollowReparsePoints in Context.Options) or not
         BitTest(Files[i].Common.FileAttributes and FILE_ATTRIBUTE_REPARSE_POINT)
       );
 
@@ -703,17 +789,27 @@ begin
   end;
 
   // Invoke the callback
-  Result := Callback(FilesFiltered, hxRoot, AccumulatedPath,
+  Result := Context.CallbackBulk(FilesFiltered, hxRoot, AccumulatedPath,
     ContinueTraversingFiltered);
 
   // Fail with callback failures, unless ignoring them
-  if not Result.IsSuccess and not (ftIgnoreCallbackFailures in Options) then
-    Exit;
+  if not Result.IsSuccess then
+  begin
+    Handled := False;
+
+    // Allow the failure callback to handle the error
+    if Assigned(Context.FailureHandlingCallback) then
+      Context.FailureHandlingCallback(tffCallbackFailed, Result, '', hxRoot,
+        AccumulatedPath, Handled);
+
+    if not Handled and not (tfoIgnoreCallbackFailures in Context.Options) then
+      Exit;
+  end;
 
   // Just in case: make sure the callback didn't alter array length
   if Length(ContinueTraversingFiltered) <> Length(FilesFiltered) then
   begin
-    Result.Location := 'NtxTraverseDirectoryFileBulkWorker';
+    Result.Location := 'NtxTraverseDirectoryFileBulk';
     Result.Status := STATUS_ASSERTION_FAILURE;
     Exit;
   end;
@@ -735,7 +831,7 @@ begin
       ContinueTraversing := ContinueTraversingFiltered[IndexToFilteredIndex[i]]
     else
       ContinueTraversing := (RemainingDepth > 0) and (
-        (ftFollowReparsePoints in Options) or not
+        (tfoFollowReparsePoints in Context.Options) or not
         BitTest(Files[i].Common.FileAttributes and FILE_ATTRIBUTE_REPARSE_POINT)
       );
 
@@ -743,13 +839,20 @@ begin
       Continue;
     
     // Open the sub-directory
-    Result := NtxOpenFile(hxSubDirectory, ParametersTemplate
+    Result := NtxOpenFile(hxSubDirectory, Context.ParametersTemplate
       .UseFileName(Files[i].FileName).UseRoot(hxRoot));
 
     if not Result.IsSuccess then
     begin
+      Handled := False;
+
+      // Let the failure handling callback decide if we can continue
+      if Assigned(Context.FailureHandlingCallback) then
+        Context.FailureHandlingCallback(tffOpenFailed, Result,
+          Files[i].FileName, hxRoot, AccumulatedPath, Handled);
+
       // Allow skipping directories we cannot access
-      if ftIgnoreTraverseFailures in Options then
+      if Handled or (tfoIgnoreTraverseFailures in Context.Options) then
       begin
         MoreEntries := True;
         Continue;
@@ -759,9 +862,9 @@ begin
     end;
 
     // Call recursively
-    Result := NtxTraverseDirectoryFileBulkWorker(hxSubDirectory,
-      RtlxCombinePaths(AccumulatedPath, Files[i].FileName), ParametersTemplate,
-      Callback, InfoClass, Options, RemainingDepth - 1);
+    Result := NtxTraverseFileDirectoryBulkWorker(Context, hxSubDirectory,
+      RtlxCombinePaths(AccumulatedPath, Files[i].FileName),
+      RemainingDepth - 1);
 
     if Result.Status = STATUS_MORE_ENTRIES then
       MoreEntries := True
@@ -770,7 +873,7 @@ begin
   end;
 
   // We reach here only if no unhandled errors occurred.
-  Result.Location := 'NtxTraverseDirectoryFileBulkWorker';
+  Result.Location := 'NtxTraverseDirectoryFileBulk';
 
   if MoreEntries then
     Result.Status := STATUS_MORE_ENTRIES
@@ -779,6 +882,10 @@ begin
 end;
 
 function NtxTraverseDirectoryFileBulk;
+var
+  Context: TNtxpTraverseContext;
+  RootName: String;
+  HandledError: Boolean;
 begin
   // Check for supported info classes. Note: we don't allow FileNamesInformation
   // because we need to know attributes internally.
@@ -790,14 +897,20 @@ begin
   else
     Result.Location := 'NtxTraverseDirectoryFileBulk';
     Result.Status := STATUS_INVALID_INFO_CLASS;
+    Exit;
   end;
 
-  // Always use synchronous I/O and at least directory listing access
+  // Always use at least directory listing access
   OpenParameters := FileParameters(OpenParameters);
   OpenParameters := OpenParameters
     .UseOptions(OpenParameters.Options or FILE_DIRECTORY_FILE)
-    .UseSyncMode(fsSynchronousNonAlert)
     .UseAccess(OpenParameters.Access or FILE_LIST_DIRECTORY);
+
+  // Choose what string we pass as the root
+  if not (tfoPassRootNameAsRelative in Options) then
+    RootName := OpenParameters.FileName
+  else
+    RootName := '';
 
   // Open the root folder if not provided
   if not Assigned(hxRoot) then
@@ -805,14 +918,36 @@ begin
     Result := NtxOpenFile(hxRoot, OpenParameters);
 
     if not Result.IsSuccess then
+    begin
+      // Allow the failure callback to handle the error, even on the root
+      if Assigned(FailureHandlingCallback) then
+      begin
+        HandledError := False;
+        FailureHandlingCallback(tffOpenFailed, Result, '', hxRoot, RootName,
+          HandledError);
+
+        if HandledError then
+        begin
+          Result.Location := 'NtxTraverseDirectoryFileBulk';
+          Result.Status := STATUS_MORE_ENTRIES;
+        end;
+      end;
+
       Exit;
+    end;
   end;
 
   // Since we want to reuse the open options, clear the file ID information
   OpenParameters := OpenParameters.UseFileId(0);
 
-  Result := NtxTraverseDirectoryFileBulkWorker(hxRoot, OpenParameters.FileName,
-    OpenParameters, Callback, InfoClass, Options, MaxDepth);
+  Context.ParametersTemplate := OpenParameters;
+  Context.CallbackBulk := Callback;
+  Context.FailureHandlingCallback := FailureHandlingCallback;
+  Context.InfoClass := InfoClass;
+  Context.Options := Options;
+
+  Result := NtxTraverseFileDirectoryBulkWorker(Context, hxRoot, RootName,
+    MaxDepth);
 end;
 
 end.
