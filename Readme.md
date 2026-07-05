@@ -313,6 +313,7 @@ System unit                                                                     
 ------------------------------------------------------------------------------------------------ | -----------
 [NtUtils.ActCtx](./NtUtils.ActCtx.pas)                                                           | Activation contexts
 [NtUtils.AntiHooking](./NtUtils.AntiHooking.pas)                                                 | Unhooking and direct syscall
+[NtUtils.ApiSets](./NtUtils.ApiSets.pas)                                                         | API Set Map parsing
 [NtUtils.BrokerInfra](./NtUtils.BrokerInfra.pas)                                                 | Background Broker Infrastructure
 [NtUtils.Com](./NtUtils.Com.pas)                                                                 | COM, IDispatch, WinRT
 [NtUtils.Console](./NtUtils.Console.pas)                                                         | Low-level console support

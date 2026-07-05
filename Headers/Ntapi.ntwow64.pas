@@ -265,7 +265,7 @@ type
     UserSharedInfoPtr: Wow64Pointer;
     SystemReserved: Cardinal;
     ATLThunkSListPtr32: Cardinal;
-    APISetMap: Wow64Pointer; // ntpebteb.PAPI_SET_NAMESPACE
+    ApiSetMap: Wow64Pointer;
     TLSExpansionCounter: Cardinal;
     TLSBitmap: Wow64Pointer;
     TLSBitmapBits: array [0..1] of Cardinal;

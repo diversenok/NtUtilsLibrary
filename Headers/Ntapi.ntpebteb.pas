@@ -35,6 +35,17 @@ const
   PEB_CROSS_FLAGS_CURRENTLY_THROTTLED = $0040;  // Win 10 RS2+
   PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED = $0080;   // Win 10 RS5+
 
+  // private - API Set section name
+  API_SET_SECTION_NAME = '.apiset';
+
+  // private - API Set schema flags
+  API_SET_SCHEMA_FLAGS_SEALED = $00000001;
+  API_SET_SCHEMA_FLAGS_HOST_EXTENSION = $00000002;
+
+  // private - API Set entry flags
+  API_SET_SCHEMA_ENTRY_FLAGS_SEALED = $00000001;
+  API_SET_SCHEMA_ENTRY_FLAGS_EXTENSION = $00000002;
+
   // PHNT::ntexapi.h - NT global flagd
   FLG_STOP_ON_EXCEPTION = $00000001; // User, Kernal
   FLG_SHOW_LDR_SNAPS = $00000002; // User, Kernal
@@ -237,6 +248,156 @@ type
   end;
   PPebLdrData = ^TPebLdrData;
 
+  // private
+  TApiSetSchemaVersion = (
+    [Reserved] API_SET_SCHEMA_VERSION_UNKNOWN = 0,
+    API_SET_SCHEMA_VERSION_V2 = 2, // Win 7, Win 8
+    API_SET_SCHEMA_VERSION_V4 = 4, // Win 8.1
+    API_SET_SCHEMA_VERSION_V6 = 6  // Win 10 TH1+
+  );
+
+  [NamingStyle(nsSnakeCase, 'API_SET_SCHEMA_FLAGS')]
+  [FlagName(API_SET_SCHEMA_FLAGS_SEALED, 'API_SET_SCHEMA_FLAGS_SEALED')]
+  [FlagName(API_SET_SCHEMA_FLAGS_HOST_EXTENSION, 'API_SET_SCHEMA_FLAGS_HOST_EXTENSION')]
+  TApiSetSchemaFlags = type Cardinal;
+
+  [NamingStyle(nsSnakeCase, 'API_SET_SCHEMA_ENTRY_FLAGS')]
+  [FlagName(API_SET_SCHEMA_ENTRY_FLAGS_SEALED, 'API_SET_SCHEMA_ENTRY_FLAGS_SEALED')]
+  [FlagName(API_SET_SCHEMA_ENTRY_FLAGS_EXTENSION, 'API_SET_SCHEMA_ENTRY_FLAGS_EXTENSION')]
+  TApiSetSchemaEntryFlags = type Cardinal;
+
+  // private
+  [SDKName('API_SET_VALUE_ENTRY_V2')]
+  TApiSetValueEntryV2 = record
+    [Offset] NameOffset: Cardinal;  // to WCHAR[], from schema base
+    [NumberOfBytes] NameLength: Cardinal;
+    [Offset] ValueOffset: Cardinal; // to WCHAR[], from schema base
+    [NumberOfBytes] ValueLength: Cardinal;
+  end;
+  PApiSetValueEntryV2 = ^TApiSetValueEntryV2;
+
+  // private
+  [SDKName('API_SET_VALUE_ARRAY_V2')]
+  TApiSetValueArrayV2 = record
+    [NumberOfElements] Count: Cardinal;
+    EntryArray: TAnysizeArray<TApiSetValueEntryV2>;
+  end;
+  PApiSetValueArrayV2 = ^TApiSetValueArrayV2;
+
+  // private
+  [SDKName('API_SET_NAMESPACE_ENTRY_V2')]
+  TApiSetNamespaceEntryV2 = record
+    [Offset] NameOffset: Cardinal; // to WCHAR[], from schema base
+    [NumberOfBytes] NameLength: Cardinal;
+    [Offset] DataOffset: Cardinal; // to TApiSetValueArrayV2, from schema base
+  end;
+  PApiSetNamespaceEntryV2 = ^TApiSetNamespaceEntryV2;
+
+  // private // PEB.ApiSetMap on Win 7, Win 8
+  [SDKName('API_SET_NAMESPACE_ARRAY_V2')]
+  TApiSetNamespaceArrayV2 = record
+    [Reserved(2)] Version: TApiSetSchemaVersion;
+    [NumberOfElements] Count: Cardinal;
+    EntryArray: TAnysizeArray<TApiSetNamespaceEntryV2>;
+  end;
+  PApiSetNamespaceArrayV2 = ^TApiSetNamespaceArrayV2;
+
+  // private
+  [SDKName('API_SET_VALUE_ENTRY_V4')]
+  TApiSetValueEntryV4 = record
+    [Hex] Flags: Cardinal;
+    [Offset] NameOffset: Cardinal;  // to WCHAR[], from schema base
+    [NumberOfBytes] NameLength: Cardinal;
+    [Offset] ValueOffset: Cardinal; // to WCHAR[], from schema base
+    [NumberOfBytes] ValueLength: Cardinal;
+  end;
+  PApiSetValueEntryV4 = ^TApiSetValueEntryV4;
+
+  // private
+  [SDKName('API_SET_VALUE_ARRAY_V4')]
+  TApiSetValueArrayV4 = record
+    [Hex] Flags: Cardinal;
+    [NumberOfElements] Count: Cardinal;
+    EntryArray: TAnysizeArray<TApiSetValueEntryV4>;
+  end;
+  PApiSetValueArrayV4 = ^TApiSetValueArrayV4;
+
+  // private
+  [SDKName('API_SET_NAMESPACE_ENTRY_V4')]
+  TApiSetNamespaceEntryV4 = record
+    Flags: TApiSetSchemaEntryFlags;
+    [Offset] NameOffset: Cardinal;  // to WCHAR[], from schema base
+    [NumberOfBytes] NameLength: Cardinal;
+    [Offset] AliasOffset: Cardinal; // to WCHAR[], from schema base
+    [NumberOfBytes] AliasLength: Cardinal;
+    [Offset] DataOffset: Cardinal;  // to TApiSetValueArrayV4, from schema base
+  end;
+  PApiSetNamespaceEntryV4 = ^TApiSetNamespaceEntryV4;
+
+  // private // PEB.ApiSetMap on Win 8.1
+  [SDKName('API_SET_NAMESPACE_ARRAY_V4')]
+  TApiSetNamespaceArrayV4 = record
+    [Reserved(4)] Version: TApiSetSchemaVersion;
+    [NumberOfBytes] Size: Cardinal;
+    Flags: TApiSetSchemaFlags;
+    [NumberOfElements] Count: Cardinal;
+    EntryArray: TAnysizeArray<TApiSetNamespaceEntryV4>;
+  end;
+  PApiSetNamespaceArrayV4 = ^TApiSetNamespaceArrayV4;
+
+  // private
+  [SDKName('API_SET_VALUE_ENTRY')]
+  TApiSetValueEntryV6 = record
+    [Hex] Flags: Cardinal;
+    [Offset] NameOffset: Cardinal;  // to WCHAR[], from schema base
+    [NumberOfBytes] NameLength: Cardinal;
+    [Offset] ValueOffset: Cardinal; // to WCHAR[], from schema base
+    [NumberOfBytes] ValueLength: Cardinal;
+  end;
+  PApiSetValueEntryV6 = ^TApiSetValueEntryV6;
+
+  // private
+  [SDKName('API_SET_NAMESPACE_ENTRY')]
+  TApiSetNamespaceEntryV6 = record
+    Flags: TApiSetSchemaEntryFlags;
+    [Offset] NameOffset: Cardinal; // to WCHAR[], from schema base
+    [NumberOfBytes] NameLength: Cardinal;
+    [NumberOfBytes] HashedLength: Cardinal;
+    [Offset] ValueOffset: Cardinal; // to TApiSetValueEntryV6[], from schema base
+    [NumberOfElements] ValueCount: Cardinal;
+  end;
+  PApiSetNamespaceEntryV6 = ^TApiSetNamespaceEntryV6;
+
+  // private
+  [SDKName('API_SET_HASH_ENTRY')]
+  TApiSetHashEntryV6 = record
+    [Hex] Hash: Cardinal;
+    Index: Cardinal;
+  end;
+  PApiSetHashEntryV6 = ^TApiSetHashEntryV6;
+
+  // private // PEB.ApiSetMap on Win 10 TH1+
+  [SDKName('API_SET_NAMESPACE')]
+  TApiSetNamespaceV6 = record
+    [Reserved(6)] Version: TApiSetSchemaVersion;
+    [NumberOfBytes] Size: Cardinal;
+    Flags: TApiSetSchemaFlags;
+    [NumberOfElements] Count: Cardinal;
+    [Offset] EntryOffset: Cardinal; // to TApiSetNamespaceEntryV6[], from this struct base
+    [Offset] HashOffset: Cardinal; // to TApiSetHashEntryV6[], from this struct base
+    [Hex] HashFactor: Cardinal;
+  end;
+  PApiSetNamespaceV6 = ^TApiSetNamespaceV6;
+
+  TApiSetMap = record
+  case TApiSetSchemaVersion of
+    API_SET_SCHEMA_VERSION_UNKNOWN: (Version: TApiSetSchemaVersion);
+    API_SET_SCHEMA_VERSION_V2: (V2: TApiSetNamespaceArrayV2);
+    API_SET_SCHEMA_VERSION_V4: (V4: TApiSetNamespaceArrayV4);
+    API_SET_SCHEMA_VERSION_V6: (V6: TApiSetNamespaceV6);
+  end;
+  PApiSetMap = ^TApiSetMap;
+
   // WDK::wdm.h
   [SDKName('KSYSTEM_TIME')]
   KSystemTime = packed record
@@ -327,7 +488,7 @@ type
     KernelCallbackTable: PKernelCallbackTable; // aka UserSharedInfoPtr
     [Hex] SystemReserved: Cardinal;
     [Hex] ATLThunkSListPtr32: Cardinal;
-    APISetMap: Pointer; // ntpebteb.PAPI_SET_NAMESPACE
+    ApiSetMap: PApiSetMap;
     TLSExpansionCounter: Cardinal;
     TLSBitmap: Pointer; // ntrtl.PRTL_BITMAP
     [Hex] TLSBitmapBits: UInt64;
