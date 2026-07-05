@@ -808,6 +808,15 @@ function RtlEqualString(
 ): Boolean; stdcall; external ntdll;
 
 // WDK::wdm.h
+function RtlCompareUnicodeStrings(
+  [in, ReadsFrom] String1: PWideChar;
+  [in, NumberOfElements] String1Length: NativeInt;
+  [in, ReadsFrom] String2: PWideChar;
+  [in, NumberOfElements] String2Length: NativeInt;
+  [in] CaseInSensitive: Boolean
+): Integer; stdcall; external ntdll;
+
+// WDK::wdm.h
 function RtlCompareUnicodeString(
   [in] const String1: TNtUnicodeString;
   [in] const String2: TNtUnicodeString;
