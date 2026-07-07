@@ -8,7 +8,7 @@ unit NtUtils.DbgHelp.Dia;
 interface
 
 uses
-  Ntapi.DbgHelp, Ntapi.ImageHlp, Ntapi.msdia, NtUtils;
+  Ntapi.DbgHelp, Ntapi.ImageHlp, Ntapi.msdia, NtUtils, DelphiUtils.AutoObjects;
 
 var
   // The path to the DLL when the CLSID is not registered
@@ -49,6 +49,19 @@ function DiaxRtlxLoadExe(
   out Session: IDiaSession;
   const ExePath: String;
   const SearchPath: String = 'C:\Symbols'
+): TNtxStatus;
+
+// Locate a named debug stream in a PDB
+function DiaxSessionFindDebugStream(
+  const Session: IDiaSession;
+  const Name: WideString;
+  out DebugStream: IDiaEnumDebugStreamData
+): TNtxStatus;
+
+// Extract PE section headers from a PDB
+function DiaxSessionDumpPeSections(
+  const Session: IDiaSession;
+  out Sections: TArray<IMemory<PImageSectionHeader>>
 ): TNtxStatus;
 
 // Open the global scope of a session
@@ -287,6 +300,91 @@ begin
 
   Result.Location := 'IDiaDataSource::OpenSession';
   Result.HResult := DataSource.OpenSession(Session);
+end;
+
+function DiaxSessionFindDebugStream;
+var
+  DebugStreams: IDiaEnumDebugStreams;
+  StreamName: WideString;
+  Count, Fetched, i: Integer;
+begin
+  // Access the debug stream enumerator
+  Result.Location := 'IDiaEnumDebugStreams::getEnumDebugStreams';
+  Result.HResult := Session.getEnumDebugStreams(DebugStreams);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IDiaEnumDebugStreams::get_Count';
+  Result.HResult := DebugStreams.get_Count(Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Search for the right debug stream
+  for i := 0 to Pred(Count) do
+  begin
+    DebugStream := nil;
+    Result.Location := 'IDiaEnumDebugStreams::Next';
+    Result.HResult := DebugStreams.Next(1, DebugStream, Fetched);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result.Location := 'IDiaEnumDebugStreams::get_name';
+    Result.HResult := DebugStream.get_name(StreamName);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Check the name
+    if StreamName = Name then
+      Exit(NtxSuccess);
+  end;
+
+  Result.Location := 'DiaxSessionFindDebugStream';
+  Result.LastCall.Parameter := Name;
+  Result.Status := STATUS_NOT_FOUND;
+end;
+
+function DiaxSessionDumpPeSections;
+var
+  DebugStream: IDiaEnumDebugStreamData;
+  Count, i: Integer;
+  Size, Fetched: Cardinal;
+begin
+  Result := DiaxSessionFindDebugStream(Session, 'SECTIONHEADERS', DebugStream);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine the number of sections
+  Result.Location := 'IDiaEnumDebugStreamData::get_Count';
+  Result.HResult := DebugStream.get_Count(Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Sections, Count);
+
+  for i := 0 to High(Sections) do
+  begin
+    // Determine the data size
+    Result.Location := 'IDiaEnumDebugStreamData::Next';
+    Result.HResult := DebugStream.Next(1, 0, Size, nil, Fetched);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Read it
+    IMemory(Sections[i]) := Auto.AllocateDynamic(Size);
+    Result.Location := 'IDiaEnumDebugStreamData::Next';
+    Result.HResult := DebugStream.Next(1, Sections[i].Size, Size,
+      Sections[i].Data, Fetched);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 end;
 
 function DiaxSessionGetGlobalScope;
