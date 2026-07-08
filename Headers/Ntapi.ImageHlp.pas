@@ -97,6 +97,15 @@ const
 
   IMAGE_SCN_ALIGN_MASK = $00F00000;
 
+  // SDK::winnt.h - CLR/COM+ header flags
+  COMIMAGE_FLAGS_ILONLY = $00000001;
+  COMIMAGE_FLAGS_32BITREQUIRED = $00000002;
+  COMIMAGE_FLAGS_IL_LIBRARY = $00000004;
+  COMIMAGE_FLAGS_STRONGNAMESIGNED = $00000008;
+  COMIMAGE_FLAGS_NATIVE_ENTRYPOINT = $00000010;
+  COMIMAGE_FLAGS_TRACKDEBUGDATA = $00010000;
+  COMIMAGE_FLAGS_32BITPREFERRED = $00020000;
+
   IMAGE_RELOCATION_OFFSET_MASK = $0FFF;
   IMAGE_RELOCATION_TYPE_SHIFT = 12;
 
@@ -227,7 +236,7 @@ type
     IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT = 11,
     IMAGE_DIRECTORY_ENTRY_IAT = 12,
     IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT = 13, // TImageDelayLoadDescriptor
-    IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14,
+    IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14, // TImageCor20Header
     [Reserved] IMAGE_DIRECTORY_ENTRY_RESERVED = 15
   );
   {$MINENUMSIZE 4}
@@ -725,6 +734,33 @@ type
     TimeDateStamp: TUnixTime;
   end;
   PImageDelayLoadDescriptor = ^TImageDelayLoadDescriptor;
+
+  [FlagName(COMIMAGE_FLAGS_ILONLY, 'IL-only')]
+  [FlagName(COMIMAGE_FLAGS_32BITREQUIRED, '32-bit Required')]
+  [FlagName(COMIMAGE_FLAGS_IL_LIBRARY, 'IL Library')]
+  [FlagName(COMIMAGE_FLAGS_STRONGNAMESIGNED, 'Strong Name Signed')]
+  [FlagName(COMIMAGE_FLAGS_NATIVE_ENTRYPOINT, 'Native Entrypoint')]
+  [FlagName(COMIMAGE_FLAGS_TRACKDEBUGDATA, 'Track Debug Data')]
+  [FlagName(COMIMAGE_FLAGS_32BITPREFERRED, '32-bit Preferred')]
+  TImageCor20HeaderFlags = type Cardinal;
+
+  // SDK::winnt.h
+  [SDKName('IMAGE_COR20_HEADER')]
+  TImageCor20Header = record
+    [RecordSize] cb: Cardinal;
+    MajorRuntimeVersion: Word;
+    MinorRuntimeVersion: Word;
+    MetaData: TImageDataDirectory;
+    Flags: TImageCor20HeaderFlags;
+    [Hex] EntryPoint: Cardinal;
+    Resources: TImageDataDirectory;
+    StrongNameSignature: TImageDataDirectory;
+    CodeManagerTable: TImageDataDirectory;
+    VTableFixups: TImageDataDirectory;
+    ExportAddressTableJumps: TImageDataDirectory;
+    ManagedNativeHeader: TImageDataDirectory;
+  end;
+  PImageCor20Header = ^TImageCor20Header;
 
   // SDK::winnt.h
   [SDKName('IMAGE_RUNTIME_FUNCTION_ENTRY')]
