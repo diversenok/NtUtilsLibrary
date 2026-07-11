@@ -13,6 +13,26 @@ uses
 type
   TSessionUserContext = Ntapi.usermgr.TSessionUserContext;
 
+{ Registry }
+
+// Enumerate sessions via the user manager's volatile key
+function RtlxUmgrEnumerateSessions(
+  out SessionIDs: TArray<TSessionId>
+): TNtxStatus;
+
+// Determine an SID of a session via the user manager's volatile key
+function RtlxUmgrQuerySessionSid(
+  out Sid: ISid;
+  const SessionID: TSessionId
+): TNtxStatus;
+
+// Determine a user context of a session via the user manager's volatile key
+function RtlxUmgrQuerySessionContext(
+  out Context: TLuid;
+  const SessionID: TSessionId;
+  [opt] UserSid: ISid = nil
+): TNtxStatus;
+
 { Contexts }
 
 // Enumerate session user contexts
@@ -103,12 +123,100 @@ function UMgrxQueryActiveShellUserToken(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ProcessThreadsApi, NtUtils.Ldr, NtUtils.Security.Sid,
-  NtUtils.Tokens, NtUtils.Objects;
+  Ntapi.ntregapi, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, NtUtils.Ldr,
+  NtUtils.Security.Sid, NtUtils.Tokens, NtUtils.Objects, NtUtils.Registry,
+  NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+{ Registry }
+
+const
+  // rev
+  REG_UMGR_VOLATILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\' +
+    'Windows NT\CurrentVersion\Winlogon\VolatileUserMgrKey';
+  REG_UMGR_CONTEXT_LUID_NAME = 'contextLuid';
+
+function RtlxUmgrEnumerateSessions;
+var
+  hxKey: IHandle;
+  SubKeys: TArray<TNtxRegKey>;
+  SessionId: TSessionId;
+  i, j: Integer;
+begin
+  Result := NtxOpenKey(hxKey, REG_UMGR_VOLATILE_PATH, KEY_ENUMERATE_SUB_KEYS);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxEnumerateKeys(hxKey, SubKeys);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(SessionIDs, Length(SubKeys));
+  j := 0;
+
+  for i := 0 to High(SubKeys) do
+    if RtlxStrToUInt(SubKeys[i].Name, Cardinal(SessionId), nsDecimal, []) then
+    begin
+      SessionIDs[j] := SessionId;
+      Inc(j);
+    end;
+
+  SetLength(SessionIDs, j);
+end;
+
+function RtlxUmgrQuerySessionSid;
+var
+  hxKey: IHandle;
+  SubKey: TNtxRegKey;
+begin
+  Result := NtxOpenKey(hxKey, REG_UMGR_VOLATILE_PATH + '\' +
+    RtlxIntToDec(SessionID), KEY_ENUMERATE_SUB_KEYS);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxEnumerateKey(hxKey, 0, SubKey);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxStringToSid(SubKey.Name, Sid);
+end;
+
+function RtlxUmgrQuerySessionContext;
+var
+  SidString: String;
+  hxKey: IHandle;
+begin
+  if not Assigned(UserSid) then
+  begin
+    Result := RtlxUmgrQuerySessionSid(UserSid, SessionID);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  Result := RtlxSidToString(UserSid, SidString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxOpenKey(hxKey, REG_UMGR_VOLATILE_PATH + '\' +
+    RtlxIntToDec(SessionID) + '\' + SidString, KEY_QUERY_VALUE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxQueryValueKeyUInt64(hxKey, REG_UMGR_CONTEXT_LUID_NAME,
+    UInt64(Context));
+end;
+
+{ Contexts }
 
 function DeferUMgrFreeSessionUsers(
   [in] Buffer: Pointer
