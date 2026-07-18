@@ -11,7 +11,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.DbgHelp, Ntapi.ntioapi, Ntapi.ntseapi,
-  Ntapi.ntmmapi, Ntapi.WinBase, DelphiApi.Reflection;
+  Ntapi.ntmmapi, Ntapi.WinBase, Ntapi.ImageHlp, DelphiApi.Reflection;
 
 const
   // SDK::minidumpapiset.h
@@ -251,25 +251,6 @@ type
   PMiniDumpThreadList = ^TMiniDumpThreadList;
 
   { Stream type 4 }
-
-  // SDK::verrsrc.h
-  [SDKName('VS_FIXEDFILEINFO')]
-  TVsFixedFileInfo = record
-    [Hex] Signature: Cardinal;
-    [Hex] StructVersion: Cardinal;
-    [Hex] FileVersionMS: Cardinal;
-    [Hex] FileVersionLS: Cardinal;
-    [Hex] ProductVersionMS: Cardinal;
-    [Hex] ProductVersionLS: Cardinal;
-    [Hex] FileFlagsMask: Cardinal;
-    [Hex] FileFlags: Cardinal;
-    [Hex] FileOS: Cardinal;
-    [Hex] FileType: Cardinal;
-    [Hex] FileSubtype: Cardinal;
-    [Hex] FileDateMS: Cardinal;
-    [Hex] FileDateLS: Cardinal;
-  end;
-  PVsFixedFileInfo = ^TVsFixedFileInfo;
 
   // SDK::minidumpapiset.h
   [SDKName('MINIDUMP_MODULE')]

@@ -48,6 +48,19 @@ type
     FileName: AnsiString;
   end;
 
+  TRtlxVersionResourceBlock = record
+    Key: String;
+    StringValue: String;
+    BinaryValue: IMemory;
+    Children: TArray<TRtlxVersionResourceBlock>;
+  end;
+
+  TRtlxVersionResource = record
+    Key: String;
+    FixedInfo: TVsFixedFileInfo;
+    Blocks: TArray<TRtlxVersionResourceBlock>;
+  end;
+
 // Get an NT header of an image
 function RtlxGetImageNtHeader(
   out NtHeader: PImageNtHeaders;
@@ -134,6 +147,14 @@ function RtlxEnumerateImportImage(
   RangeChecks: Boolean = True
 ): TNtxStatus;
 
+// Capture information fron a version resource
+function RtlxCaptureVersionResource(
+  out Info: TRtlxVersionResource;
+  [in] Head: PVerHead;
+  BufferSize: Cardinal;
+  RangeChecks: Boolean = True
+): TNtxStatus;
+
 // Relocate an image to a new base address
 function RtlxRelocateImage(
   const Image: TMemory;
@@ -154,8 +175,8 @@ function RtlxGetImageDebugInfo(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntmmapi, ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Memory,
-  DelphiUtils.Arrays, NtUtils.Processes, DelphiUtils.RangeChecks;
+  Ntapi.ntrtl, Ntapi.ntmmapi, ntapi.ntstatus, Ntapi.ntdef, NtUtils.SysUtils,
+  NtUtils.Memory, DelphiUtils.Arrays, NtUtils.Processes, DelphiUtils.RangeChecks;
 
 {$RANGECHECKS OFF}
 {$OVERFLOWCHECKS OFF}
@@ -959,6 +980,133 @@ begin
 
     Entries := Entries + PerTypeEntries;
   end;
+end;
+
+{ Resources }
+
+function RtlxCaptureVersionBlock(
+  out Data: TRtlxVersionResourceBlock;
+  [in] Block: PVerBlock;
+  BufferSize: Cardinal;
+  RangeChecks: Boolean
+): Boolean;
+var
+  ValueOffset, ChildOffset: Cardinal;
+  ValueStart: Pointer;
+  ChildBlock: PVerBlock;
+  ChildData: TRtlxVersionResourceBlock;
+begin
+  Result := False;
+
+  if RangeChecks and (BufferSize < SizeOf(TVerBlock)) then
+    Exit;
+
+  if RangeChecks and (Block.TotalLength < SizeOf(TVerBlock)) then
+    Exit;
+
+  if RangeChecks and (Block.TotalLength > BufferSize) then
+    Exit;
+
+  Data.Key := RtlxCaptureString(@Block.KeyString[0], (Block.TotalLength -
+    UIntPtr(@PVerBlock(nil).KeyString)) div SizeOf(WideChar));
+
+  ValueOffset := UIntPtr(@PVerBlock(nil).KeyString) + StringSizeZero(Data.Key);
+  ValueOffset := AlignUp(ValueOffset, SizeOf(Cardinal));
+  ValueStart := PByte(Block) + ValueOffset;
+  ChildOffset := ValueOffset;
+  Data.StringValue := '';
+  Data.BinaryValue := nil;
+
+  case Block.ValueType of
+    VS_TYPE_RAW:
+      if RangeChecks and (Block.ValueLength > Block.TotalLength -
+        ValueOffset) then
+        Exit
+      else if Block.ValueLength > 0 then
+      begin
+        Data.BinaryValue := Auto.CopyDynamic(ValueStart, Block.ValueLength);
+        Inc(ChildOffset, Block.ValueLength);
+      end;
+
+    VS_TYPE_STRING:
+      if RangeChecks and (Block.ValueLength > (Block.TotalLength -
+        ValueOffset) div SizeOf(WideChar)) then
+        Exit
+      else if Block.ValueLength > 0 then
+      begin
+        Data.StringValue := RtlxCaptureString(ValueSTart, Block.ValueLength *
+          SizeOf(WideChar));
+        Inc(ChildOffset, Block.ValueLength * SizeOf(WideChar));
+      end;
+  else
+    Exit;
+  end;
+
+  Data.Children := nil;
+  ChildOffset := AlignUp(ChildOffset, SizeOf(Cardinal));
+
+  while ChildOffset < Cardinal(Block.TotalLength) - SizeOf(TVerBlock) do
+  begin
+    ChildBlock := Pointer(PByte(Block) + ChildOffset);
+    Result := RtlxCaptureVersionBlock(ChildData, ChildBlock,
+      Block.TotalLength - ChildOffset, RangeChecks);
+
+    if not Result then
+      Exit;
+
+    SetLength(Data.Children, Succ(Length(Data.Children)));
+    Data.Children[High(Data.Children)] := ChildData;
+    ChildOffset := AlignUp(ChildOffset + ChildBlock.TotalLength,
+      SizeOf(Cardinal));
+  end;
+
+  Result := True;
+end;
+
+function RtlxCaptureVersionResource;
+var
+  BlockOffset: Cardinal;
+  Block: PVerBlock;
+  BlockData: TRtlxVersionResourceBlock;
+begin
+  Result.Location := 'RtlxCaptureVersionResource';
+  Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if RangeChecks and (BufferSize < SizeOf(TVerBlock)) then
+    Exit;
+
+  if RangeChecks and (Head.TotalLength < SizeOf(TVerHead)) then
+    Exit;
+
+  if RangeChecks and (Head.TotalLength > BufferSize) then
+    Exit;
+
+  if (Head.ValueType <> VS_TYPE_RAW) or
+    (Head.FileInfo.Signature <> VS_FFI_SIGNATURE) then
+    Exit;
+
+  Info.Key := Head.KeyString;
+  Info.FixedInfo := Head.FileInfo;
+  Info.Blocks := nil;
+  BlockOffset := SizeOf(TVerHead);
+
+  while BlockOffset < Cardinal(Head.TotalLength) - SizeOf(TVerBlock) do
+  begin
+    Block := Pointer(PByte(Head) + BlockOffset);
+
+    if not RtlxCaptureVersionBlock(BlockData, Block,
+      Head.TotalLength - BlockOffset, RangeChecks) then
+      Exit;
+
+    SetLength(Info.Blocks, Succ(Length(Info.Blocks)));
+    Info.Blocks[High(Info.Blocks)] := BlockData;
+    BlockOffset := AlignUp(BlockOffset + Block.TotalLength, SizeOf(Cardinal));
+  end;
+
+  Result := NtxSuccess;
 end;
 
 { Relocations }

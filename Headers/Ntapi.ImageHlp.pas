@@ -97,6 +97,22 @@ const
 
   IMAGE_SCN_ALIGN_MASK = $00F00000;
 
+  // SDK::verrsrc.h - version resource name
+  VS_VERSION_INFO = MAKEINTRESOURCE(1);
+
+  // SDK::verrsrc.h - version fixed data constants
+  VS_FFI_SIGNATURE = $FEEF04BD;
+  VS_FFI_STRUCVERSION = $00010000;
+  VOS_NT_WINDOWS32 = $00040004;
+
+  // SDK::verrsrc.h - version fixed data type
+  VS_FF_DEBUG = $00000001;
+  VS_FF_PRERELEASE = $00000002;
+  VS_FF_PATCHED = $00000004;
+  VS_FF_PRIVATEBUILD = $00000008;
+  VS_FF_INFOINFERRED = $00000010;
+  VS_FF_SPECIALBUILD = $00000020;
+
   // SDK::winnt.h - CLR/COM+ header flags
   COMIMAGE_FLAGS_ILONLY = $00000001;
   COMIMAGE_FLAGS_32BITREQUIRED = $00000002;
@@ -124,6 +140,7 @@ const
 
   // SDK::WinUser.h
   RT_RCDATA = MAKEINTRESOURCE(10);
+  RT_VERSION = MAKEINTRESOURCE(16);
   RT_MANIFEST = MAKEINTRESOURCE(24);
 
   // SDK::WinUser.h
@@ -224,7 +241,7 @@ type
   TImageDirectoryEntry = (
     IMAGE_DIRECTORY_ENTRY_EXPORT = 0,        // TImageExportDirectory
     IMAGE_DIRECTORY_ENTRY_IMPORT = 1,        // TImageImportDescriptor
-    IMAGE_DIRECTORY_ENTRY_RESOURCE = 2,
+    IMAGE_DIRECTORY_ENTRY_RESOURCE = 2,      // TImageResourceDirectory
     IMAGE_DIRECTORY_ENTRY_EXCEPTION = 3,
     IMAGE_DIRECTORY_ENTRY_SECURITY = 4,
     IMAGE_DIRECTORY_ENTRY_BASERELOC = 5,     // TImageBaseRelocation
@@ -477,7 +494,7 @@ type
   // SDK::winnt.h
   [SDKName('IMAGE_RESOURCE_DIRECTORY')]
   TImageResourceDirectory = record
-    [Hex] Characteristics: Cardinal;
+    [Reserved] Characteristics: Cardinal;
     TimeDateStamp: TUnixTime;
     MajorVersion: Word;
     MinorVersion: Word;
@@ -495,6 +512,84 @@ type
     [Unlisted] Reserved: Cardinal;
   end;
   PImageResourceDataEntry = ^TImageResourceDataEntry;
+
+  [FlagName(VS_FF_DEBUG, 'Debug')]
+  [FlagName(VS_FF_PRERELEASE, 'Pre-release')]
+  [FlagName(VS_FF_PATCHED, 'Patched')]
+  [FlagName(VS_FF_PRIVATEBUILD, 'Private Build')]
+  [FlagName(VS_FF_INFOINFERRED, 'Info Inferred')]
+  [FlagName(VS_FF_SPECIALBUILD, 'Special Build')]
+  TVsFileFlags = type Cardinal;
+
+  [SubEnum(MAX_UINT, VOS_NT_WINDOWS32, '32-bit Windows on Windows NT')]
+  TVsFileOs = type Cardinal;
+
+  // SDK::verrsrc.h
+  [NamingStyle(nsSnakeCase, 'VFT'), ValidValues([0..5, 7])]
+  TVsFileType = (
+    VFT_UNKNOWN = 0,
+    VFT_APP = 1,
+    VFT_DLL = 2,
+    VFT_DRV = 3,
+    VFT_FONT = 4,
+    VFT_VXD = 5,
+    VFT_RESERVED6 = 6,
+    VFT_STATIC_LIB = 7
+  );
+
+  // SDK::verrsrc.h
+  [SDKName('VS_FIXEDFILEINFO')]
+  TVsFixedFileInfo = record
+    [Reserved(VS_FFI_SIGNATURE)] Signature: Cardinal;
+    [Reserved(VS_FFI_STRUCVERSION)] StructVersion: Cardinal;
+    FileVersionMinor: Word;
+    FileVersionMajor: Word;
+    FileVersionRevision: Word;
+    FileVersionBuild: Word;
+    ProductVersionMinor: Word;
+    ProductVersionMajor: Word;
+    ProductVersionRevision: Word;
+    ProductVersionBuild: Word;
+    [Hex] FileFlagsMask: Cardinal;
+    FileFlags: TVsFileFlags;
+    FileOS: TVsFileOs;
+    FileType: TVsFileType;
+    FileSubtype: Cardinal;
+    FileDateMinor: Word;
+    FileDateMajor: Word;
+    FileDateRevision: Word;
+    FileDateBuild: Word;
+  end;
+  PVsFixedFileInfo = ^TVsFixedFileInfo;
+
+  // rev
+  {$MINENUMSIZE 2}
+  TVerBlockType = (
+    VS_TYPE_RAW = 0,
+    VS_TYPE_STRING = 1
+  );
+  {$MINENUMSIZE 4}
+
+  // private
+  [SDKName('VERHEAD')]
+  TVerHead = record
+    TotalLength: Word;
+    ValueLength: Word;
+    ValueType: TVerBlockType;
+    KeyString: array [0..15] of WideChar;
+    FileInfo: TVsFixedFileInfo;
+  end;
+  PVerHead = ^TVerHead;
+
+  // private
+  [SDKName('VERBLOCK')]
+  TVerBlock = record
+    TotalLength: Word;
+    ValueLength: Word;
+    ValueType: TVerBlockType;
+    KeyString: TAnysizeArray<WideChar>;
+  end;
+  PVerBlock = ^TVerBlock;
 
   // SDK::winnt.h - base relocation types
   {$MINENUMSIZE 2}
