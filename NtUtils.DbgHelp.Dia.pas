@@ -70,6 +70,12 @@ function DiaxSessionGetGlobalScope(
   out Scope: IDiaSymbol
 ): TNtxStatus;
 
+// Format an identifier based on a GUID and age
+function RtlxFormatGuidAge(
+  Guid: TGuid;
+  Age: Cardinal
+): String;
+
 // Format a PDB identifier based on its GUID and age
 function DiaxScopeFormatGuidAge(
   const Scope: IDiaSymbol;
@@ -393,10 +399,27 @@ begin
   Result.HResult := Session.get_globalScope(Scope);
 end;
 
+function RtlxFormatGuidAge;
+var
+  GuidSize: Cardinal;
+begin
+  // Handle truncated {Value-0000-0000-0000-000000000000} GUIDs
+  if (PCardinal(@Guid.D2)^ = 0) and (PUInt64(@Guid.D4[0])^ = 0) then
+    GuidSize := SizeOf(Cardinal)
+  else
+    GuidSize := SizeOf(TGuid);
+
+  Guid.D1 := RtlxSwapEndianness32(Guid.D1);
+  Guid.D2 := RtlxSwapEndianness16(Guid.D2);
+  Guid.D3 := RtlxSwapEndianness16(Guid.D3);
+
+  // Format the identifier as the raw GUID bytes plus the age in hex
+  Result := RtlxBytesToHexStr(@Guid, GuidSize) + RtlxIntToHex(Age, 0, False);
+end;
+
 function DiaxScopeFormatGuidAge;
 var
   Guid: TGuid;
-  GuidSize: Cardinal;
   Age: Cardinal;
 begin
   Result.Location := 'IDiaSymbol::get_guid';
@@ -411,18 +434,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Handle truncated {Value-0000-0000-0000-000000000000} GUIDs
-  if (PCardinal(@Guid.D2)^ = 0) and (PUInt64(@Guid.D4[0])^ = 0) then
-    GuidSize := SizeOf(Cardinal)
-  else
-    GuidSize := SizeOf(TGuid);
-
-  Guid.D1 := RtlxSwapEndianness32(Guid.D1);
-  Guid.D2 := RtlxSwapEndianness16(Guid.D2);
-  Guid.D3 := RtlxSwapEndianness16(Guid.D3);
-
-  // Format the identifier as the raw GUID bytes plus the age in hex
-  GuidAge := RtlxBytesToHexStr(@Guid, GuidSize) + RtlxIntToHex(Age, 0, False);
+  GuidAge := RtlxFormatGuidAge(Guid, Age);
 end;
 
 { Symbol enumeration }
