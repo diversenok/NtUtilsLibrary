@@ -13,8 +13,7 @@ uses
   Ntapi.actctx, Ntapi.Versions, DelphiApi.Reflection;
 
 const
-  // private
-  BASESRV_SERVERDLL_INDEX = 1;
+  { BASESRV }
 
   // rev - bits in process & thread handles for process creation events
   BASE_CREATE_PROCESS_MSG_PROCESS_FLAG_FEEDBACK_ON = $1;
@@ -56,7 +55,26 @@ const
   DDD_NO_BROADCAST_SYSTEM = $00000008;
   DDD_LUID_BROADCAST_DRIVE = $00000010;
 
+  { USERSRV }
+
+  // private - user handle table entry flags
+  HANDLEF_DESTROY = $01;
+  HANDLEF_INDESTROY = $02;
+  HANDLEF_INWAITFORDEATH = $04;
+  HANDLEF_FINALDESTROY = $08;
+  HANDLEF_MARKED_OK = $10;
+  HANDLEF_GRANTED = $20;
+  HANDLEF_NODESKTOP = $40; // rev
+
 type
+  // private
+  TCsrServerDllIndex = (
+    CSRSRV_SERVERDLL_INDEX = 0,
+    BASESRV_SERVERDLL_INDEX = 1,
+    CONSRV_SERVERDLL_INDEX = 2,
+    USERSRV_SERVERDLL_INDEX = 3
+  );
+
   [SDKName('CSR_API_NUMBER')]
   TCsrApiNumber = type Cardinal;
 
@@ -82,6 +100,8 @@ type
   end;
   PCsrApiMsg = ^TCsrApiMsg;
   PPCsrApiMsg = ^PCsrApiMsg;
+
+  { BASESRV Server }
 
   [SDKName('BASESRV_API_NUMBER')]
   [NamingStyle(nsCamelCase, 'Basep'), ValidValues([0, 5..23, 25..30])]
@@ -118,8 +138,6 @@ type
     BasepCreateProcess2 = $1D,           // in: TBaseCreateProcessMsgV2, Win 10 20H1+
     BasepCreateActivationContext2 = $1E  // in/out: TBaseSxsCreateActivationContextMsgV2, Win 10 20H1+
   );
-
-  { Common }
 
   [FlagName(BINARY_TYPE_DOS, 'DOS')]
   [FlagName(BINARY_TYPE_WIN16, 'Win16')]
@@ -184,7 +202,7 @@ type
   end;
   PBaseMsgSxsStream = ^TBaseMsgSxsStream;
 
-  { API number 0x00 }
+  { BASESRV API number 0x00 }
 
   // private & rev
   [SDKName('BASE_SXS_CREATEPROCESS_MSG_REMOTE')]
@@ -289,7 +307,7 @@ type
   end;
   PBaseCreateProcessMsgV1 = ^TBaseCreateProcessMsgV1;
 
-  { API numbers 0x0C & 0x0D }
+  { BASESRV API numbers 0x0C & 0x0D }
 
   [FlagName(SHUTDOWN_NORETRY, 'No Retry')]
   TShutdownParamFlags = type Cardinal;
@@ -303,7 +321,7 @@ type
   end;
   PBaseShutdownParamMsg = ^TBaseShutdownParamMsg;
 
-  {  API number 0x14 }
+  { BASESRV API number 0x14 }
 
   [FlagName(DDD_RAW_TARGET_PATH, 'Raw Target Path')]
   [FlagName(DDD_REMOVE_DEFINITION, 'Remove Definition')]
@@ -342,7 +360,7 @@ type
   end;
   PBaseSxsCreateActivationContextMsg = ^TBaseSxsCreateActivationContextMsg;
 
-  { API number 0x1D }
+  { BASESRV API number 0x1D }
 
   // rev - API number 0x1D
   [MinOSVersion(OsWin1020H1)]
@@ -363,7 +381,7 @@ type
   end;
   PBaseCreateProcessMsgV2 = ^TBaseCreateProcessMsgV2;
 
-  { API Number 0x1E }
+  { BASESRV API Number 0x1E }
 
   // rev - API number 0x1E
   TBaseSxsCreateActivationContextMsgV2 = record
@@ -372,9 +390,151 @@ type
   end;
   PBaseSxsCreateActivationContextMsgV2 = ^TBaseSxsCreateActivationContextMsgV2;
 
+  { USERSRV }
+
+  [FlagName(HANDLEF_DESTROY, 'HANDLEF_DESTROY')]
+  [FlagName(HANDLEF_INDESTROY, 'HANDLEF_INDESTROY')]
+  [FlagName(HANDLEF_INWAITFORDEATH, 'HANDLEF_INWAITFORDEATH')]
+  [FlagName(HANDLEF_FINALDESTROY, 'HANDLEF_FINALDESTROY')]
+  [FlagName(HANDLEF_MARKED_OK, 'HANDLEF_MARKED_OK')]
+  [FlagName(HANDLEF_GRANTED, 'HANDLEF_GRANTED')]
+  [FlagName(HANDLEF_NODESKTOP, 'HANDLEF_NODESKTOP')]
+  THandleEntryFlag = type Byte;
+
+  // private
+  {$MINENUMSIZE 1}
+  TUserHandleType = (
+    TYPE_FREE = 0,
+    TYPE_WINDOW = 1,
+    TYPE_MENU = 2,
+    TYPE_CURSOR = 3,
+    TYPE_SETWINDOWPOS = 4,
+    TYPE_HOOK = 5,
+    TYPE_CLIPDATA = 6,
+    TYPE_CALLPROC = 7,
+    TYPE_ACCELTABLE = 8,
+    TYPE_DDEACCESS = 9,
+    TYPE_DDECONV = 10,
+    TYPE_DDEXACT = 11,
+    TYPE_MONITOR = 12,
+    TYPE_KBDLAYOUT = 13,
+    TYPE_KBDFILE = 14,
+    TYPE_WINEVENTHOOK = 15,
+    TYPE_TIMER = 16,
+    TYPE_INPUTCONTEXT = 17,
+    TYPE_HIDDATA = 18,
+    TYPE_DEVICEINFO = 19,
+    TYPE_TOUCHINPUT = 20,   // rev
+    TYPE_GESTURE = 21,      // rev
+    TYPE_POINTERDEVICE = 22 // rev
+  );
+  {$MINENUMSIZE 4}
+
+  // private
+  TFnid = (
+    FNID_SCROLLBAR = $029A,
+    FNID_ICONTITLE = $029B,
+    FNID_MENU = $029C,
+    FNID_DESKTOP = $029D,
+    FNID_DEFWINDOWPROC = $029E,
+    FNID_MESSAGEWND = $029F,
+    FNID_SWITCH = $02A0,
+    FNID_BUTTON = $02A1,
+    FNID_COMBOBOX = $02A2,
+    FNID_COMBOLISTBOX = $02A3,
+    FNID_DIALOG = $02A4,
+    FNID_EDIT = $02A5,
+    FNID_LISTBOX = $02A6,
+    FNID_MDICLIENT = $02A7,
+    FNID_STATIC = $02A8,
+    FNID_IME = $02A9,
+    FNID_HKINLPCWPEXSTRUCT = $02AA,
+    FNID_HKINLPCWPRETEXSTRUCT = $02AB,
+    FNID_DEFFRAMEPROC = $02AC,
+    FNID_DEFMDICHILDPROC = $02AD,
+    FNID_MB_DLGPROC = $02AE,
+    FNID_MDIACTIVATEDLGPROC = $02AF,
+    FNID_SENDMESSAGE = $02B0,
+    FNID_SENDMESSAGEFF = $02B1,
+    FNID_SENDMESSAGEEX = $02B2,
+    FNID_CALLWINDOWPROC = $02B3,
+    FNID_SENDMESSAGEBSM = $02B4,
+    FNID_TOOLTIP = $02B5,
+    FNID_GHOST = $02B6,
+    FNID_SENDNOTIFYMESSAGE = $02B7,
+    FNID_SENDMESSAGECALLBACK = $02B8
+  );
+
+  // private + rev
+  [SDKName('HANDLEENTRY')]
+  THandleEntry = record
+    [Offset] head: UIntPtr; // offset on the desktop heap
+    Owner: NativeUInt; // PID or TID depending on the type
+    [Hex] DesktopId: NativeUInt; // since RS2?
+    EntryType: TUserHandleType;
+    [Hex] Flags: THandleEntryFlag;
+    [Hex] Uniq: Word;
+  end;
+  PHandleEntry = ^THandleEntry;
+
+  // private
+  [SDKName('WNDMSG')]
+  TWndMsg = record
+    MaxMsgs: Cardinal;
+    Msgs: Pointer;
+  end;
+  PWndMsg = ^TWndMsg;
+  TWndMsgFnidArray = array [TFnid] of TWndMsg;
+
+  // private
+  [SDKName('SERVERINFO')]
+  TServerInfo = record
+    SRVIFlags: Cardinal;
+    HandleEntries: NativeUInt;
+    // More fields follow
+  end;
+  PServerInfo = ^TServerInfo;
+
+  // private
+  [SDKName('SHAREDINFO')]
+  TSharedInfo = record
+    ServerInfo: PServerInfo;
+    HandleList: PHandleEntry;
+    EntrySize: Cardinal;
+    DispInfo: Pointer;
+    SharedDelta: UIntPtr;
+    Control: TWndMsgFnidArray;
+    DefWindowMsgs: TWndMsg;
+    DefWindowSpecMsgs: TWndMsg;
+    [MinOSVersion(OsWin1121H2)] KernelAbiVersion: Cardinal; // rev
+  end;
+  PSharedInfo = ^TSharedInfo;
+
+  // private
+  [SDKName('USERCONNECT')]
+  TUserConnect = record
+    DispatchCount: Cardinal;
+    Client: TSharedInfo;
+  end;
+  PUserConnect = ^TUserConnect;
+
+const
+  // rev - handle types where the owner is TThreadId
+  USER_HANDLE_THREAD_OWNED = [TYPE_WINDOW, TYPE_SETWINDOWPOS, TYPE_HOOK,
+    TYPE_DDEACCESS, TYPE_DDECONV, TYPE_DDEXACT, TYPE_WINEVENTHOOK,
+    TYPE_INPUTCONTEXT, TYPE_HIDDATA, TYPE_TOUCHINPUT, TYPE_GESTURE];
+
+  // rev - handle types where the owner is TProcessId
+  USER_HANDLE_PROCESS_OWNED = [TYPE_MENU, TYPE_CURSOR, TYPE_CALLPROC,
+    TYPE_ACCELTABLE, TYPE_TIMER];
+
+  // rev - handle types with no owner
+  USER_HANDLE_NOT_OWNED = [TYPE_FREE, TYPE_CLIPDATA, TYPE_MONITOR,
+    TYPE_KBDLAYOUT, TYPE_KBDFILE, TYPE_DEVICEINFO, TYPE_POINTERDEVICE];
+
 [SDKName('CSR_MAKE_API_NUMBER')]
 function CsrMakeApiNumber(
-  [in] DllIndex: Word;
+  [in] DllIndex: TCsrServerDllIndex;
   [in] ApiIndex: Word
 ): TCsrApiNumber;
 
@@ -429,7 +589,7 @@ function CsrClientCallServer(
 
 function CsrClientConnectToServer(
   [in] ObjectDirectory: PWideChar;
-  [in] ServerDllIndex: Cardinal;
+  [in] ServerDllIndex: TCsrServerDllIndex;
   [in, opt, ReadsFrom] ConnectionInformation: Pointer;
   [in, NumberOfBytes] ConnectionInformationLength: Cardinal;
   [out, opt] CalledFromServer: PBoolean
@@ -447,7 +607,7 @@ implementation
 
 function CsrMakeApiNumber;
 begin
-  Result := (DllIndex shl 16) or ApiIndex;
+  Result := (Word(DllIndex) shl 16) or ApiIndex;
 end;
 
 end.

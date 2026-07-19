@@ -129,12 +129,27 @@ function CsrxCreateActivationContextFromString(
   ProcessorArchitecture: TProcessorArchitecture16 = PROCESSOR_ARCHITECTURE_CURRENT
 ): TNtxStatus;
 
+{ USERSRV functions }
+
+// Connect to the user server in CSR
+function CsrxUserSrvConnect(
+  out UserConnect: PUserConnect
+): TNtxStatus;
+
+// Verify a user handle and find its entry
+[MayReturnNil]
+function CsrxUserSrvFindHandle(
+  [in] UserConnect: PUserConnect;
+  Handle: THandle
+): PHandleEntry;
+
 implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.ntpebteb,
   Ntapi.Versions, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Files.Open,
-  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.SysUtils;
+  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.SysUtils,
+  NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -626,6 +641,63 @@ begin
   Result := CsrxCreateActivationContext(hxActCtx, hxSection,
     BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil, ManifestSize), FileName,
     AssemblyDirectory, ResourceId, ProcessorArchitecture);
+end;
+
+{ User Srv }
+
+var
+  CsrxUserConnectInitialized: TRtlRunOnce;
+  CsrxUserConnectCache: TUserConnect;
+
+function CsrxUserSrvConnect;
+var
+  Directory: String;
+  AcquiredRunOnce: IAcquiredRunOnce;
+  Size: Cardinal;
+begin
+  if RtlxRunOnceBegin(@CsrxUserConnectInitialized, AcquiredRunOnce) then
+  begin
+    // Note: the object directory is skipped on subsequent calls. This includes
+    // the call at kernelbase load.
+    Directory := '\Session\' + RtlxIntToDec(RtlGetCurrentPeb.SessionID) +
+      '\Windows';
+
+    if RtlOsVersionAtLeast(OsWin1121H2) then
+      Size := SizeOf(CsrxUserConnectCache)
+    else
+      Size := UIntPtr(@PUserConnect(nil).Client.KernelAbiVersion);
+
+    Result.Location := 'CsrClientConnectToServer';
+    Result.LastCall.UsesInfoClass(USERSRV_SERVERDLL_INDEX, icConnect);
+    Result.Status := CsrClientConnectToServer(PWideChar(Directory),
+      USERSRV_SERVERDLL_INDEX, @CsrxUserConnectCache, Size, nil);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    AcquiredRunOnce.Complete;
+  end
+  else
+    Result := NtxSuccess;
+
+  UserConnect := @CsrxUserConnectCache;
+end;
+
+function CsrxUserSrvFindHandle;
+var
+  Index: Word;
+begin
+  Index := Word(Handle);
+
+  if Index >= UserConnect.Client.ServerInfo.HandleEntries then
+    Exit(nil);
+
+  Result := UserConnect.Client.HandleList;
+  Inc(Result, Index);
+
+  // Verify the unique part
+  if Result.Uniq <> Handle shr 16 then
+    Result := nil;
 end;
 
 end.
