@@ -401,14 +401,15 @@ type
   // WDK::wdm.h
   [SDKName('KSYSTEM_TIME')]
   KSystemTime = packed record
+    function ToLargeInteger: TLargeInteger;
   case Boolean of
     True: (
-     QuadPart: TLargeInteger
+      [volatile] QuadPart: TLargeInteger
     );
     False: (
-      LowPart: Cardinal;
-      High1Time: Integer;
-      High2Time: Integer;
+      [volatile] LowPart: Cardinal;
+      [volatile] High1Time: Integer;
+      [volatile] High2Time: Integer;
     );
   end;
 
@@ -1193,9 +1194,37 @@ end;
 function KUSER_SHARED_DATA.GetTickCount;
 begin
   {$Q-}{$R-}
-  Result := UInt64(TickCount.QuadPart) * TickCountMultiplier shr 24;
+  Result := UInt64(TickCount.ToLargeInteger) * TickCountMultiplier shr 24;
   {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
+
+// PHNT::ntexapi.h
+function NtGetTickCount(
+): Cardinal; stdcall; external ntdll;
+
+{ KSystemTime }
+
+{$IFDEF Win64}
+function KSystemTime.ToLargeInteger;
+begin
+  Result := QuadPart;
+end;
+{$ELSE}
+function KSystemTime.ToLargeInteger;
+var
+  AsRecord: TLargeIntegerRecord absolute Result;
+begin
+  repeat
+    AsRecord.HighPart := Cardinal(High1Time);
+    AsRecord.LowPart := Cardinal(LowPart);
+
+    if AsRecord.HighPart = Cardinal(High2Time) then
+      Break;
+
+    YieldProcessor;
+  until False;
+end;
+{$ENDIF}
 
 initialization
   if RtlGetCurrentPeb.ImageBaseAddress <> @ImageBase then
