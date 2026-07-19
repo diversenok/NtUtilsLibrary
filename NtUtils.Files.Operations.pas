@@ -719,7 +719,8 @@ var
   i: Integer;
 begin
   Result := NtxQueryFile(hxFile, FileHardLinkInformation, IMemory(xMemory),
-    SizeOf(TFileLinksInformation), GrowFileLinks);
+    SizeOf(TFileLinksInformation) + SizeOf(TFileLinkEntryInformation),
+    GrowFileLinks);
 
   if not Result.IsSuccess then
     Exit;
