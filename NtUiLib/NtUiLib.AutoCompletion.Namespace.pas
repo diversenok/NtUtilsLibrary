@@ -131,9 +131,7 @@ begin
   case KnownType of
     otDirectory:           Result := TypeInfo(TDirectoryAccessMask);
     otSymlink:             Result := TypeInfo(TSymlinkAccessMask);
-    otDevice:              Result := TypeInfo(TFileAccessMask);
-    otFileDirectory:       Result := TypeInfo(TIoDirectoryAccessMask);
-    otFile:                Result := TypeInfo(TIoFileAccessMask);
+    otDevice, otFileDirectory, otFile: Result := TypeInfo(TFileAccessMask);
     otNamedPipe:           Result := TypeInfo(TIoPipeAccessMask);
     otRegistryKey:         Result := TypeInfo(TRegKeyAccessMask);
     otSection:             Result := TypeInfo(TSectionAccessMask);
