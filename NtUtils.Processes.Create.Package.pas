@@ -324,7 +324,8 @@ begin
     DLL_NAME[RtlOsVersionAtLeast(OsWin81)],
     CLSID_ApplicationActivationManager,
     IApplicationActivationManager,
-    ActivationManager
+    ActivationManager,
+    'CLSID_ApplicationActivationManager'
   );
 
   if not Result.IsSuccess then
