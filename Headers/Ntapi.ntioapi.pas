@@ -197,17 +197,19 @@ const
   // WDK::ntifs.h - notification filters
   FILE_NOTIFY_CHANGE_FILE_NAME = $00000001;
   FILE_NOTIFY_CHANGE_DIR_NAME = $00000002;
-  FILE_NOTIFY_CHANGE_NAME = $0000000;
   FILE_NOTIFY_CHANGE_ATTRIBUTES = $00000004;
   FILE_NOTIFY_CHANGE_SIZE = $00000008;
   FILE_NOTIFY_CHANGE_LAST_WRITE = $00000010;
   FILE_NOTIFY_CHANGE_LAST_ACCESS = $00000020;
   FILE_NOTIFY_CHANGE_CREATION = $00000040;
-  FILE_NOTIFY_CHANGE_EA = $0000008;
+  FILE_NOTIFY_CHANGE_EA = $00000080;
   FILE_NOTIFY_CHANGE_SECURITY = $00000100;
-  FILE_NOTIFY_CHANGE_STREAM_NAME = $0000020;
-  FILE_NOTIFY_CHANGE_STREAM_SIZE = $0000040;
-  FILE_NOTIFY_CHANGE_STREAM_WRITE = $0000080;
+  FILE_NOTIFY_CHANGE_STREAM_NAME = $00000200;
+  FILE_NOTIFY_CHANGE_STREAM_SIZE = $00000400;
+  FILE_NOTIFY_CHANGE_STREAM_WRITE = $00000800;
+
+  FILE_NOTIFY_CHANGE_NAME = $00000003;
+  FILE_NOTIFY_VALID_MASK = $00000FFF;
 
   // Pipe
 
@@ -1134,6 +1136,21 @@ type
 
   // Notifications
 
+  [NamingStyle(nsSnakeCase, 'FILE_NOTIFY_CHANGE')]
+  [FlagName(FILE_NOTIFY_CHANGE_FILE_NAME, 'FILE_NOTIFY_CHANGE_FILE_NAME')]
+  [FlagName(FILE_NOTIFY_CHANGE_DIR_NAME, 'FILE_NOTIFY_CHANGE_DIR_NAME')]
+  [FlagName(FILE_NOTIFY_CHANGE_ATTRIBUTES, 'FILE_NOTIFY_CHANGE_ATTRIBUTES')]
+  [FlagName(FILE_NOTIFY_CHANGE_SIZE, 'FILE_NOTIFY_CHANGE_SIZE')]
+  [FlagName(FILE_NOTIFY_CHANGE_LAST_WRITE, 'FILE_NOTIFY_CHANGE_LAST_WRITE')]
+  [FlagName(FILE_NOTIFY_CHANGE_LAST_ACCESS, 'FILE_NOTIFY_CHANGE_LAST_ACCESS')]
+  [FlagName(FILE_NOTIFY_CHANGE_CREATION, 'FILE_NOTIFY_CHANGE_CREATION')]
+  [FlagName(FILE_NOTIFY_CHANGE_EA, 'FILE_NOTIFY_CHANGE_EA')]
+  [FlagName(FILE_NOTIFY_CHANGE_SECURITY, 'FILE_NOTIFY_CHANGE_SECURITY')]
+  [FlagName(FILE_NOTIFY_CHANGE_STREAM_NAME, 'FILE_NOTIFY_CHANGE_STREAM_NAME')]
+  [FlagName(FILE_NOTIFY_CHANGE_STREAM_SIZE, 'FILE_NOTIFY_CHANGE_STREAM_SIZE')]
+  [FlagName(FILE_NOTIFY_CHANGE_STREAM_WRITE, 'FILE_NOTIFY_CHANGE_STREAM_WRITE')]
+  TFileNotifyCHangeFilter = type Cardinal;
+
   // WDK::wdm.h
   [SDKName('DIRECTORY_NOTIFY_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'DirectoryNotify'), MinValue(1)]
@@ -1495,11 +1512,12 @@ function NtNotifyChangeDirectoryFile(
   [out] IoStatusBlock: PIoStatusBlock;
   [out, WritesTo] Buffer: PFileNotifyInformation;
   [in, NumberOfBytes] Length: Cardinal;
-  [in] CompletionFilter: Cardinal;
+  [in] CompletionFilter: TFileNotifyCHangeFilter;
   [in] WatchTree: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntioapi.h
+[MinOSVersion(OsWin10RS3)]
 function NtNotifyChangeDirectoryFileEx(
   [in] FileHandle: THandle;
   [in, opt] Event: THandle;
@@ -1508,10 +1526,15 @@ function NtNotifyChangeDirectoryFileEx(
   [out] IoStatusBlock: PIoStatusBlock;
   [out, WritesTo] Buffer: Pointer;
   [in, NumberOfBytes] Length: Cardinal;
-  [in] CompletionFilter: Cardinal;
+  [in] CompletionFilter: TFileNotifyCHangeFilter;
   [in] WatchTree: Boolean;
   [in] DirectoryNotifyInformationClass: TDirectoryNotifyInformationClass
-): NTSTATUS; stdcall; external ntdll;
+): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtNotifyChangeDirectoryFileEx: TDelayedLoadFunction = (
+  Dll: @delayed_ntdll;
+  FunctionName: 'NtNotifyChangeDirectoryFileEx';
+);
 
 // I/O Completion
 
