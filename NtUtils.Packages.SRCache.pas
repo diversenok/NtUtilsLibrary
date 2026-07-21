@@ -179,6 +179,12 @@ function PkgxSRCacheQueryApplicationPraid(
   out RelativeName: String
 ): TNtxStatus;
 
+// Query application's name from data key
+function PkgxSRCacheQueryApplicationDisplayName(
+  const hxApplicationKey: IHandle;
+  out DisplayName: String
+): TNtxStatus;
+
 // Query application's package ID from data key
 function PkgxSRCacheQueryApplicationPackageID(
   const hxApplicationKey: IHandle;
@@ -799,6 +805,12 @@ function PkgxSRCacheQueryApplicationPraid;
 begin
   Result := NtxQueryValueKeyString(hxApplicationKey,
     'PackageRelativeApplicationId', RelativeName);
+end;
+
+function PkgxSRCacheQueryApplicationDisplayName;
+begin
+  Result := NtxQueryValueKeyString(hxApplicationKey,
+    'DisplayName', DisplayName);
 end;
 
 function PkgxSRCacheQueryApplicationPackageID;
