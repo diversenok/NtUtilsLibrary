@@ -851,6 +851,12 @@ function CoGetSystemSecurityPermissions(
   [out, ReleaseWith('LocalFree')] out SD: PSecurityDescriptor
 ): HResult; stdcall; external ole32;
 
+// SDK::objbase.h
+function CoAllowSetForegroundWindow(
+  [in] const Unk: IUnknown;
+  [Reserved] Reserved: Pointer
+): HResult; stdcall; external ole32;
+
 implementation
 
 {$BOOLEVAL OFF}

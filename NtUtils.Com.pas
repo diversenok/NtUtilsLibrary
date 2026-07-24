@@ -280,6 +280,11 @@ function ComxCreateInstanceInSession(
   [opt] const ClassNameHint: String = ''
 ): TNtxStatus;
 
+// Allow transferring foreground state to a COM server
+function ComxAllowSetForegroundWindow(
+  [in] Unk: IUnknown
+): TNtxStatus;
+
 // Query default COM security
 function ComxGetSecurity(
   ComSDType: TComSD;
@@ -1320,6 +1325,12 @@ begin
   Result.Location := 'IClassFactory::CreateInstance';
   Result.LastCall.Parameter := ClassNameHint;
   Result.HResult := Factory.CreateInstance(nil, Iid, pv);
+end;
+
+function ComxAllowSetForegroundWindow;
+begin
+  Result.Location := 'CoAllowSetForegroundWindow';
+  Result.HResult := CoAllowSetForegroundWindow(Unk, nil);
 end;
 
 function ComxGetSecurity;
