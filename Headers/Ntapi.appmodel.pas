@@ -140,18 +140,37 @@ const
   ApplicationFlags_TrustLevelIsAppSilo = $00000200;
   ApplicationFlags_IsConsoleSubsystem = $00010000; // cache-only flag
 
-  // SDK::ShObjIdl_core.h
-  AO_DESIGNMODE	= $1;
-  AO_NOERRORUI = $2;
-  AO_NOSPLASHSCREEN = $4;
-  AO_PRELAUNCH = $2000000;
+  // SDK::ShObjIdl_core.h + private
+  AOI_DESIGNMODE = $00000001;              // Win 8+ // public
+  AOI_NOERRORUI = $00000002;               // Win 8+ // public
+  AOI_NOSPLASHSCREEN = $00000004;          // Win 8+ // public
+  AOI_LOWPRIORITY = $00001000;             // Win 10 RS4+
+  AOI_HIGHPRIORITY = $00002000;            // Win 10 RS4+
+  AOI_BACKGROUNDTASK = $00010000;          // Win 8+
+  AOI_REMEDIATION = $00080000;             // Win 8+
+  AOI_TERMINATEBEFOREACTIVATE = $00200000; // Win 8+
+  AOI_OOPWEBVIEW = $00400000;              // Win 10 RS4+
+  AOI_NOFOREGROUND = $01000000;            // Win 8.1+
+  AOI_PRELAUNCH = $02000000;               // Win 8.1+ // public
+  AOI_EXTENDEDTIMEOUT = $08000000;         // Win 10 TH1+
+  AOI_COMPONENT = $10000000;               // Win 10 RS3+
+  AOI_ELEVATE = $20000000;                 // Win 10 RS1+
+  AOI_HOSTEDVIEW = $40000000;              // Win 10 RS3+
 
-  // SDK::ShObjIdl_core.h
+  // SDK::ShObjIdl_core.h, Win 8+
   CLSID_ApplicationActivationManager: TGuid = '{45BA127D-10A8-46EA-8AB7-56EA9078943C}';
 
-  // Desktop AppX activation options
-  DAXAO_ELEVATE = $00000001;
-  DAXAO_NONPACKAGED_EXE = $00000002;
+  // private, Win 10 TH1+
+  ActivationType_Launch: TGuid = '{9985CD86-1C8E-4FF3-8F9A-806AD6A2DD23}';
+  ActivationType_LaunchChild: TGuid = '{CF860827-A572-4024-8292-71AADD46B7DE}';
+  ActivationType_LaunchWithTile: TGuid = '{08B63380-6BEF-4663-A850-7F1AB3793D8B}';
+
+  // private, Win 10 TH1+
+  CLSID_ShellServiceHostBrokerProvider: TGuid = '{3480A401-BDE9-4407-BC02-798A866AC051}';
+
+  // private, Desktop AppX activation options
+  DAXAO_ELEVATE = $00000001;                        // Win 10 RS1+
+  DAXAO_NONPACKAGED_EXE = $00000002;                // Win 10 RS1+
   DAXAO_NONPACKAGED_EXE_PROCESS_TREE = $00000004;   // Win 10 RS2+
   DAXAO_NO_ERROR_UI = $00000008;                    // Win 10 20H1+
   DAXAO_CHECK_FOR_APPINSTALLER_UPDATES = $00000010; // Win 10 20H1+ (was 0x40 in 19H1 & 19H2)
@@ -160,7 +179,14 @@ const
   DAXAO_WIN32ALACARTE_PROCESS = $00000080;          // Win 10 20H1+
   DAXAO_PARTIAL_TRUST = $00000100;                  // Win 10 20H1+
   DAXAO_UNIVERSAL_CONSOLE = $00000200;              // Win 10 20H1+
+  DAXAO_APP_SILO = $00000400;                       // Win 11 22H2+
+  DAXAO_SUSPENDABLE = $00000800;                    // Win 11 24H2+
+  DAXAO_MULTI_INSTANCED = $00001000;                // Win 11 24H2+
+  DAXAO_ENABLE_BNO_ISOLATION = $00002000;           // Win 11 24H2+
+  DAXAO_PRELAUNCH = $00004000;                      // Win 11 24H2+
+  DAXAO_LOWPRIORITY = $00008000;                    // Win 11 24H2+
 
+  // private, Win 10 RS1+
   CLSID_DesktopAppXActivator: TGuid = '{168EB462-775F-42AE-9111-D714B2306C2E}';
 
 type
@@ -519,12 +545,25 @@ type
 
   { AppX Activation }
 
-  [SDKName('ACTIVATEOPTIONS')]
-  [FlagName(AO_DESIGNMODE, 'Design Mode')]
-  [FlagName(AO_NOERRORUI, 'No Error UI')]
-  [FlagName(AO_NOSPLASHSCREEN, 'No Splash Screen')]
-  [FlagName(AO_PRELAUNCH, 'Pre-launch')]
-  TActivateOptions = type Cardinal;
+  [SDKName('ACTIVATEOPTIONSINTERNAL')]
+  [FlagName(AOI_DESIGNMODE, 'Design Mode')]
+  [FlagName(AOI_NOERRORUI, 'No Error UI')]
+  [FlagName(AOI_NOSPLASHSCREEN, 'No Splash Screen')]
+  [FlagName(AOI_LOWPRIORITY, 'Low Priority')]
+  [FlagName(AOI_HIGHPRIORITY, 'High Priority')]
+  [FlagName(AOI_BACKGROUNDTASK, 'Background Task')]
+  [FlagName(AOI_REMEDIATION, 'Remediation')]
+  [FlagName(AOI_TERMINATEBEFOREACTIVATE, 'Terminate Before Activate')]
+  [FlagName(AOI_OOPWEBVIEW, 'OOP WebView')]
+  [FlagName(AOI_NOFOREGROUND, 'No Foreground')]
+  [FlagName(AOI_PRELAUNCH, 'Pre-launch')]
+  [FlagName(AOI_EXTENDEDTIMEOUT, 'Extended Timeout')]
+  [FlagName(AOI_COMPONENT, 'Component')]
+  [FlagName(AOI_ELEVATE, 'Elevate')]
+  [FlagName(AOI_HOSTEDVIEW, 'Hosted View')]
+  TActivateOptionsInternal = type Cardinal;
+
+  [SDKName('ACTIVATEOPTIONSINTERNAL')]
 
   IShellItemArray = IUnknown;
 
@@ -535,7 +574,7 @@ type
     function ActivateApplication(
       [in] appUserModelId: PWideChar;
       [in, opt] arguments: PWideChar;
-      [in] options: TActivateOptions;
+      [in] options: TActivateOptionsInternal;
       [out] out processId: TProcessId32
     ): HResult; stdcall;
 
@@ -553,6 +592,43 @@ type
     ): HResult; stdcall;
   end;
 
+  // private
+  [MinOSVersion(OsWin10TH1)]
+  IServiceHostBrokerProvider = interface (IUnknown)
+    ['{0F4ACCB1-D8F9-4011-BA37-2557925A78CF}']
+    function GetBroker(
+      [in] const BrokerId: TGuid;
+      [in] const iid: TGuid;
+      [out] out pv: IUnknown
+    ): HResult; stdcall;
+  end;
+
+  // private
+  [MinOSVersion(OsWin10TH1)]
+  IApplicationActivationBroker = interface (IUnknown)
+    ['{D98FD14A-522A-4D59-B875-811E83919A9E}']
+    function ActivateApplication(
+      [in, opt] WindowId: Cardinal;
+      [in] const ActivationType: TGuid;
+      [in] LaunchFlags: Cardinal;
+      [in] AppUserModelId: PWideChar;
+      [in, opt] Arguments: PPWideChar;
+      [in, NumberOfElements] NumArguments: Cardinal;
+      [in] Options: TActivateOptionsInternal;
+      [in, opt] UserContextToken: TLuid;
+      [out] out ProcessId: TProcessId32;
+      [out] out hCompletedEvent: THandle
+    ): HResult; stdcall;
+
+    function GetLaunchedTaskResult(
+      [in, opt] WindowId: Cardinal;
+      [in] const ActivationType: TGuid;
+      [out] out hrResult: HResult;
+      [out, WritesTo] Data: Pointer;
+      [out] out Size: Cardinal
+    ): HResult; stdcall;
+  end;
+
   [SDKName('DESKTOPAPPXACTIVATEOPTIONS')]
   [FlagName(DAXAO_ELEVATE, 'Elevate')]
   [FlagName(DAXAO_NONPACKAGED_EXE, 'Non-packaged EXE')]
@@ -564,6 +640,12 @@ type
   [FlagName(DAXAO_WIN32ALACARTE_PROCESS, 'Win32Alacarte Process')]
   [FlagName(DAXAO_PARTIAL_TRUST, 'Partial Trust')]
   [FlagName(DAXAO_UNIVERSAL_CONSOLE, 'Universal Console')]
+  [FlagName(DAXAO_APP_SILO, 'AppSilo')]
+  [FlagName(DAXAO_SUSPENDABLE, 'Suspendable')]
+  [FlagName(DAXAO_MULTI_INSTANCED, 'Multi-instanced')]
+  [FlagName(DAXAO_ENABLE_BNO_ISOLATION, 'Enable BNO Isolation')]
+  [FlagName(DAXAO_PRELAUNCH, 'Pre-launch')]
+  [FlagName(DAXAO_LOWPRIORITY, 'Low Priority')]
   TDesktopAppxActivateOptions = type Cardinal;
 
   // private

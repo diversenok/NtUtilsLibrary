@@ -10,6 +10,21 @@ uses
   Ntapi.WinNt, Ntapi.ObjBase, Ntapi.appmodel, Ntapi.Versions, NtUtils,
   NtUtils.Processes.Create;
 
+type
+  TPkgxActivatePackageFlags = set of (
+    apUseSessionId,
+    apDontTransferForeground
+  );
+
+  TPkgxActivatePackageOptions = record
+    Flags: TPkgxActivatePackageFlags;
+    Aumid: String;
+    Arguments: String;
+    Options: TActivateOptionsInternal;
+    SessionId: TSessionId;
+    UserContext: TLuid;
+  end;
+
 // Create a new process in a package context via IDesktopAppXActivator
 [RequiresCOM]
 [MinOSVersion(OsWin10RS1)]
@@ -27,24 +42,32 @@ function PkgxCreateProcessInPackage(
   out Info: TNtxProcessInfo
 ): TNtxStatus;
 
-// Activate a Windows Store application
+// Activate a package via IApplicationActivationManager
 [RequiresCOM]
 [MinOSVersion(OsWin8)]
 function PkgxActivateApplication(
   const AppUserModelId: String;
   [opt] const Arguments: String = '';
-  Options: TActivateOptions = 0;
+  Options: TActivateOptionsInternal = 0;
   [out, opt] pProcessId: PProcessId32 = nil
+): TNtxStatus;
+
+// Activate a package via IApplicationActivationBroker
+[RequiresCOM]
+[MinOSVersion(OsWin10TH1)]
+function PkgxActivateApplicationEx(
+  const Options: TPkgxActivatePackageOptions;
+  out Pid: TProcessId32
 ): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntobapi, Ntapi.ShellApi, Ntapi.ObjIdl,
-  Ntapi.WinUser, Ntapi.ProcessThreadsApi, Ntapi.ntstatus, NtUtils.Errors,
-  NtUtils.Com, NtUtils.Tokens.Impersonate, NtUtils.Threads, NtUtils.Objects,
-  NtUtils.Processes.Create.Shell, NtUtils.Processes.Info, NtUtils.AntiHooking,
-  DelphiUtils.AutoObjects;
+  Ntapi.WinUser, Ntapi.ProcessThreadsApi, Ntapi.ntstatus, Ntapi.ntpebteb,
+  NtUtils.Errors, NtUtils.Com, NtUtils.Tokens.Impersonate, NtUtils.Threads,
+  NtUtils.Objects, NtUtils.Processes.Create.Shell, NtUtils.Processes.Info,
+  NtUtils.AntiHooking, DelphiUtils.AutoObjects, DelphiUtils.LiteRTTI.Base;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -339,5 +362,61 @@ begin
     pProcessId^ := ProcessId;
 end;
 
+function PkgxActivateApplicationEx;
+var
+  BrokerProvider: IServiceHostBrokerProvider;
+  Broker: IApplicationActivationBroker;
+  hEvent: THandle;
+  Arguments: PWideChar;
+  ArgumentsRef: PPWideChar;
+  ArgumentsCount: Cardinal;
+begin
+  // Connect to sihost.exe of the specified/current session
+  Result := ComxCreateInstanceInSession(CLSID_ShellServiceHostBrokerProvider,
+    IServiceHostBrokerProvider, BrokerProvider, Options.SessionId, False,
+    apUseSessionId in Options.Flags, 'CLSID_ShellServiceHostBrokerProvider');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Allow spawning the package in foreground
+  if not (apDontTransferForeground in Options.Flags) and
+    (not (apUseSessionId in Options.Flags) or
+    (Options.SessionId = RtlGetCurrentPeb.SessionID)) then
+    ComxAllowSetForegroundWindow(Broker);
+
+  // Connect to the activation broker
+  Result.Location := 'IServiceHostBrokerProvider::GetBroker';
+  Result.LastCall.Parameter := TypeName(TypeInfo(IApplicationActivationBroker));
+  Result.HResult := BrokerProvider.GetBroker(IApplicationActivationBroker,
+    IApplicationActivationBroker, IUnknown(Broker));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Options.Arguments <> '' then
+  begin
+    Arguments := PWideChar(Options.Arguments);
+    ArgumentsRef := @Arguments;
+    ArgumentsCount := 1;
+  end
+  else
+  begin
+    ArgumentsRef := nil;
+    ArgumentsCount := 0;
+  end;
+
+  // Request activation
+  Result.Location := 'IApplicationActivationBroker::ActivateApplication';
+  Result.HResult := Broker.ActivateApplication(0, ActivationType_Launch, 0,
+    PWideChar(Options.Aumid), ArgumentsRef, ArgumentsCount, Options.Options,
+    Options.UserContext, Pid, hEvent);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if (hEvent > 0) and (hEvent <= MAX_HANDLE) then
+    NtxClose(hEvent);
+end;
 
 end.
