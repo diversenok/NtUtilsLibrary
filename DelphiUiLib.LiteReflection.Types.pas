@@ -27,6 +27,9 @@ procedure RttixRegisterSessionIdFormatter;
 // Enables reflection for TLogonId
 procedure RttixRegisterLogonIdFormatter;
 
+// Enables reflection for TUmgrContext, TUmgrxContextInfo
+procedure RttixRegisterUmgrFormatter;
+
 // Enables reflection for all known types
 procedure RttixRegisterAllFormatter;
 
@@ -37,8 +40,8 @@ uses
   Ntapi.WinNt, Ntapi.winsta, Ntapi.ntrtl, Ntapi.WinUser, Ntapi.ObjBase, NtUtils,
   NtUtils.SysUtils, NtUtils.Errors, NtUiLib.Errors, NtUtils.Synchronization,
   NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads, NtUtils.WinStation,
-  NtUtils.Lsa.Logon, NtUtils.Security.Sid, NtUtils.Lsa.Sid, DelphiUiLib.Strings,
-  DelphiUtils.LiteRTTI, DelphiUiLib.LiteReflection;
+  NtUtils.Lsa.Logon, NtUtils.Security.Sid, NtUtils.Lsa.Sid, NtUtils.UserManager,
+  DelphiUiLib.Strings, DelphiUtils.LiteRTTI, DelphiUiLib.LiteReflection;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -863,6 +866,67 @@ begin
   end;
 end;
 
+// TUmgrContext, TUmgrxContextInfo
+function RttixUmgrFormatter(
+  const RttixType: IRttixType;
+  const [ref] Instance;
+  RequestedFormats: TRttixReflectionFormats
+): TRttixFullReflection;
+var
+  Info: TUmgrxContextInfo;
+  InfoAvailable: Boolean;
+  HintSections: TArray<THintSection>;
+begin
+  // Collect session ID and SID for the context
+  if RttixType.TypeInfo = TypeInfo(TUmgrContext) then
+  begin
+    InfoAvailable := RtlxUmgrFindContext(TUmgrContext(Instance), Info).IsSuccess;
+
+    if not InfoAvailable then
+      Info.UserContext := TUmgrContext(Instance);
+  end
+  else if RttixType.TypeInfo = TypeInfo(TUmgrxContextInfo) then
+  begin
+    Info := TUmgrxContextInfo(Instance);
+    InfoAvailable := Assigned(Info.Sid);
+  end
+  else
+  begin
+    Error(reAssertionFailed);
+    Exit;
+  end;
+
+  // Format text as "Context (User @ Session ID)"
+  if rfText in RequestedFormats then
+  begin
+    Result.Text := UiLibUIntToHex(Info.UserContext);
+
+    if InfoAvailable then
+      Result.Text := Result.Text + ' (' + LsaxSidToString(Info.Sid) + ' @ ' +
+        RtlxIntToDec(Info.SessionId) + ')';
+
+    Include(Result.ValidFormats, rfText);
+  end;
+
+  // Format hint
+  if rfHint in RequestedFormats then
+  begin
+    if InfoAvailable then
+    begin
+      SetLength(HintSections, 2);
+      HintSections[0].Title := 'Session ID';
+      HintSections[0].Content := RtlxIntToDec(Info.SessionId);
+      HintSections[1].Title := 'SID';
+      HintSections[1].Content := RtlxSidToStringNoError(Info.Sid);
+    end
+    else
+      HintSections := nil;
+
+    Result.Hint := BuildHint(HintSections);
+    Include(Result.ValidFormats, rfHint);
+  end;
+end;
+
 { Registration }
 
 procedure RttixRegisterBasicFormatters;
@@ -914,6 +978,12 @@ begin
   RttixRegisterCustomTypeFormatter(TypeInfo(TLogonId), RttixLogonIdFormatter);
 end;
 
+procedure RttixRegisterUmgrFormatter;
+begin
+  RttixRegisterCustomTypeFormatter(TypeInfo(TUmgrContext), RttixUmgrFormatter);
+  RttixRegisterCustomTypeFormatter(TypeInfo(TUmgrxContextInfo), RttixUmgrFormatter);
+end;
+
 procedure RttixRegisterAllFormatter;
 begin
   RttixRegisterBasicFormatters;
@@ -922,6 +992,7 @@ begin
   RttixRegisterSidFormatters;
   RttixRegisterSessionIdFormatter;
   RttixRegisterLogonIdFormatter;
+  RttixRegisterUmgrFormatter;
 end;
 
 end.

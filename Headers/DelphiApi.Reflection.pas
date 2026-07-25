@@ -167,6 +167,10 @@ type
   WritesToAttribute = class(TCustomAttribute)
   end;
 
+  // The parameter specifies a buffer that is an array of elements
+  ArrayParamAttribute = class(TCustomAttribute)
+  end;
+
   // The function acquires or allocates a resource that requires a cleanup using
   // a dedicated routine
   ReleaseWithAttribute = class(TCustomAttribute)

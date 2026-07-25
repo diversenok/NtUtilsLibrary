@@ -13,6 +13,12 @@ uses
 type
   TSessionUserContext = Ntapi.usermgr.TSessionUserContext;
 
+  TUmgrxContextInfo = record
+    UserContext: TUmgrContext;
+    SessionId: TSessionId;
+    Sid: ISid;
+  end;
+
 { Registry }
 
 // Enumerate sessions via the user manager's volatile key
@@ -28,9 +34,20 @@ function RtlxUmgrQuerySessionSid(
 
 // Determine a user context of a session via the user manager's volatile key
 function RtlxUmgrQuerySessionContext(
-  out Context: TLuid;
+  out Context: TUmgrContext;
   const SessionID: TSessionId;
   [opt] UserSid: ISid = nil
+): TNtxStatus;
+
+// Enumerate user contexts info via the user manager's volatile key
+function RtlxUmgrEnumerateContexts(
+  out ContextInfo: TArray<TUmgrxContextInfo>
+): TNtxStatus;
+
+// Find information about a user context in user manager's volatile key
+function RtlxUmgrFindContext(
+  Context: TUmgrContext;
+  out Info: TUmgrxContextInfo
 ): TNtxStatus;
 
 { Contexts }
@@ -46,21 +63,21 @@ function UmgrxEnumerateSessionUsers(
 [MinOSVersion(OsWin10TH1)]
 function UMgrxQueryUserContext(
   [Access(TOKEN_QUERY)] hxToken: IHandle;
-  out ContextToken: TLuid
+  out UserContext: TUmgrContext
 ): TNtxStatus;
 
 // Query user context from a user SID
 [MinOSVersion(OsWin10TH1)]
 function UMgrxQueryUserContextFromSid(
   const Sid: ISid;
-  out ContextToken: TLuid
+  out UserContext: TUmgrContext
 ): TNtxStatus;
 
 // Query user context from a user name
 [MinOSVersion(OsWin10TH1)]
 function UMgrxQueryUserContextFromName(
   const UserName: String;
-  out ContextToken: TLuid
+  out UserContext: TUmgrContext
 ): TNtxStatus;
 
 { Tokens }
@@ -83,7 +100,7 @@ function UMgrxQuerySessionUserToken(
 [MinOSVersion(OsWin10TH1)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpForExtendedFunctionality)]
 function UMgrxQueryUserToken(
-  Context: TLuid;
+  Context: TUmgrContext;
   out hxToken: IHandle
 ): TNtxStatus;
 
@@ -108,7 +125,7 @@ function UMgrxQueryUserTokenFromName(
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function UMgrxQueryImpersonationTokenForContext(
   [Access(TOKEN_QUERY or TOKEN_IMPERSONATE)] hxInputToken: IHandle;
-  Context: TLuid;
+  Context: TUmgrContext;
   out hxOutputToken: IHandle
 ): TNtxStatus;
 
@@ -216,6 +233,69 @@ begin
     UInt64(Context));
 end;
 
+function RtlxUmgrEnumerateContexts;
+var
+  SessionIDs: TArray<TSessionId>;
+  Sid: ISid;
+  Context: TUmgrContext;
+  i, j: Integer;
+begin
+  Result := RtlxUmgrEnumerateSessions(SessionIDs);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(ContextInfo, Length(SessionIDs));
+
+  j := 0;
+  for i := 0 to High(SessionIDs) do
+  begin
+    Result := RtlxUmgrQuerySessionSid(Sid, SessionIDs[i]);
+
+    if not Result.IsSuccess then
+      Continue;
+
+    Result := RtlxUmgrQuerySessionContext(Context, SessionIDs[i], Sid);
+
+    if not Result.IsSuccess then
+      Continue;
+
+    ContextInfo[j].UserContext := Context;
+    ContextInfo[j].SessionId := SessionIDs[i];
+    ContextInfo[j].Sid := Sid;
+    Inc(j);
+  end;
+
+  SetLength(ContextInfo, j);
+  Result := NtxSuccess;
+end;
+
+function RtlxUmgrFindContext;
+var
+  SessionIDs: TArray<TSessionId>;
+  UserSid: ISid;
+  SessionContext: TUmgrContext;
+  i: Integer;
+begin
+  Result := RtlxUmgrEnumerateSessions(SessionIDs);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  for i := 0 to High(SessionIDs) do
+    if RtlxUmgrQuerySessionSid(UserSid, SessionIDs[i]).IsSuccess and
+      RtlxUmgrQuerySessionContext(SessionContext, SessionIDs[i],
+      UserSid).IsSuccess and (SessionContext = Context) then
+    begin
+      Info.SessionId := SessionIDs[i];
+      Info.Sid := UserSid;
+      Exit;
+    end;
+
+  Result.Location := 'RtlxUmgrFindContext';
+  Result.Status := STATUS_NOT_FOUND;
+end;
+
 { Contexts }
 
 function DeferUMgrFreeSessionUsers(
@@ -233,12 +313,9 @@ begin
   );
 end;
 
-[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
-function UmgrxEnumerateSessionUsers(
-  out Contexts: TArray<TSessionUserContext>
-): TNtxStatus;
+function UmgrxEnumerateSessionUsers;
 var
-  Buffer: PSessionUserContextArray;
+  Buffer, Cursor: PSessionUserContext;
   BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
@@ -258,9 +335,13 @@ begin
 
   BufferDeallocator := DeferUMgrFreeSessionUsers(Buffer);
   SetLength(Contexts, Count);
+  Cursor := Buffer;
 
   for i := 0 to High(Contexts) do
-    Contexts[i] := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+  begin
+    Contexts[i] := Cursor^;
+    Inc(Cursor);
+  end;
 end;
 
 function UMgrxQueryUserContext;
@@ -277,7 +358,7 @@ begin
 
   Result.Location := 'UMgrQueryUserContext';
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY);
-  Result.HResult := UMgrQueryUserContext(hxToken.Handle, ContextToken);
+  Result.HResult := UMgrQueryUserContext(hxToken.Handle, UserContext);
 end;
 
 function UMgrxQueryUserContextFromSid;
@@ -295,7 +376,7 @@ begin
     Exit;
 
   Result.Location := 'UMgrQueryUserContextFromSid';
-  Result.HResult := UMgrQueryUserContextFromSid(PWideChar(SDDL), ContextToken);
+  Result.HResult := UMgrQueryUserContextFromSid(PWideChar(SDDL), UserContext);
 end;
 
 function UMgrxQueryUserContextFromName;
@@ -307,7 +388,7 @@ begin
 
   Result.Location := 'UMgrQueryUserContextFromName';
   Result.HResult := UMgrQueryUserContextFromName(PWideChar(UserName),
-    ContextToken);
+    UserContext);
 end;
 
 function UMgrxQueryDefaultAccountToken;

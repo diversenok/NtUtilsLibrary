@@ -567,6 +567,8 @@ type
   [Hex] TLuid = type UInt64;
   PLuid = ^TLuid;
 
+  TUmgrContext = type TLuid;
+
   [SDKName('HWND'), Hex]
   THwnd = type NativeUInt;
   PHwnd = ^THwnd;
