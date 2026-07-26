@@ -73,72 +73,82 @@ const
   PACKAGE_ATTRIBUTE_XBOX_LI_PRESENT = $0008;
 
   // private - state repository cache package flags
-  PackageFlags_IsDevelopmentMode = $00000001;
-  PackageFlags_HasServerApplication = $00000002;
-  PackageFlags_HasCentennial = $00000004;
-  PackageFlags_IsMachineRegistered = $00000008;
-  PackageFlags_IsPackagePayloadEncrypted = $00000010;
-  PackageFlags_IsMetadataLocationUnderSystemMetadata = $00000020;
-  PackageFlags_HasRunFullTrustCapability = $00000040;
-  PackageFlags_IsInRelatedSet = $00000080;
-  PackageFlags_DoNotAllowExecution = $00000100;
-  PackageFlags_IsNonQualifiedResourcePackage = $00000200;
-  PackageFlags_MostRecentlyStagedInFamily = $00000400;
-  PackageFlags_IsMsixvc = $00000800;
-  PackageFlags_IsSingletonRegistered = $00001000;
-  PackageFlags_NeedsSingletonRegistration = $00002000;
-  PackageFlags_FileSystemWriteVirtualizationDisabled = $00004000;
-  PackageFlags_RegistryWriteVirtualizationDisabled = $00008000;
-  PackageFlags_LoaderSearchPathOverride = $00010000;
-  PackageFlags_IsMutablePackageDirectoryProcessed = $00020000;
-  PackageFlags_IsModificationPackage = $00040000;
-  PackageFlags_HasDependencyTargetCapability = $00080000;
-  PackageFlags_HasWin32alacarte = $00100000;
-  PackageFlags_AllowExternalLocation = $00200000;
-  PackageFlags_StageInPlace = $00400000;
-  PackageFlags_HasFullTrust = $00800000;
-  PackageFlags_IsSupportedUsersMultiple = $1000000; // cache-only flag
-  PackageFlags_HasHostRuntime = $02000000;
-  PackageFlags_HasInstalledLocationVirtualization = $04000000;
-  PackageFlags_HasInProcessMediaExtensionCapability = $08000000;
+  PackageFlags_IsDevelopmentMode = $00000001;                     // RS1+
+  PackageFlags_HasServerApplication = $00000002;                  // RS1+
+  PackageFlags_HasCentennial = $00000004;                         // RS1+
+  PackageFlags_IsMachineRegistered = $00000008;                   // RS1+
+  PackageFlags_IsPackagePayloadEncrypted = $00000010;             // RS1+
+  PackageFlags_IsMetadataLocationUnderSystemMetadata = $00000020; // RS2+
+  PackageFlags_HasRunFullTrustCapability = $00000040;             // RS2+
+  PackageFlags_IsInRelatedSet = $00000080;                        // RS2+
+  PackageFlags_DoNotAllowExecution = $00000100;                   // RS4+
+  PackageFlags_IsNonQualifiedResourcePackage = $00000200;         // RS4+
+  PackageFlags_MostRecentlyStagedInFamily = $00000400;            // RS5+
+  PackageFlags_IsMsixvc = $00000800;                              // 19H1+
+  PackageFlags_IsSingletonRegistered = $00001000;                 // 19H1+
+  PackageFlags_NeedsSingletonRegistration = $00002000;            // 19H1+
+  PackageFlags_FileSystemWriteVirtualizationDisabled = $00004000; // 19H1+
+  PackageFlags_RegistryWriteVirtualizationDisabled = $00008000;   // 19H1+
+  PackageFlags_LoaderSearchPathOverride = $00010000;              // 19H1+
+  PackageFlags_IsMutablePackageDirectoryProcessed = $00020000;    // 19H1+
+  PackageFlags_IsModificationPackage = $00040000;                 // 19H1+
+  PackageFlags_HasDependencyTargetCapability = $00080000;         // 20H1+
+  PackageFlags_HasWin32alacarte = $00100000;                      // 20H1+
+  PackageFlags_AllowExternalLocation = $00200000;                 // 20H1+
+  PackageFlags_StageInPlace = $00400000;                          // 20H1+
+  PackageFlags_HasFullTrust = $00800000;                          // 20H1+
+  PackageFlags_IsSupportedUsersMultiple = $1000000;               // 19H1+ (cache-only)
+  PackageFlags_HasHostRuntime = $02000000;                        // 20H1+
+  PackageFlags_HasInstalledLocationVirtualization = $04000000;    // 20H1+
+  PackageFlags_HasInProcessMediaExtensionCapability = $08000000;  // 20H1+
   PackageFlags_HasHostId = $10000000;
 
   // private - state repository cache package flags v2
-  PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsDefault = $00000001;
-  PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsOn = $00000002;
-  PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsDefault = $00000004;
-  PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsOn = $00000008;
-  PackageFlags2_PackageIntegrityForContent_EnforcementIsDefault = $00000010;
-  PackageFlags2_PackageIntegrityForContent_EnforcementIsOn = $00000020;
-  PackageFlags2_PackageIntegrityForContent_EnforcementIsOff = $00000040;
-  PackageFlags2_IsVailPackaged = $00000080;
-  PackageFlags2_IsSystemRegistered = $00000100;
-  PackageFlags2_IsVailUnpackaged = $00000200;
-  PackageFlags2_IsUserMutablePackage = $00000400;
-  PackageFlags2_IsInstalledByElevatedUser = $00000800;
-  PackageFlags2_IsOneTimeRegistered = $00001000;
-  PackageFlags2_HasWindowsRTEKU = $00002000;
-  PackageFlags2_HasVersionSupercedencePerformed = $00004000;
+  PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsDefault = $00000001;    // 20H1+
+  PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsOn = $00000002;         // 20H1+
+  PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsDefault = $00000004; // 20H1+
+  PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsOn = $00000008;      // 20H1+
+  PackageFlags2_PackageIntegrityForContent_EnforcementIsDefault = $00000010;       // 20H1+
+  PackageFlags2_PackageIntegrityForContent_EnforcementIsOn = $00000020;            // 20H1+
+  PackageFlags2_PackageIntegrityForContent_EnforcementIsOff = $00000040;           // 20H1+
+  PackageFlags2_IsVailPackaged = $00000080;                                        // 11 21H2+
+  PackageFlags2_IsSystemRegistered = $00000100;                                    // 11 21H2+
+  PackageFlags2_IsVailUnpackaged = $00000200;                                      // 11 21H2+
+  PackageFlags2_IsUserMutablePackage = $00000400;                                  // 11 21H2+
+  PackageFlags2_IsInstalledByElevatedUser = $00000800;                             // 11 21H2+
+  PackageFlags2_IsOneTimeRegistered = $00001000;                                   // 11 22H2+
+  PackageFlags2_HasWindowsRTEKU = $00002000;                                       // 11 22H2+
+  PackageFlags2_HasVersionSupercedencePerformed = $00004000;                       // 11 22H2+
+  PackageFlags2_RequiresWin32HeapCompatProfile = $8000;                            // 11 24H2+
+  PackageFlags2_StageWhileInUse = $10000;                                          // 11 24H2+
+  PackageFlags2_DisableInetCacheRedirection = $20000;                              // 11 24H2+
+  PackageFlags2_DisableInetCookiesRedirection = $40000;                            // 11 24H2+
+  PackageFlags2_DisableInetHistoryRedirection = $80000;                            // 11 24H2+
+  PackageFlags2_HasApplicationDataMachineFolder = $100000;                         // 11 25H2+
+  PackageFlags2_TrustedLaunch = $200000;                                           // 11 25H2+
 
   // private - state repository cache package type
-  PackageType_Main = $00000001;
-  PackageType_Framework = $00000002;
-  PackageType_Resource = $00000004;
-  PackageType_Bundle = $00000008;
-  PackageType_Xap = $00000010;
-  PackageType_Optional = $00000020;
+  PackageType_Main = $00000001;      // TH1+
+  PackageType_Framework = $00000002; // TH1+
+  PackageType_Resource = $00000004;  // TH1+
+  PackageType_Bundle = $00000008;    // TH1+
+  PackageType_Xap = $00000010;       // TH1+
+  PackageType_Optional = $00000020;  // RS1+
 
   // private - state repository cache package application type
-  ApplicationFlags_SplashScreenIsOptional = $00000001;
-  ApplicationFlags_IsServerApplication = $00000002;
-  ApplicationFlags_TrustLevelIsFullTrust = $00000004;
-  ApplicationFlags_SupportsMultipleInstances = $00000008;
-  ApplicationFlags_RuntimeBehaviorIsDesktopBridge = $00000010;
-  ApplicationFlags_RuntimeBehaviorIsWin32alacarte = $00000020;
-  ApplicationFlags_TrustLevelIsPartialTrust = $00000080;
-  ApplicationFlags_RuntimeBehaviorIsUniversal = $00000100;
-  ApplicationFlags_TrustLevelIsAppSilo = $00000200;
-  ApplicationFlags_IsConsoleSubsystem = $00010000; // cache-only flag
+  ApplicationFlags_SplashScreenIsOptional = $00000001;              // RS3+
+  ApplicationFlags_IsServerApplication = $00000002;                 // RS1+
+  ApplicationFlags_TrustLevelIsFullTrust = $00000004;               // RS1+
+  ApplicationFlags_SupportsMultipleInstances = $00000008;           // RS3+
+  ApplicationFlags_RuntimeBehaviorIsDesktopBridge = $00000010;      // RS4+
+  ApplicationFlags_RuntimeBehaviorIsWin32alacarte = $00000020;      // 20H1+
+  ApplicationFlags_BnoIsolationIsPackage = $00000040;               // 11 24H2+
+  ApplicationFlags_TrustLevelIsPartialTrust = $00000080;            // 20H1+
+  ApplicationFlags_RuntimeBehaviorIsUniversal = $00000100;          // 20H1+
+  ApplicationFlags_RuntimeBehaviorIsAppSilo = $00000200;            // 11 22H2+
+  ApplicationFlags_AppLifecycleBehaviorIsUnmanaged = $00000400;     // 11 24H2+
+  ApplicationFlags_AppLifecycleBehaviorIsSystemManaged = $00000800; // 11 24H2+
+  ApplicationFlags_IsConsoleSubsystem = $00010000;                  // RS5+ (cache only)
 
   // SDK::ShObjIdl_core.h + private
   AOI_DESIGNMODE = $00000001;              // Win 8+ // public
@@ -472,6 +482,7 @@ type
   { State repository }
 
   [SDKName('Windows::Internal::StateRepository::PackageFlags')]
+  [SDKName('StateRepository::Cache::CachePackageFlags')]
   [FlagName(PackageFlags_IsDevelopmentMode, 'Is Development Mode')]
   [FlagName(PackageFlags_HasServerApplication, 'Has Server Application')]
   [FlagName(PackageFlags_HasCentennial, 'Has Centennial')]
@@ -504,6 +515,7 @@ type
   TStateRepositoryPackageFlags = type Cardinal;
 
   [SDKName('Windows::Internal::StateRepository::PackageFlags2')]
+  [SDKName('StateRepository::Cache::CachePackageFlags2')]
   [FlagName(PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsDefault, 'Package Integrity For EXE Signing Enforcement Is Default')]
   [FlagName(PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsOn, 'Package Integrity For EXE Signing Enforcement Is On')]
   [FlagName(PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsDefault, 'Package Integrity For Module Signing Enforcement Is Default')]
@@ -519,6 +531,13 @@ type
   [FlagName(PackageFlags2_IsOneTimeRegistered, 'Is One-time Registered')]
   [FlagName(PackageFlags2_HasWindowsRTEKU, 'Has Windows RTEKU')]
   [FlagName(PackageFlags2_HasVersionSupercedencePerformed, 'Has Version Supercedence Performed')]
+  [FlagName(PackageFlags2_RequiresWin32HeapCompatProfile, 'Requires Win32 Heap Compat Profile')]
+  [FlagName(PackageFlags2_StageWhileInUse, 'Stage While In Use')]
+  [FlagName(PackageFlags2_DisableInetCacheRedirection, 'Disable Inet Cache Redirection')]
+  [FlagName(PackageFlags2_DisableInetCookiesRedirection, 'Disable Inet Cookies Redirection')]
+  [FlagName(PackageFlags2_DisableInetHistoryRedirection, 'Disable Inet History Redirection')]
+  [FlagName(PackageFlags2_HasApplicationDataMachineFolder, 'Has Application Data Machine Folder')]
+  [FlagName(PackageFlags2_TrustedLaunch, 'Trusted Launch')]
   TStateRepositoryPackageFlags2 = type Cardinal;
 
   [SDKName('Windows::Internal::StateRepository::PackageType')]
@@ -531,15 +550,19 @@ type
   TStateRepositoryPackageType = type Cardinal;
 
   [SDKName('Windows::Internal::StateRepository::ApplicationFlags')]
+  [SDKName('StateRepository::Cache::CacheApplicationFlags')]
   [FlagName(ApplicationFlags_SplashScreenIsOptional, 'Splash Screen Is Optional')]
   [FlagName(ApplicationFlags_IsServerApplication, 'Is Server Application')]
   [FlagName(ApplicationFlags_TrustLevelIsFullTrust, 'Trust Level Is FullTrust')]
   [FlagName(ApplicationFlags_SupportsMultipleInstances, 'Supports Multiple Instances')]
   [FlagName(ApplicationFlags_RuntimeBehaviorIsDesktopBridge, 'Runtime Behavior Is Desktop Bridge')]
   [FlagName(ApplicationFlags_RuntimeBehaviorIsWin32alacarte, 'Runtime Behavior Is Win32 Alacarte')]
+  [FlagName(ApplicationFlags_BnoIsolationIsPackage, 'BNO Isolation Is Package')]
   [FlagName(ApplicationFlags_TrustLevelIsPartialTrust, 'Trust Level Is Partial Trust')]
   [FlagName(ApplicationFlags_RuntimeBehaviorIsUniversal, 'Runtime Behavior Is Universal')]
-  [FlagName(ApplicationFlags_TrustLevelIsAppSilo, 'Trust Level Is AppSilo')]
+  [FlagName(ApplicationFlags_RuntimeBehaviorIsAppSilo, 'Runtime Behavior Is AppSilo')]
+  [FlagName(ApplicationFlags_AppLifecycleBehaviorIsUnmanaged, 'App Lifecycle Behavior Is Unmanaged')]
+  [FlagName(ApplicationFlags_AppLifecycleBehaviorIsSystemManaged, 'App Lifecycle Behavior Is System Managed')]
   [FlagName(ApplicationFlags_IsConsoleSubsystem, 'Console Subsystem')]
   TStateRepositoryApplicationFlags = type Cardinal;
 
