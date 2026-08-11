@@ -170,6 +170,14 @@ begin
     Result := 'twinui.dll';
 end;
 
+function RtlxShellExecHost: AnsiString;
+begin
+  if RtlOsVersionAtLeast(OsWin1121H2) then
+    Result := 'Windows.Storage.dll'
+  else
+    Result := shell32
+end;
+
 function PkgxCreateProcessInPackage;
 var
   Activator: IUnknown;
@@ -232,7 +240,7 @@ begin
     begin
       // Install the hook on ShellExecuteExW to add parameters
       Result := RtlxInstallIATHook(HookContext.Data.ShellExecHookReverter,
-        RtlxAppxActivatorHost, shell32, 'ShellExecuteExW',
+        RtlxAppxActivatorHost, RtlxShellExecHost, 'ShellExecuteExW',
         @HookedShellExecuteExW);
 
       if not Result.IsSuccess then
