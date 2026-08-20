@@ -536,6 +536,9 @@ var
   Cursor: PWideChar;
   Count: Cardinal;
 begin
+  if not Assigned(BufferStart) then
+    Exit('');
+
   // Align the end to SizeOf(WideChar);
   UIntPtr(BufferEnd) := UIntPtr(BufferEnd) and not 1;
 
