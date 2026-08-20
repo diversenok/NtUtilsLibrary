@@ -18,12 +18,20 @@ function UnvxLoadProfile(
 ): TNtxStatus;
 
 // Unload a user profile
-// Note: the function closes the profile key handle.
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function UnvxUnloadProfile(
-  [Access(0)] const hxProfileKey: IHandle;
   [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle
+): TNtxStatus;
+
+// Unload a user profile
+// Note: the function closes the specified profile key handle and requires
+// it to not to be in shared ownership
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
+function UnvxUnloadProfileWithKey(
+  [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle;
+  [opt, Access(0)] var hxProfileKey: IHandle
 ): TNtxStatus;
 
 // Query a known path for a profile
@@ -97,7 +105,7 @@ implementation
 uses
   Ntapi.ntregapi, Ntapi.ntstatus, NtUtils.Registry, NtUtils.Ldr, NtUtils.Tokens,
   DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Objects, NtUtils.SysUtils,
-  NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
+  NtUtils.Tokens.Info, NtUtils.Lsa.Sid, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -149,7 +157,52 @@ begin
 end;
 
 function UnvxUnloadProfile;
+var
+  hxProfileKey: IHandle;
+  UserSid: ISid;
+  SidString: String;
 begin
+  // Expand pseudo-handles
+  Result := NtxExpandToken(hxToken, TOKEN_LOAD_PROFILE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine the token SID
+  Result := NtxQuerySidToken(hxToken, TokenUser, UserSid);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxSidToString(UserSid, SidString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Open the user hive root
+  Result := NtxOpenKey(hxProfileKey, REG_PATH_USER + SidString,
+    KEY_QUERY_VALUE, REG_OPTION_BACKUP_RESTORE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Proceed to unloading
+  Result := UnvxUnloadProfileWithKey(hxToken, hxProfileKey);
+end;
+
+function UnvxUnloadProfileWithKey;
+var
+  InterfaceDebug: IInterfaceDebug;
+begin
+  // Verify that the provided handle is not shared
+  if (hxProfileKey.QueryInterface(IInterfaceDebug, InterfaceDebug) <> S_OK) or
+    (InterfaceDebug.ReferenceCount > 2) then
+  begin
+    Result.Location := 'UnvxUnloadProfile';
+    Result.Status := STATUS_ASSERTION_FAILURE;
+    Exit;
+  end;
+
   Result := LdrxCheckDelayedImport(delayed_UnloadUserProfile);
 
   if not Result.IsSuccess then
@@ -161,16 +214,20 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // UnloadUserProfile needs a registry key handle that it will close.
   Result.Location := 'UnloadUserProfile';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_LOAD_PROFILE);
 
   Result.Win32Result := UnloadUserProfile(hxToken.Handle,
-    HandleOrDefault(hxProfileKey));
+    hxProfileKey.Handle);
 
-  // UnloadUserProfile closes the key handle
+  // UnloadUserProfile just closed the handle; discard our wrapper
   if Result.IsSuccess then
+  begin
     hxProfileKey.DiscardOwnership;
+    hxProfileKey := nil;
+  end;
 end;
 
 function UnvxQueryProfileFolder;
