@@ -833,14 +833,14 @@ function NtNotifyChangeKey(
 
 // PHNT::ntregapi.h
 function NtQueryOpenSubKeys(
-  [in] const TargetKey: TObjectAttributes;
+  [in, Access(KEY_READ)] const TargetKey: TObjectAttributes;
   [in] out HandleCount: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtQueryOpenSubKeysEx(
-  [in] const TargetKey: TObjectAttributes;
+  [in, Access(KEY_READ)] const TargetKey: TObjectAttributes;
   [in, NumberOfBytes] BufferLength: Cardinal;
   [out, WritesTo] Buffer: PKeyOpenSubkeysInformation;
   [out, NumberOfBytes] out RequiredSize: Cardinal

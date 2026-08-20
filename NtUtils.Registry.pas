@@ -404,7 +404,14 @@ function NtxRestoreKey(
   Flags: TRegLoadFlags = 0
 ): TNtxStatus;
 
-// Enumerate opened subkeys from a part of the registry
+// Query the number of opened subkeys in a hive
+function NtxQueryOpenSubKeys(
+  out Count: Cardinal;
+  [Access(KEY_READ)] const KeyName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Enumerate opened subkeys in a hive
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtxEnumerateOpenedSubkeys(
   out SubKeys: TArray<TNtxSubKeyProcessEntry>;
@@ -1325,6 +1332,20 @@ begin
     Flags);
 end;
 
+function NtxQueryOpenSubKeys;
+var
+  ObjAttr: PObjectAttributes;
+begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(KeyName).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtQueryOpenSubKeys';
+  Result.LastCall.Expects<TRegKeyAccessMask>(KEY_READ);
+  Result.Status := NtQueryOpenSubKeys(ObjAttr^, Count);;
+end;
+
 function NtxEnumerateOpenedSubkeys;
 var
   ObjAttr: PObjectAttributes;
@@ -1338,6 +1359,7 @@ begin
     Exit;
 
   Result.Location := 'NtQueryOpenSubKeysEx';
+  Result.LastCall.Expects<TRegKeyAccessMask>(KEY_READ);
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
 
   IMemory(xMemory) := Auto.AllocateDynamic($1000);
