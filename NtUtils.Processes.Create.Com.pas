@@ -117,7 +117,7 @@ function WmixSetEnvironment(
   const Environment: IEnvironment
 ): TNtxStatus;
 var
-  Variables: TArray<TEnvVariable>;
+  Variables: TArray<TRtlxEnvVariable>;
   VariableStrings: TArray<WideString>;
   SafeArray: TVarArray;
   Variant: TVarData;

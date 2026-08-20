@@ -10,7 +10,7 @@ uses
   Ntapi.WinNt, NtUtils;
 
 type
-  TEnvVariable = record
+  TRtlxEnvVariable = record
     Name, Value: String;
   end;
 
@@ -75,14 +75,14 @@ function RtlxTryExpandString(
 // Enumerate all names and values present in an environment
 function RtlxEnumerateEnvironment(
   [opt] const Environment: IEnvironment = nil
-): TArray<TEnvVariable>;
+): TArray<TRtlxEnvVariable>;
 
 // Make a for-in iterator for enumerating environment variables.
 // Note: when the Status parameter is not set, the function might raise
 // exceptions during enumeration.
 function RtlxIterateEnvironment(
   [opt] const Environment: IEnvironment = nil
-): IEnumerable<TEnvVariable>;
+): IEnumerable<TRtlxEnvVariable>;
 
 // Query a value of a environment variable
 function RtlxQueryVariableEnvironment(
@@ -393,8 +393,8 @@ begin
   else
     EnvironmentToVerify := nil;
 
-  Result := Auto.Iterate<TEnvVariable>(
-    function (out Next: TEnvVariable): Boolean
+  Result := Auto.Iterate<TRtlxEnvVariable>(
+    function (out Next: TRtlxEnvVariable): Boolean
     begin
       // Verify the current environment didn't change
       if Assigned(EnvironmentToVerify) and ((EnvironmentToVerify <>
