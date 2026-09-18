@@ -341,7 +341,7 @@ begin
     // Display name might be a reference to a package resource string.
     // Resolving them is a relatively heavy operation, so we do it on demand
     // and cache the result.
-    if PkgxMrmResourceReferenceType(FFriendlyName) <> rkUnknown then
+    if PkgxMrmClassifyReference(FFriendlyName) <> rkInvalid then
       PkgxMrmResolveStringVar(FFriendlyName, Moniker);
   end;
 

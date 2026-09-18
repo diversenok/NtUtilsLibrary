@@ -99,6 +99,13 @@ function PkgxSRCacheOpenPackageByName(
   out hxPackageKey: IHandle
 ): TNtxStatus;
 
+// Find a package of a specific type in a family and open it
+function PkgxSRCacheFindPackageInFamilyByType(
+  out hxPackageKey: IHandle;
+  PackageFamilyId: TSRCachePackageFamilyId;
+  PackageTypeFilter: TStateRepositoryPackageType
+): TNtxStatus;
+
 // Query package name from data key
 function PkgxSRCacheQueryPackageName(
   const hxPackageKey: IHandle;
@@ -609,6 +616,36 @@ begin
 
   // Open by ID
   Result := PkgxSRCacheOpenPackage(PackageId, hxPackageKey);
+end;
+
+function PkgxSRCacheFindPackageInFamilyByType;
+var
+  PackageId: TSRCachePackageId;
+  PackageType: TStateRepositoryPackageType;
+begin
+  for PackageId in PkgxSRCacheIteratePackageIDsInFamily(@Result,
+    PackageFamilyId) do
+  begin
+    Result := PkgxSRCacheOpenPackage(PackageId, hxPackageKey);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result := PkgxSRCacheQueryPackageType(hxPackageKey, PackageType);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if HasAny(PackageType and PackageTypeFilter) then
+      Exit;
+  end;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  hxPackageKey := nil;
+  Result.Location := 'PkgxSRCacheFindPackageInFamily';
+  Result.Status := STATUS_NOT_FOUND;
 end;
 
 function PkgxSRCacheQueryPackageName;

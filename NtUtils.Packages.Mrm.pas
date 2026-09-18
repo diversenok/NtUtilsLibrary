@@ -14,9 +14,9 @@ uses
 type
   [NamingStyle(nsCamelCase, 'rk')]
   TPkgxMrmReferenceKind = (
-    rkUnknown,
+    rkInvalid,
     rkFullyQualifiedResource, // @{PackageFullName?ms-resource://ResourcePath}
-    rkRelativeResource        // ms-resource:ResourceName
+    rkRelativeResource        // ms-resource:ResourceName in a PackageFamily
   );
 
 // Determine the location of a merged PRI file
@@ -43,9 +43,19 @@ function PkgxMrmGetFileResourceMap(
   out ResourceMap: IResourceMap
 ): TNtxStatus;
 
+// Resolve a string resource in a resource map
+[RequiresCom]
+[MinOSVersion(OsWin8)]
+function PkgxMrmResolveStringInResourceMap(
+  const ResourceMap: IResourceMap;
+  const Reference: String;
+  out Value: String
+): TNtxStatus;
+
 // Determine the type of a resource reference
-function PkgxMrmResourceReferenceType(
-  const Reference: String
+function PkgxMrmClassifyReference(
+  const Reference: String;
+  [out, opt] FullDelimiter: PInteger = nil
 ): TPkgxMrmReferenceKind;
 
 // Resolve a resource reference string
@@ -68,16 +78,16 @@ function PkgxMrmResolveStringVar(
 implementation
 
 uses
-  Ntapi.appmodel, Ntapi.ntstatus, Ntapi.WinError, NtUtils.Ldr, NtUtils.Com,
-  NtUtils.SysUtils, NtUtils.Packages, DelphiUtils.AutoObjects;
+  Ntapi.appmodel, Ntapi.ntstatus, NtUtils.Ldr, NtUtils.Com, NtUtils.SysUtils,
+  NtUtils.Packages, NtUtils.Packages.SRCache, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-function PkgxMrmResolveFullResourceString(
-  const Reference: String;
-  out ResolvedValue: String
+function PkgxMrmQueueGetString(
+  out Value: String;
+  const Reference: String
 ): TNtxStatus;
 const
   INITIAL_SIZE = SizeOf(WideChar) * 200;
@@ -105,8 +115,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  ResolvedValue := RtlxCaptureString(Buffer.Data,
-    Buffer.Size div SizeOf(WideChar));
+  Value := RtlxCaptureString(Buffer.Data, Buffer.Size div SizeOf(WideChar));
 end;
 
 function PkgxMrmGetMergedPri;
@@ -180,24 +189,14 @@ begin
     ResourceMap);
 end;
 
-function PkgxMrmResolveRelativeResourceString(
-  const PackageFullName: String;
-  const Reference: String;
-  out Value: String
-): TNtxStatus;
+function PkgxMrmResolveStringInResourceMap;
 var
-  ResourceMap: IResourceMap;
   NamedResource: INamedResource;
   Candidate: IResourceCandidate;
   Buffer: PWideChar;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := PkgxMrmGetPackageResourceMap(PackageFullName, ResourceMap);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Try the direct string resolution first
+  // Try direct string resolution first
   Result.Location := 'IResourceMap::GetString';
   Result.HResult := ResourceMap.GetString(PWideChar(Reference), Buffer);
 
@@ -228,26 +227,143 @@ begin
   end;
 end;
 
-function PkgxMrmResourceReferenceType;
+function PkgxMrmResolveStringForPackageSRCacheKey(
+  out Value: String;
+  const Reference: String;
+  const hxPackageKey: IHandle
+): TNtxStatus;
+var
+  ResourcesLocation, MergedPri: String;
+  ResourceMap: IResourceMap;
 begin
+  // Locate the package files
+  Result := PkgxSRCacheQueryPackageLocation(hxPackageKey, ResourcesLocation);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Locate the main resources file
+  ResourcesLocation := RtlxCombinePaths(ResourcesLocation, 'resources.pri');
+
+  // Prefer a merged PRI when available
+  if not PkgxMrmGetMergedPri(ResourcesLocation, MergedPri).IsSuccess then
+    MergedPri := ResourcesLocation;
+
+  // Load it
+  Result := PkgxMrmGetFileResourceMap(MergedPri, ResourceMap);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Try resolving
+  Result := PkgxMrmResolveStringInResourceMap(ResourceMap, Reference, Value);
+end;
+
+function PkgxMrmResolveStringForFamily(
+  out Value: String;
+  const Reference: String;
+  const FamilyName: String
+): TNtxStatus;
+var
+  FamilyId: TSRCachePackageFamilyId;
+  hxPackageKey: IHandle;
+begin
+  // Determine the state repository cache ID for the package family
+  Result := PkgxSRCacheLookupPackageFamilyId(FamilyName, FamilyId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Find the main or at least a framework or optional package in the family
+  Result := PkgxSRCacheFindPackageInFamilyByType(hxPackageKey, FamilyId,
+    PackageType_Main or PackageType_Framework or PackageType_Optional);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Resolve
+  Result := PkgxMrmResolveStringForPackageSRCacheKey(Value, Reference,
+    hxPackageKey);
+end;
+
+function PkgxMrmResolveStringForFullName(
+  out Value: String;
+  const Reference: String;
+  const FullPackageName: String
+): TNtxStatus;
+var
+  FamilyName: String;
+  hxPackageKey: IHandle;
+  PackageId: TSRCachePackageId;
+begin
+  // Lookup the package in the state repository cache (for any user)
+  Result := PkgxSRCacheLookupPackageId(FullPackageName, PackageId);
+
+  // Sometimes fully qualified resource names reference stale package
+  // versions. Fall back to per-family resolution in this case.
+  if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
+    PkgxDeriveFamilyNameFromFullName(FamilyName, FullPackageName).IsSuccess and
+    PkgxMrmResolveStringForFamily(Value, Reference, FamilyName).IsSuccess then
+    Exit(NtxSuccess);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := PkgxSRCacheOpenPackage(PackageId, hxPackageKey);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Open package resources and load from there
+  Result := PkgxMrmResolveStringForPackageSRCacheKey(Value, Reference,
+    hxPackageKey);
+end;
+
+function PkgxMrmClassifyReference;
+var
+  Delimiter: Integer;
+begin
+  Delimiter := 0;
+
+  // Check for @{PackageFullName?ms-resource://ResourcePath}
   if RtlxPrefixString('@{', Reference, True) and
     RtlxSuffixString('}', Reference, True) then
-    Result := rkFullyQualifiedResource
+  begin
+    // Split into package and resource
+    Delimiter := System.Pos('?', Reference);
+
+    if Delimiter > 0 then
+      Result := rkFullyQualifiedResource
+    else
+      Result := rkInvalid;
+  end
+  // Check for ms-resource:ResourceName
   else if RtlxPrefixString('ms-resource:', Reference) then
     Result := rkRelativeResource
   else
-    Result := rkUnknown;
+    Result := rkInvalid;
+
+  if Assigned(FullDelimiter) then
+    FullDelimiter^ := Delimiter;
 end;
 
 function PkgxMrmResolveString;
 var
-  HeadPackage: TArray<TPkgxPackageNameAndProperties>;
-  i: Integer;
+  FullName, RelativeReference: String;
+  Delimiter: Integer;
 begin
-  case PkgxMrmResourceReferenceType(Reference) of
+  case PkgxMrmClassifyReference(Reference, @Delimiter) of
 
     rkFullyQualifiedResource:
-      Result := PkgxMrmResolveFullResourceString(Reference, Value);
+    begin
+      // Extract the package and the resourcce path
+      FullName := Copy(Reference, 3, Delimiter - 3);
+      RelativeReference := Copy(Reference, Delimiter + 1,
+        Length(Reference) - Delimiter - 1);
+
+      Result := PkgxMrmResolveStringForFullName(Value, RelativeReference,
+        FullName);
+    end;
 
     rkRelativeResource:
     begin
@@ -259,28 +375,7 @@ begin
         Exit;
       end;
 
-      // We need the full package name; find the head package of the family
-      Result := PkgxEnumeratePackagesInFamilyByNameEx(HeadPackage,
-        FamilyName, PACKAGE_FILTER_HEAD);
-
-      if not Result.IsSuccess then
-        Exit;
-
-      if Length(HeadPackage) <= 0 then
-      begin
-        Result.Location := 'PkgxMrmResolveString';
-        Result.Win32Error := APPMODEL_ERROR_NO_PACKAGE;
-        Exit;
-      end;
-
-      for i := 0 to High(HeadPackage) do
-      begin
-        Result := PkgxMrmResolveRelativeResourceString(HeadPackage[i].FullName,
-          Reference, Value);
-
-        if Result.IsSuccess then
-          Break;
-      end;
+      Result := PkgxMrmResolveStringForFamily(Value, Reference, FamilyName);
     end
   else
     Result.Location := 'PkgxMrmResolveString';
