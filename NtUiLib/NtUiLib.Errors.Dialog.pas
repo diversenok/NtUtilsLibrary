@@ -12,14 +12,24 @@ var
   // Display stack traces in the error dialog, when available
   DisplayStackTraces: Boolean = False;
 
+type
+  // A callback function that might suggest solutions for specific problems
+  TUiLibSuggestionProvider = function (
+    const Status: TNtxStatus;
+    out Suggesion: String
+  ): Boolean;
+
+// Register a suggestion callback
+procedure UiLibRegisterSuggestionProvider(Callback: TUiLibSuggestionProvider);
+
 // Show a modal error message dialog
-function ShowNtxStatus(
+function UiLibShowNtxStatus(
   ParentWnd: THwnd;
   const Status: TNtxStatus
 ): TNtxStatus;
 
 // Show a error message dialog to the interactive user
-function ShowNtxStatusAlwaysInteractive(
+function UiLibShowNtxStatusAlwaysInteractive(
   const Status: TNtxStatus;
   TimeoutSeconds: Cardinal = DEFAULT_CROSS_SESSION_MESSAGE_TIMEOUT
 ): TNtxStatus;
@@ -39,6 +49,36 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+var
+  SuggestionProviders: TArray<TUiLibSuggestionProvider>;
+
+procedure UiLibRegisterSuggestionProvider;
+begin
+  SetLength(SuggestionProviders, Succ(Length(SuggestionProviders)));
+  SuggestionProviders[High(SuggestionProviders)] := Callback;
+end;
+
+function CollectSuggestions(const Status: TNtxStatus): String;
+var
+  Suggestions: TArray<String>;
+  i: Integer;
+begin
+  Suggestions := nil;
+
+  for i := 0 to High(SuggestionProviders) do
+    if SuggestionProviders[i](Status, Result) then
+    begin
+      SetLength(Suggestions, Succ(Length(Suggestions)));
+      Suggestions[High(Suggestions)] := Result;
+    end;
+
+  if Length(Suggestions) > 0 then
+    Result := #$D#$A#$D#$A'--- Suggestions ---'#$D#$A +
+      RtlxJoinStrings(Suggestions, #$D#$A#$D#$A)
+  else
+    Result := '';
+end;
 
 function UiLibVerboseStatusMessage;
 var
@@ -110,6 +150,9 @@ begin
         Status.LastCall.ExpectedPrivilege) + '"';
     end;
 
+  // Suggesions
+  Result := Result + CollectSuggestions(Status);
+
   // Stack trace
   if DisplayStackTraces and (Length(Status.LastCall.StackTrace) > 0) then
     Result := Result + #$D#$A#$D#$A'Stack Trace:'#$D#$A + SymxFormatStackTrace(
@@ -144,7 +187,7 @@ begin
   Content := UiLibVerboseStatusMessage(Status);
 end;
 
-function ShowNtxStatus;
+function UiLibShowNtxStatus;
 var
   Icon: TDialogIcon;
   Title, Summary, Content: String;
@@ -155,7 +198,7 @@ begin
     Content, Icon, dbOk, IDOK);
 end;
 
-function ShowNtxStatusAlwaysInteractive;
+function UiLibShowNtxStatusAlwaysInteractive;
 var
   Icon: TDialogIcon;
   Title, Summary, Content: String;

@@ -14,21 +14,14 @@ var
   BUG_MESSAGE: String = 'If you known how to reproduce this error, please ' +
     'help us by opening an issue on our project''s page.';
 
-type
-  // A callback function that might suggest solutions for specific problems
-  TSuggester = function (const NtxStatus: TNtxStatus): String;
-
-// Register a suggestion callback
-procedure RegisterSuggestions(const Callback: TSuggester);
-
 // Show a modal exception message to a user
-function ShowNtxException(
+function UiLibShowNtxException(
   ParentWnd: THwnd;
   E: TObject
 ): TNtxStatus;
 
 // Show an exception message dialog to the interactive user
-function ShowNtxExceptionAlwaysInteractive(
+function UiLibShowNtxExceptionAlwaysInteractive(
   E: TObject;
   TimeoutSeconds: Cardinal = DEFAULT_CROSS_SESSION_MESSAGE_TIMEOUT
 ): TNtxStatus;
@@ -41,38 +34,6 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-var
-  Suggesters: TArray<TSuggester>;
-
-procedure RegisterSuggestions;
-begin
-  SetLength(Suggesters, Length(Suggesters) + 1);
-  Suggesters[High(Suggesters)] := Callback;
-end;
-
-function CollectSuggestions(const NtxStatus: TNtxStatus): String;
-var
-  Suggestions: TArray<String>;
-  i: Integer;
-begin
-  for i := 0 to High(Suggesters) do
-  begin
-    Result := Suggesters[i](NtxStatus);
-
-    if Result <> '' then    
-    begin
-      SetLength(Suggestions, Length(Suggestions) + 1);
-      Suggestions[High(Suggestions)] := Result;
-    end;
-  end;
-
-  if Length(Suggestions) > 0 then
-    Result := #$D#$A#$D#$A'--- Suggestions ---'#$D#$A +
-      String.Join(#$D#$A#$D#$A, Suggestions)
-  else
-    Result := '';
-end;
 
 procedure RtlxpPrepareExceptionMessage(
   E: TObject;
@@ -106,28 +67,28 @@ end;
 
 { Showing }
 
-function ShowNtxException;
+function UiLibShowNtxException;
 var
   Summary, Content: String;
   Response: TMessageResponse;
 begin
   // Extract and use TNtxStatus from the exception
   if E is ENtError then
-    Exit(ShowNtxStatus(ParentWnd, ENtError(E).NtxStatus));
+    Exit(UiLibShowNtxStatus(ParentWnd, ENtError(E).NtxStatus));
 
   RtlxpPrepareExceptionMessage(Exception(E), Summary, Content);
   Result := UsrxShowTaskDialogWithStatus(Response, ParentWnd, 'Exception',
     Summary, Content, diError, dbOk, IDOK);
 end;
 
-function ShowNtxExceptionAlwaysInteractive;
+function UiLibShowNtxExceptionAlwaysInteractive;
 var
   Summary, Content: String;
   Response: TMessageResponse;
 begin
   // Extract and use TNtxStatus from the exception
   if E is ENtError then
-    Exit(ShowNtxStatusAlwaysInteractive(ENtError(E).NtxStatus,
+    Exit(UiLibShowNtxStatusAlwaysInteractive(ENtError(E).NtxStatus,
       TimeoutSeconds));
 
   RtlxpPrepareExceptionMessage(E, Summary, Content);
