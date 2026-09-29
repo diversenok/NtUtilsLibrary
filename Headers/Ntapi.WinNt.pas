@@ -585,6 +585,7 @@ type
   TServiceTag = type Cardinal;
 
   TLogonId = type TLuid;
+  PLogonId = ^TLogonId;
   TSessionId = type Cardinal;
   PSessionId = ^TSessionId;
 

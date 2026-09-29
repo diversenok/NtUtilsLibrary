@@ -94,11 +94,34 @@ function LsaxLogonUser(
   const PackageName: AnsiString = NEGOSSP_NAME_A
 ): TNtxStatus;
 
+// Configure NTLM logon options for the current thread
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpWithExceptions)]
+function LsaxSetNtlmOptions(
+  Options: TNtlmOptionFlags;
+  Revert: Boolean = False
+): TNtxStatus;
+
+// Configure NTLM logon options and revert them later
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpWithExceptions)]
+function LsaxSetNtlmOptionsAuto(
+  out Reverter: IDeferredOperation;
+  Options: TNtlmOptionFlags
+): TNtxStatus;
+
+// Open a token of a logon session
+// Note: requires NT SERVICE\CscService membership.
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
+function LsaxLookupLogonToken(
+  out hxToken: IHandle;
+  const LogonId: TLogonId
+): TNtxStatus;
+
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Info, NtUtils.Tokens.Misc,
-  DelphiUtils.AutoObjects, NtUtils.Lsa, NtUtils.Security.Sid, NtUtils.Errors;
+  Ntapi.Versions, DelphiUtils.AutoObjects, NtUtils.Lsa, NtUtils.Security.Sid,
+  NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -209,7 +232,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Lookup the Negotiate package
+  // Lookup the authentication package
   Result := LsaxLookupAuthPackage(AuthPkg, PackageName, LsaHandle);
 
   if not Result.IsSuccess then
@@ -368,6 +391,114 @@ begin
 
   Result := LsaxLogonUserInternal(Info, Buffer, LogonType, TokenSource,
     AdditionalGroups, PackageName);
+end;
+
+function LsaxSetNtlmOptions;
+var
+  hxLsaConnection: ILsaHandle;
+  PackageId: Cardinal;
+  InputBuffer: TMsV10SetThreadOptionRequest;
+  SubStatus: NTSTATUS;
+begin
+  Result := LsaxConnectUntrusted(hxLsaConnection);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LsaxLookupAuthPackage(PackageId, MSV1_0_PACKAGE_NAME,
+    hxLsaConnection);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if RtlOsVersionAtLeast(OsWin8) then
+    InputBuffer.MessageType := MsV1_0SetThreadOption
+  else
+    InputBuffer.MessageType := MsV1_0SetProcessOption;
+
+  InputBuffer.ThreadOptions := Options;
+  InputBuffer.DisableOptions := Revert;
+  InputBuffer.Revert := Revert;
+
+  Result.Location := 'LsaCallAuthenticationPackage';
+  Result.LastCall.UsesInfoClass(InputBuffer.MessageType, icPerform);
+  Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
+  Result.Status := LsaCallAuthenticationPackage(hxLsaConnection.Handle,
+    PackageId, @InputBuffer, SizeOf(InputBuffer), nil, nil, SubStatus);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if not SubStatus.IsSuccess then
+    Result.Status := SubStatus;
+end;
+
+function LsaxSetNtlmOptionsAuto;
+begin
+  Result := LsaxSetNtlmOptions(Options);
+
+  if Result.IsSuccess then
+    Reverter := Auto.Defer(
+      procedure
+      begin
+        LsaxSetNtlmOptions(0, True);
+      end
+    );
+end;
+
+function LsaxLookupLogonToken;
+var
+  hxLsaConnection: ILsaHandle;
+  PackageId: Cardinal;
+  InputBuffer: TMsV10LookupTokenRequest;
+  OutputBuffer: PMsV10LookupTokenResponse;
+  OutputBufferDeallocator: IAutoReleasable;
+  OutputBufferSize: Cardinal;
+  SubStatus: NTSTATUS;
+begin
+  Result := LsaxConnectUntrusted(hxLsaConnection);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LsaxLookupAuthPackage(PackageId, MSV1_0_PACKAGE_NAME,
+    hxLsaConnection);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  InputBuffer.MessageType := MsV1_0LookupToken;
+  InputBuffer.LogonId := LogonId;
+  OutputBuffer := nil;
+
+  Result.Location := 'LsaCallAuthenticationPackage';
+  Result.LastCall.UsesInfoClass(MsV1_0LookupToken, icPerform);
+  Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
+  Result.Status := LsaCallAuthenticationPackage(hxLsaConnection.Handle,
+    PackageId, @InputBuffer, SizeOf(InputBuffer), @Pointer(OutputBuffer),
+    @OutputBufferSize, SubStatus);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Assigned(OutputBuffer) then
+    OutputBufferDeallocator := DeferLsaFreeReturnBuffer(OutputBuffer);
+
+  // Forward the protocol status
+  if not SubStatus.IsSuccess then
+  begin
+    Result.Status := SubStatus;
+    Exit;
+  end;
+
+  if not Assigned(OutputBuffer) then
+  begin
+    Result.Location := 'LsaxLookupLogonToken';
+    Result.Status := STATUS_UNSUCCESSFUL;
+    Exit;
+  end;
+
+  Result := NtxCaptureHandle(hxToken, OutputBuffer.TokenHandle);
 end;
 
 end.

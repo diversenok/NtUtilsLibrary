@@ -11,7 +11,7 @@ interface
 
 uses
   Ntapi.ntdef, Ntapi.WinNt, Ntapi.ntseapi, DelphiApi.Reflection,
-  DelphiApi.DelayLoad;
+  DelphiApi.DelayLoad, Ntapi.Versions;
 
 const
   secur32 = 'secur32.dll';
@@ -66,6 +66,18 @@ const
   // SDK::NTSecAPI.h
   S4U_LOGON_FLAG_CHECK_LOGONHOURS = $02; // MsV1_0, Kerb
   S4U_LOGON_FLAG_IDENTIFY = $08; // Kerb
+
+  // WDK::ntmsv1_0.h - localhost alias opertaions
+  MSV1_0_CONFIG_LOCAL_ALIASES_ADD = $01;
+  MSV1_0_CONFIG_LOCAL_ALIASES_DEL = $02;
+  MSV1_0_CONFIG_LOCAL_ALIASES_ENUM = $04;
+
+  // WDK::ntmsv1_0.h - NTLM process/thread option flags
+  MSV1_0_OPTION_ALLOW_BLANK_PASSWORD = $01;
+  MSV1_0_OPTION_DISABLE_ADMIN_LOCKOUT = $02;
+  MSV1_0_OPTION_DISABLE_FORCE_GUEST = $04;
+  MSV1_0_OPTION_ALLOW_OLD_PASSWORD = $08;
+  MSV1_0_OPTION_TRY_CACHE_FIRST = $10;
 
   // SDK::NTSecAPI.h - audit access masks
   AUDIT_SET_SYSTEM_POLICY = $0001;
@@ -327,6 +339,126 @@ type
   end;
   PSmartCardLogonProfile = ^TSmartCardLogonProfile;
 
+  // SDK::NTSecAPI.h
+  [SDKName('MSV1_0_PROTOCOL_MESSAGE_TYPE')]
+  [NamingStyle(nsCamelCase, 'MsV1_0')]
+  TMsV10ProtocolMessageType = (
+    MsV1_0Lm20ChallengeRequest = 0,
+    MsV1_0Lm20GetChallengeResponse = 1,
+    MsV1_0EnumerateUsers = 2,          // in: TMsV10ProtocolMessageType; out: TMsV10EnumUsersResponse
+    MsV1_0GetUserInfo = 3,             // in: TMsV10GetUserInfoRequest; out: TMsV10GetUserInfoResponse
+    MsV1_0ReLogonUsers = 4,
+    MsV1_0ChangePassword = 5,
+    MsV1_0ChangeCachedPassword = 6,
+    MsV1_0GenericPassthrough = 7,
+    MsV1_0CacheLogon = 8,
+    MsV1_0SubAuth = 9,
+    MsV1_0DeriveCredential = 10,
+    MsV1_0CacheLookup = 11,
+    MsV1_0SetProcessOption = 12,       // in: TMsV10SetProcessOptionRequest
+    MsV1_0ConfigLocalAliases = 13,     // in: TMsV10ConfigLocalAliasesRequest; out: TMsV10ConfigLocalAliasesResponse
+    MsV1_0ClearCachedCredentials = 14,
+    MsV1_0LookupToken = 15,            // in: TMsV10LookupTokenRequest; out: TMsV10LookupTokenResponse
+    MsV1_0ValidateAuth = 16,           // Win 8+
+    MsV1_0CacheLookupEx = 17,          // Win 8+
+    MsV1_0GetCredentialKey = 18,       // Win 8+
+    MsV1_0SetThreadOption = 19,        // in: TMsV10SetThreadOptionRequest // Win 8+
+    MsV1_0DecryptDpapiMasterKey = 20,  // Win 10 TH1+
+    MsV1_0GetStrongCredentialKey = 21, // Win 10 TH1+
+    MsV1_0TransferCred = 22,           // Win 10 TH2+
+    MsV1_0ProvisionTbal = 23,          // Win 10 RS1+
+    MsV1_0DeleteTbalSecrets = 24       // Win 10 RS1+
+  );
+
+  // WDK::ntmsv1_0.h - package message 2 output
+  [SDKName('MSV1_0_ENUMUSERS_RESPONSE')]
+  TMsV10EnumUsersResponse = record
+    MessageType: TMsV10ProtocolMessageType;
+    NumberOfLoggedOnUsers: Integer;
+    LogonIds: PLogonId;
+    EnumHandles: PCardinal;
+  end;
+  PMsV10EnumUsersResponse = ^TMsV10EnumUsersResponse;
+
+  // WDK::ntmsv1_0.h - package message 2 input
+  [SDKName('MSV1_0_GETUSERINFO_REQUEST')]
+  TMsV10GetUserInfoRequest = packed record
+    MessageType: TMsV10ProtocolMessageType;
+    LogonId: TLogonId;
+  end;
+  PMsV10GetUserInfoRequest = ^TMsV10GetUserInfoRequest;
+
+  // WDK::ntmsv1_0.h - package message 2 output
+  [SDKName('MSV1_0_GETUSERINFO_RESPONSE')]
+  TMsV10GetUserInfoResponse = record
+    MessageType: TMsV10ProtocolMessageType;
+    UserSid: PSid;
+    UserName: TNtUnicodeString;
+    LogonDomainName: TNtUnicodeString;
+    LogonServer: TNtUnicodeString;
+    LogonType: TSecurityLogonType;
+  end;
+  PMsV10GetUserInfoResponse = ^TMsV10GetUserInfoResponse;
+
+  [FlagName(MSV1_0_OPTION_ALLOW_BLANK_PASSWORD, 'Allow Blank Password')]
+  [FlagName(MSV1_0_OPTION_DISABLE_ADMIN_LOCKOUT, 'Disable Admin Lockout')]
+  [FlagName(MSV1_0_OPTION_DISABLE_FORCE_GUEST, 'Disable Force Guest')]
+  [FlagName(MSV1_0_OPTION_ALLOW_OLD_PASSWORD, 'Allow Old Password')]
+  [FlagName(MSV1_0_OPTION_TRY_CACHE_FIRST, 'Try Cache First')]
+  TNtlmOptionFlags = type Cardinal;
+
+  // WDK::ntmsv1_0.h - package message 12 input
+  [SDKName('MSV1_0_SETPROCESSOPTION_REQUEST')]
+  TMsV10SetProcessOptionRequest = record
+    MessageType: TMsV10ProtocolMessageType;
+    ProcessOptions: TNtlmOptionFlags;
+    DisableOptions: Boolean;
+  end;
+  PMsV10SetProcessOptionRequest = ^TMsV10SetProcessOptionRequest;
+
+  // WDK::ntmsv1_0.h - package message 13 input
+  [SDKName('MSV1_0_CONFIG_LOCAL_ALIASES_REQUEST')]
+  TMsV10ConfigLocalAliasesRequest = record
+    MessageType: TMsV10ProtocolMessageType;
+    Flags: Cardinal;
+    Alias: TNtUnicodeString;
+  end;
+  PMsV10ConfigLocalAliasesRequest = ^TMsV10ConfigLocalAliasesRequest;
+
+  // WDK::ntmsv1_0.h - package message 13 output
+  [SDKName('MSV1_0_CONFIG_LOCAL_ALIASES_RESPONSE')]
+  TMsV10ConfigLocalAliasesResponse = record
+    MessageType: TMsV10ProtocolMessageType;
+    MultszAliases: TNtUnicodeString;
+  end;
+  PMsV10ConfigLocalAliasesResponse = ^TMsV10ConfigLocalAliasesResponse;
+
+  // private - package message 15 input
+  [SDKName('MSV1_0_LOOKUP_TOKEN_REQUEST')]
+  TMsV10LookupTokenRequest = packed record
+    MessageType: TMsV10ProtocolMessageType;
+    LogonId: TLogonId;
+  end;
+  PMsV10LookupTokenRequest = ^TMsV10LookupTokenRequest;
+
+  // private - package message 15 output
+  [SDKName('MSV1_0_LOOKUP_TOKEN_RESPONSE')]
+  TMsV10LookupTokenResponse = record
+    TokenHandle: THandle32;
+  end;
+  PMsV10LookupTokenResponse = ^TMsV10LookupTokenResponse;
+
+  // private - package message 19 input
+  [MinOSVersion(OsWin8)]
+  [SDKName('MSV1_0_SETTHREADOPTION_REQUEST')]
+  TMsV10SetThreadOptionRequest = record
+    MessageType: TMsV10ProtocolMessageType;
+    ThreadOptions: TNtlmOptionFlags;
+    DisableOptions: Boolean;
+    Revert: Boolean;
+  end;
+  PMsV10SetThreadOptionRequest = ^TMsV10SetThreadOptionRequest;
+
   TSidArray = TAnysizeArray<PSid>;
   PSidArray = ^TSidArray;
 
@@ -399,6 +531,17 @@ function LsaLookupAuthenticationPackage(
 // SDK::NTSecAPI.h
 function LsaFreeReturnBuffer(
   [in] Buffer: Pointer
+): NTSTATUS; stdcall; external secur32;
+
+// SDK::NTSecAPI.h
+function LsaCallAuthenticationPackage (
+  [in] LsaHandle: TLsaHandle;
+  [in] AuthenticationPackage: Cardinal;
+  [in, ReadsFrom] ProtocolSubmitBuffer: Pointer;
+  [in, NumberOfBytes] SubmitBufferLength: Cardinal;
+  [out, opt, ReleaseWith('LsaFreeReturnBuffer')] ProtocolReturnBuffer: PPointer;
+  [out, opt] ReturnBufferLength: PCardinal;
+  [out, opt] out ProtocolStatus: NTSTATUS
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
