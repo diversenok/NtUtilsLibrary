@@ -835,6 +835,23 @@ function CoCreateInstance(
   [out] out pv
 ): HResult; stdcall; external ole32;
 
+// private
+[RequiresCOM]
+[MinOSVersion(OsWin10RS1)]
+function CoCreateInstanceAsUser(
+  [in] const Clsid: TClsid;
+  [in, opt] unkOuter: IUnknown;
+  [in] ClsContext: TClsCtx;
+  [in] UserContext: TUmgrContext;
+  [in] const iid: TIID;
+  [out] out pv
+): HResult; stdcall; external combase delayed index 154;
+
+var delayed_CoCreateInstanceAsUser: TDelayedLoadFunction = (
+  Dll: @delayed_combase;
+  FunctionName: MAKEINTRESOURCEA(154);
+);
+
 // SDK::combaseapi.h
 [RequiresCOM]
 function CoGetClassObject(

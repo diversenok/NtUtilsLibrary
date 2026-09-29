@@ -271,16 +271,32 @@ var delayed_RoUninitialize: TDelayedLoadFunction = (
 );
 
 // SDK::roapi.h
+[RequiresWinRT]
 [MinOSVersion(OsWin8)]
 function RoGetActivationFactory(
-  [in] activatableClassId: THString;
-  [in] const iid: TIid;
-  [out] out factory
+  [in] ActivatableClassId: THString;
+  [in] const Iid: TIid;
+  [out] out Factory
 ): HResult; stdcall; external combase delayed;
 
 var delayed_RoGetActivationFactory: TDelayedLoadFunction = (
   Dll: @delayed_combase;
   FunctionName: 'RoGetActivationFactory';
+);
+
+// private
+[RequiresWinRT]
+[MinOSVersion(OsWin10TH1)]
+function RoGetActivationFactoryAsUser(
+  [in] ActivatableClassId: THString;
+  [in, opt] UserContext: TUmgrContext;
+  [in] const Iid: TIid;
+  [out] out Factory
+): HResult; stdcall external combase index 148 delayed;
+
+var delayed_RoGetActivationFactoryAsUser: TDelayedLoadFunction = (
+  Dll: @delayed_combase;
+  FunctionName: MAKEINTRESOURCEA(148);
 );
 
 // SDK::roapi.h
@@ -294,6 +310,34 @@ function RoActivateInstance(
 var delayed_RoActivateInstance: TDelayedLoadFunction = (
   Dll: @delayed_combase;
   FunctionName: 'RoActivateInstance';
+);
+
+// private
+[RequiresWinRT]
+[MinOSVersion(OsWin81)]
+function RoActivateInstanceInPackage(
+  [in] ActivatableClassId: THString;
+  [in, opt] PackageMoniker: THString;
+  [out] out Instance: IInspectable
+): HResult; stdcall external combase index 135 delayed;
+
+var delayed_RoActivateInstanceInPackage: TDelayedLoadFunction = (
+  Dll: @delayed_combase;
+  FunctionName: MAKEINTRESOURCEA(135);
+);
+
+// private
+[RequiresWinRT]
+[MinOSVersion(OsWin10TH1)]
+function RoActivateInstanceAsUser(
+  [in] ActivatableClassId: THString;
+  [in, opt] UserContext: TUmgrContext;
+  [out] out Instance: IInspectable
+): HResult; stdcall external combase index 147 delayed;
+
+var delayed_RoActivateInstanceAsUser: TDelayedLoadFunction = (
+  Dll: @delayed_combase;
+  FunctionName: MAKEINTRESOURCEA(147);
 );
 
 implementation
