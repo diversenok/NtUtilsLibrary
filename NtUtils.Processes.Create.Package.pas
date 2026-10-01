@@ -46,16 +46,21 @@ function PkgxCreateProcessInPackage(
 [RequiresCOM]
 [MinOSVersion(OsWin8)]
 function PkgxActivateApplication(
-  const AppUserModelId: String;
-  [opt] const Arguments: String = '';
-  Options: TActivateOptionsInternal = 0;
+  const Options: TPkgxActivatePackageOptions;
   [out, opt] pProcessId: PProcessId32 = nil
+): TNtxStatus;
+
+// Activate a package via IApplicationActivationManager
+[RequiresCOM]
+[MinOSVersion(OsWin81)]
+function PkgxActivateApplicationViaImmersiveShell(
+  const Options: TPkgxActivatePackageOptions
 ): TNtxStatus;
 
 // Activate a package via IApplicationActivationBroker
 [RequiresCOM]
 [MinOSVersion(OsWin10TH1)]
-function PkgxActivateApplicationEx(
+function PkgxActivateApplicationViaBroker(
   const Options: TPkgxActivatePackageOptions;
   out Pid: TProcessId32
 ): TNtxStatus;
@@ -364,13 +369,72 @@ begin
 
   Result.Location := 'IApplicationActivationManager.ActivateApplication';
   Result.HResult := ActivationManager.ActivateApplication(
-    PWideChar(AppUserModelId), RefStrOrNil(Arguments), Options, ProcessId);
+    PWideChar(Options.Aumid),
+    RefStrOrNil(Options.Arguments),
+    Options.Options,
+    ProcessId
+  );
 
   if Result.IsSuccess and Assigned(pProcessId) then
     pProcessId^ := ProcessId;
 end;
 
-function PkgxActivateApplicationEx;
+function PkgxActivateApplicationViaImmersiveShell;
+var
+  ImmersiveShell: IServiceProvider;
+  SwitchController: ISwitchController;
+  SwitchControllerIid: TIid;
+  CurrentVersion: TWindowsVersion;
+  Paramaters: TSwitchToAppOption;
+begin
+  // Connect to explorer.exe of the specified/current session
+  Result := ComxCreateInstanceInSession(CLSID_ImmersiveShell,
+    IServiceProvider, ImmersiveShell, Options.SessionId, False,
+    apUseSessionId in Options.Flags, 'CLSID_ImmersiveShell');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  CurrentVersion := RtlOsVersion;
+
+  // Select the interface IID for this OS version
+  if CurrentVersion >= OsWin10RS4 then
+    SwitchControllerIid := ISwitchControllerV4
+  else if CurrentVersion >= OsWin10RS3 then
+    SwitchControllerIid := ISwitchControllerV3
+  else if CurrentVersion >= OsWin10 then
+    SwitchControllerIid := ISwitchControllerV2
+  else
+    SwitchControllerIid := ISwitchController;
+
+  Result.Location := 'IServiceProvider::QueryService';
+  Result.LastCall.Parameter := 'SID_SwitchController';
+  Result.HResult := ImmersiveShell.QueryService(SID_SwitchController,
+    SwitchControllerIid, SwitchController);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Paramaters := Default(TSwitchToAppOption);
+  Paramaters.ActivateOptions := Options.Options;
+
+  // Allow spawning the package in foreground
+  if not (apDontTransferForeground in Options.Flags) and
+    (not (apUseSessionId in Options.Flags) or
+    (Options.SessionId = RtlGetCurrentPeb.SessionID)) then
+    ComxAllowSetForegroundWindow(SwitchController);
+
+  // Switch to (or activate) the package
+  Result.Location := 'ISwitchController::SwitchToAppByIdWithArguments';
+  Result.HResult := SwitchController.SwitchToAppByIdWithArguments(
+    PWideChar(Options.Aumid),
+    RefStrOrNil(Options.Arguments),
+    PWideChar(Options.Aumid),
+    Paramaters
+  );
+end;
+
+function PkgxActivateApplicationViaBroker;
 var
   BrokerProvider: IServiceHostBrokerProvider;
   Broker: IApplicationActivationBroker;

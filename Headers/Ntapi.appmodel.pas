@@ -199,6 +199,25 @@ const
   // private, Win 10 RS1+
   CLSID_DesktopAppXActivator: TGuid = '{168EB462-775F-42AE-9111-D714B2306C2E}';
 
+  // private, Win 8.1+
+  SAF_NOACTIVATEDESKTOPAPP = $00000001;
+  SAF_NOMOVEFOREGROUND = $00000002;
+  SAF_NOANIMATE = $00000004;
+  SAF_DEFAULTSWITCHANIMATION = $00000008;
+  SAF_CROSSFADEANIMATION = $00000010;
+  SAF_NORELAUNCH = $00000020;
+  SAF_SWITCHTOSEARCHRESULTS = $00000040;
+  SAF_LAUNCHFROMSEARCHRESULTS = $00000080;
+  SAF_FORCECREATESCREEN = $00000100;
+  SAF_INSERTIFFULLSCREEN = $00000200;
+  SAF_MAXIMIZEANIMATION = $00000400;
+  SAF_REQUIREHIGHCONFIDENCE = $00000800; // Win 10 TH1+
+  SAF_DESKTOPSTYLEANIMATION = $00001000; // Win 10 TH1+
+
+  // private, Win 8.1+
+  CLSID_ImmersiveShell: TGuid = '{C2F03A33-21F5-47FA-B4BB-156362A2F239}';
+  SID_SwitchController: TGuid = '{9C33C4AB-BC91-4A79-BF47-7C90CEBC3AA3}';
+
 type
   // rev - WIN://SYSAPPID attribute values
   [NamingStyle(nsCamelCase, 'SysAppId_')]
@@ -759,6 +778,97 @@ type
       [in] showWindow: TShowMode32;
       [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
+  end;
+
+  // private
+  [MinOSVersion(OsWin81)]
+  [SDKName('ACTIVATION_MONITOR_PREFERENCE')]
+  TActivationMonitorPreference = (
+    AMP_NONE = 0,
+    AMP_SOURCE_MONITOR = 1
+  );
+
+  // private
+  [MinOSVersion(OsWin81)]
+  [SDKName('PLACE_MODE_OPTION')]
+  TPlaceModeOption = (
+    PMO_NONE = 0,
+    PMO_ALLOW = 1,
+    PMO_FORCE = 2,
+    PMO_ALLOW_IF_REPLACE_MULTI = 3 // Win 10 TH1+
+  );
+
+  // private
+  [MinOSVersion(OsWin81)]
+  [SDKName('REVERT_LAYOUT_OPTION')]
+  TRevertLayoutOption = (
+    RLO_DEFAULT = 0,
+    RLO_TRYREVERT = 1
+  );
+
+  // private
+  [MinOSVersion(OsWin81)]
+  [SDKName('SWITCH_APP_FLAGS')]
+  [FlagName(SAF_NOACTIVATEDESKTOPAPP, 'No Activate Desktop App')]
+  [FlagName(SAF_NOMOVEFOREGROUND, 'No Move Foreground')]
+  [FlagName(SAF_NOANIMATE, 'No Animate')]
+  [FlagName(SAF_DEFAULTSWITCHANIMATION, 'Default Switch Animation')]
+  [FlagName(SAF_CROSSFADEANIMATION, 'Cross-fade Animation')]
+  [FlagName(SAF_NORELAUNCH, 'No Relaunch')]
+  [FlagName(SAF_SWITCHTOSEARCHRESULTS, 'Switch Search Results')]
+  [FlagName(SAF_LAUNCHFROMSEARCHRESULTS, 'Launch From Search Results')]
+  [FlagName(SAF_FORCECREATESCREEN, 'Force Create Screen')]
+  [FlagName(SAF_INSERTIFFULLSCREEN, 'Insert If Fullscreen')]
+  [FlagName(SAF_MAXIMIZEANIMATION, 'Maximize Animation')]
+  [FlagName(SAF_REQUIREHIGHCONFIDENCE, 'Require High Confidence')]
+  [FlagName(SAF_DESKTOPSTYLEANIMATION, 'Desktop Style Animation')]
+  TSwitchAppFlags = type Cardinal;
+
+  IImmersiveMonitor = IUnknown;
+
+  // private
+  [MinOSVersion(OsWin81)]
+  [SDKName('SWITCH_TO_APP_OPTIONS')]
+  TSwitchToAppOption = record
+    DefaultMonitor: IImmersiveMonitor;
+    MonitorPreference: TActivationMonitorPreference;
+    ActivateOptions: TActivateOptionsInternal;
+    PlaceModeOption: TPlaceModeOption;
+    RevertOption: TRevertLayoutOption;
+    SwitchFlags: TSwitchAppFlags;
+    HwndSource: THwnd;
+    [MinOSVersion(OsWin10RS4)] ActivationContextSite: IUnknown;
+    [Reserved] Padding: array [0..1] of NativeInt;
+  end;
+  PSwitchToAppOption = ^TSwitchToAppOption;
+
+  // private
+  [MinOSVersion(OsWin81)]
+  ISwitchController = interface (IUnknown)
+    ['{B9DAB75C-0932-4DBA-A5D1-8322C67511D0}']
+    function SwitchToAppByIdWithArguments(
+      [in] AppUserModelId: PWideChar;
+      [in, opt] Arguments: PWideChar;
+      [in] NotificationTargetId: PWideChar;
+      [in] const Options: TSwitchToAppOption
+    ): HResult; stdcall;
+
+    // more methods follow
+  end;
+
+  [MinOSVersion(OsWin10TH1)]
+  ISwitchControllerV2 = interface (ISwitchController)
+    ['{15328F88-3846-45BE-AC4B-E083DCA20EC2}']
+  end;
+
+  [MinOSVersion(OsWin10RS3)]
+  ISwitchControllerV3 = interface (ISwitchController)
+    ['{29272895-960A-4854-9ACE-1B836680EE80}']
+  end;
+
+  [MinOSVersion(OsWin10RS4)]
+  ISwitchControllerV4 = interface (ISwitchControllerV3)
+    ['{53B23E1B-25E2-4886-9FB6-744B8F15571C}']
   end;
 
 // SDK::appmodel.h
