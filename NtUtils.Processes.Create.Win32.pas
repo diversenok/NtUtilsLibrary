@@ -409,7 +409,7 @@ begin
   if poLPAC in Options.Flags then
     Inc(Count);
 
-  if Options.PackageName <> '' then
+  if Options.PackageFullName <> '' then
     Inc(Count);
 
   if HasAny(Options.PackageBreakaway) then
@@ -567,14 +567,14 @@ begin
       Exit;
   end;
 
-  // Package name
-  if Options.PackageName <> '' then
+  // Package full name
+  if Options.PackageFullName <> '' then
   begin
     Result := RtlxpUpdateProcThreadAttribute(
       xMemory.Data,
-      PROC_THREAD_ATTRIBUTE_PACKAGE_NAME,
-      PWideChar(PtAttributes.Options.PackageName)^,
-      StringSizeNoZero(PtAttributes.Options.PackageName)
+      PROC_THREAD_ATTRIBUTE_PACKAGE_FULL_NAME,
+      PWideChar(PtAttributes.Options.PackageFullName)^,
+      StringSizeNoZero(PtAttributes.Options.PackageFullName)
     );
 
     if not Result.IsSuccess then

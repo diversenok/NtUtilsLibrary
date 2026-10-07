@@ -101,7 +101,7 @@ type
     AppContainer: ISid;                // Win 8+
     Capabilities: TArray<TGroup>;      // Win 8+
     Protection: TProtectionLevel;      // Win 8.1+
-    PackageName: String;               // Win 8.1+
+    PackageFullName: String;           // Win 8.1+
     AppUserModeId: String;             // {PackageFamilyName}!{AppId}, Win 10 RS1+
     PackageBreakaway: TProcessDesktopAppFlags; // Win 10 RS2+
     LogonFlags: TProcessLogonFlags;
