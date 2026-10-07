@@ -367,7 +367,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IApplicationActivationManager.ActivateApplication';
+  Result.Location := 'IApplicationActivationManager::ActivateApplication';
   Result.HResult := ActivationManager.ActivateApplication(
     PWideChar(Options.Aumid),
     RefStrOrNil(Options.Arguments),
