@@ -10,7 +10,7 @@ uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
 
 type
-  TFbqnValue = record
+  TNtxFbqnValue = record
     Version: UInt64;
     Name: String;
 
@@ -20,13 +20,13 @@ type
     );
   end;
 
-  TSecurityAttribute = record
+  TNtxSecurityAttribute = record
     Name: String;
     ValueType: TSecurityAttributeType;
     Flags: TSecurityAttributeFlags;
     ValuesUInt64: TArray<UInt64>;
     ValuesString: TArray<String>;
-    ValuesFqbn: TArray<TFbqnValue>;
+    ValuesFqbn: TArray<TNtxFbqnValue>;
     ValuesOctet: TArray<IMemory>;
 
     constructor CreateUInt64(
@@ -45,7 +45,7 @@ type
     constructor CreateFqbn(
       const Name: String;
       Flags: TSecurityAttributeFlags;
-      const Values: TArray<TFbqnValue>
+      const Values: TArray<TNtxFbqnValue>
     );
 
     constructor CreateOctet(
@@ -178,8 +178,8 @@ function NtxCreateTokenEx(
   const PrimaryGroup: ISid;
   [opt] const Groups: TArray<TGroup> = nil;
   [opt] const Privileges: TArray<TPrivilege> = nil;
-  [opt] const UserAttributes: TArray<TSecurityAttribute> = nil;
-  [opt] const DeviceAttributes: TArray<TSecurityAttribute> = nil;
+  [opt] const UserAttributes: TArray<TNtxSecurityAttribute> = nil;
+  [opt] const DeviceAttributes: TArray<TNtxSecurityAttribute> = nil;
   [opt] const DeviceGroups: TArray<TGroup> = nil;
   [opt] const Owner: ISid = nil;
   [opt] const DefaultDacl: IAcl = nil;
@@ -643,17 +643,17 @@ begin
     TokenGroups.Data, 0, nil, nil);
 end;
 
-{ TFbqnValue }
+{ TNtxFbqnValue }
 
-constructor TFbqnValue.Create;
+constructor TNtxFbqnValue.Create;
 begin
   Self.Version := Version;
   Self.Name := Name;
 end;
 
-{ TSecurityAttribute }
+{ TNtxSecurityAttribute }
 
-constructor TSecurityAttribute.CreateFqbn;
+constructor TNtxSecurityAttribute.CreateFqbn;
 begin
   Self.Name := Name;
   Self.ValueType := SECURITY_ATTRIBUTE_TYPE_FQBN;
@@ -661,7 +661,7 @@ begin
   Self.ValuesFqbn := Values;
 end;
 
-constructor TSecurityAttribute.CreateOctet;
+constructor TNtxSecurityAttribute.CreateOctet;
 begin
   Self.Name := Name;
   Self.ValueType := ValueType;
@@ -669,7 +669,7 @@ begin
   Self.ValuesOctet := Values;
 end;
 
-constructor TSecurityAttribute.CreateString;
+constructor TNtxSecurityAttribute.CreateString;
 begin
   Self.Name := Name;
   Self.ValueType := SECURITY_ATTRIBUTE_TYPE_STRING;
@@ -677,7 +677,7 @@ begin
   Self.ValuesString := Values;
 end;
 
-constructor TSecurityAttribute.CreateUInt64;
+constructor TNtxSecurityAttribute.CreateUInt64;
 begin
   Self.Name := Name;
   Self.ValueType := ValueType;

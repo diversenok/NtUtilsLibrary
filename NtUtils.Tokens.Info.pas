@@ -14,9 +14,9 @@ uses
   Ntapi.Versions;
 
 type
-  TSecurityAttribute = NtUtils.Tokens.TSecurityAttribute;
+  TNtxSecurityAttribute = NtUtils.Tokens.TNtxSecurityAttribute;
 
-  TBnoIsolation = record
+  TNtxBnoIsolation = record
     Enabled: Boolean;
     Prefix: String;
   end;
@@ -38,6 +38,13 @@ type
     [MinOSVersion(OsWin8)] CapabilitiesHash: TSidHash;
     [MinOSVersion(OsWin81)] TrustLevelSid: ISid;
     [MinOSVersion(OsWin10TH1)] SecurityAttributes: Cardinal;
+  end;
+
+  TNtxSysAppIdAttribute = record
+    PackageFullName: String;
+    RelativeAppId: String;
+    PackageFamily: String;
+    DynamicId: TGuid;
   end;
 
 // Make sure pseudo-handles are supported for querying on all OS versions
@@ -173,35 +180,35 @@ function NtxSetIntegrityToken(
 // Query token Base Named Objects isolation
 function NtxQueryBnoIsolationToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
-  out Isolation: TBnoIsolation
+  out Isolation: TNtxBnoIsolation
 ): TNtxStatus;
 
 // Query all security attributes of a token
 function NtxQueryAttributesToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
   InfoClass: TTokenInformationClass;
-  out Attributes: TArray<TSecurityAttribute>
+  out Attributes: TArray<TNtxSecurityAttribute>
 ): TNtxStatus;
 
 // Query multiple token security attributes by names
 function NtxQueryAttributesByNameToken(
   [Access(TOKEN_QUERY)] hxToken: IHandle;
   const AttributeNames: TArray<String>;
-  out Attributes: TArray<TSecurityAttribute>
+  out Attributes: TArray<TNtxSecurityAttribute>
 ): TNtxStatus;
 
 // Query a token security attribute by name
 function NtxQueryAttributeByNameToken(
   [Access(TOKEN_QUERY)] hxToken: IHandle;
   const AttributeName: String;
-  out Attribute: TSecurityAttribute
+  out Attribute: TNtxSecurityAttribute
 ): TNtxStatus;
 
 // Set or remove security attributes of a token
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function NtxSetAttributesToken(
   [Access(TOKEN_ADJUST_DEFAULT)] const hxToken: IHandle;
-  const Attributes: TArray<TSecurityAttribute>;
+  const Attributes: TArray<TNtxSecurityAttribute>;
   [opt] Operations: TArray<TTokenAttributeOperation> = nil
 ): TNtxStatus;
 
@@ -209,7 +216,7 @@ function NtxSetAttributesToken(
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function NtxReplaceAllAttributesToken(
   [Access(TOKEN_QUERY or TOKEN_ADJUST_DEFAULT)] hxToken: IHandle;
-  const Attributes: TArray<TSecurityAttribute>
+  const Attributes: TArray<TNtxSecurityAttribute>
 ): TNtxStatus;
 
 // Check if a token is a Less Privileged AppContainer token
@@ -225,6 +232,12 @@ function NtxSetLpacToken(
   IsLPAC: Boolean
 ): TNtxStatus;
 
+// Query the package identity attribute of a token
+function NtxQueryPackageIdentityToken(
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  out SysAppId: TNtxSysAppIdAttribute
+): TNtxStatus;
+
 // Query package flags and origin of a token
 function NtxQueryPackageClaimsToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
@@ -235,14 +248,14 @@ function NtxQueryPackageClaimsToken(
 function NtxQueryClaimsToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
   InfoClass: TTokenInformationClass;
-  out Claims: TArray<TSecurityAttribute>
+  out Claims: TArray<TNtxSecurityAttribute>
 ): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Security.Acl, NtUtils.Tokens.Misc,
-  NtUtils.Security.Sid, DelphiUtils.AutoObjects;
+  NtUtils.Security.Sid, DelphiUtils.AutoObjects, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -658,7 +671,7 @@ end;
 
 function NtxQueryAttributeByNameToken;
 var
-  Attributes: TArray<TSecurityAttribute>;
+  Attributes: TArray<TNtxSecurityAttribute>;
 begin
   Result := NtxQueryAttributesByNameToken(hxToken, [AttributeName], Attributes);
 
@@ -710,7 +723,7 @@ end;
 function NtxReplaceAllAttributesToken;
 var
   OriginalAttributes: IMemory<PTokenSecurityAttributes>;
-  AttributesToDelete: TArray<TSecurityAttribute>;
+  AttributesToDelete: TArray<TNtxSecurityAttribute>;
   RestoreBuffer: TTokenSecurityAttributesAndOperation;
   RestoreOperations: TArray<TTokenAttributeOperation>;
   i: Integer;
@@ -768,7 +781,7 @@ end;
 
 function NtxQueryLpacToken;
 var
-  Attribute: TSecurityAttribute;
+  Attribute: TNtxSecurityAttribute;
 begin
   // This security attribute indicates Less Privileged AppContainer
   Result := NtxQueryAttributeByNameToken(hxToken, 'WIN://NOALLAPPPKG',
@@ -803,7 +816,7 @@ end;
 
 function NtxSetLpacToken;
 var
-  Attribute: TSecurityAttribute;
+  Attribute: TNtxSecurityAttribute;
   Operation: TTokenAttributeOperation;
 begin
   // To enable LPAC we need to add an UINT64 attribute with the first element
@@ -825,17 +838,50 @@ begin
     Result := NtxSuccess;
 end;
 
-function NtxQueryPackageClaimsToken;
+function NtxQueryPackageIdentityToken;
 var
-  Attribute: TSecurityAttribute;
-  ClaimRaw: UInt64 absolute PkgClaim;
+  Attribute: TNtxSecurityAttribute;
 begin
-  Result := NtxQueryAttributeByNameToken(hxToken, 'WIN://PKG',
+  // Read the package identity from WIN://SYSAPPID
+  Result := NtxQueryAttributeByNameToken(hxToken, SECURITY_ATTRIBUTE_SYSAPPID,
     Attribute);
 
   if not Result.IsSuccess then
     Exit;
 
+  // Make sure the attribute is well-formatted
+  if (Attribute.ValueType <> SECURITY_ATTRIBUTE_TYPE_STRING) or
+    (Length(Attribute.ValuesString) < 3) then
+  begin
+    Result.Location := 'NtxQueryPackageIdentityToken';
+    Result.Status := STATUS_UNKNOWN_REVISION;
+    Exit;
+  end;
+
+  // First three strings are required
+  SysAppId.PackageFullName := Attribute.ValuesString[0];
+  SysAppId.RelativeAppId := Attribute.ValuesString[1];
+  SysAppId.PackageFamily := Attribute.ValuesString[2];
+
+  // The fourth is an optional GUID
+  if (Length(Attribute.ValuesString) < 4) or not RtlxStringToGuid(
+    Attribute.ValuesString[2], SysAppId.DynamicId).IsSuccess then
+    SysAppId.DynamicId := Default(TGuid);
+end;
+
+function NtxQueryPackageClaimsToken;
+var
+  Attribute: TNtxSecurityAttribute;
+  ClaimRaw: UInt64 absolute PkgClaim;
+begin
+  // Read the claims from WIN://PKG
+  Result := NtxQueryAttributeByNameToken(hxToken, SECURITY_ATTRIBUTE_PKG,
+    Attribute);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Verify their format
   if not (Attribute.ValueType in
     [SECURITY_ATTRIBUTE_TYPE_INT64, SECURITY_ATTRIBUTE_TYPE_UINT64]) or
     (Length(Attribute.ValuesUInt64) <> 1) then

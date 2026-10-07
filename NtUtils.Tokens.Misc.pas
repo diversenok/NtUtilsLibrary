@@ -48,16 +48,16 @@ function NtxpCaptureGroups(
 function NtxpParseSecurityAttributes(
   [in] Buffer: PTokenSecurityAttributes;
   CaptureValues: Boolean = True
-): TArray<TSecurityAttribute>;
+): TArray<TNtxSecurityAttribute>;
 
 function NtxpAllocSecurityAttributes(
   out Buffer: IMemory<PTokenSecurityAttributes>;
-  const Attributes: TArray<TSecurityAttribute>
+  const Attributes: TArray<TNtxSecurityAttribute>
 ): TNtxStatus;
 
 function NtxpParseClaimAttributes(
   [in] Buffer: PClaimSecurityAttributes
-): TArray<TSecurityAttribute>;
+): TArray<TNtxSecurityAttribute>;
 
 // References
 

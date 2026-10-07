@@ -26,6 +26,7 @@ var
 const
   // rev
   SECURITY_ATTRIBUTE_SYSAPPID = 'WIN://SYSAPPID';
+  SECURITY_ATTRIBUTE_PKG = 'WIN://PKG';
 
   // SDK::appmodel.h - information flags
   PACKAGE_INFORMATION_BASIC = $00000000;
