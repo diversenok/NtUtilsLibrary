@@ -31,6 +31,7 @@ function WmixCreateProcess(
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoWindowMode)]
+[SupportedOption(spoSessionId)]
 function ComxShellDispatchExecute(
   const Options: TNtxCreateProcessOptions;
   out Info: TNtxProcessInfo
@@ -304,7 +305,9 @@ end;
 
 // Retrieve the shell view for the desktop
 function ComxFindDesktopFolderView(
-  out ShellView: IShellView
+  out ShellView: IShellView;
+  SessionId: TSessionId;
+  UseSessionId: Boolean
 ): TNtxStatus;
 var
   ShellWindows: IShellWindows;
@@ -313,8 +316,9 @@ var
   ServiceProvider: IServiceProvider;
   ShellBrowser: IShellBrowser;
 begin
-  Result := ComxCreateInstance(CLSID_ShellWindows, IShellWindows, ShellWindows,
-    'CLSID_ShellWindows', CLSCTX_LOCAL_SERVER);
+  Result := ComxCreateInstanceInSession(CLSID_ShellWindows, IShellWindows,
+    ShellWindows, SessionId, False, UseSessionId,
+    'CLSID_ShellWindows');
 
   if not Result.IsSuccess then
     Exit;
@@ -358,13 +362,15 @@ end;
 
 // Locate the desktop folder view object
 function ComxGetDesktopAutomationObject(
-  out FolderView: IShellFolderViewDual
+  out FolderView: IShellFolderViewDual;
+  SessionId: TSessionId;
+  UseSessionId: Boolean
 ): TNtxStatus;
 var
   ShellView: IShellView;
   Dispatch: IDispatch;
 begin
-  Result := ComxFindDesktopFolderView(ShellView);
+  Result := ComxFindDesktopFolderView(ShellView, SessionId, UseSessionId);
 
   if not Result.IsSuccess then
     Exit;
@@ -383,13 +389,15 @@ end;
 
 // Access the shell dispatch object
 function ComxGetShellDispatch(
-  out ShellDispatch: IShellDispatch2
+  out ShellDispatch: IShellDispatch2;
+  SessionId: TSessionId;
+  UseSessionId: Boolean
 ): TNtxStatus;
 var
   FolderView: IShellFolderViewDual;
   Dispatch: IDispatch;
 begin
-  Result := ComxGetDesktopAutomationObject(FolderView);
+  Result := ComxGetDesktopAutomationObject(FolderView, SessionId, UseSessionId);
 
   if not Result.IsSuccess then
     Exit;
@@ -414,7 +422,8 @@ begin
   Info := Default(TNtxProcessInfo);
 
   // Retrieve the Shell Dispatch object
-  Result := ComxGetShellDispatch(ShellDispatch);
+  Result := ComxGetShellDispatch(ShellDispatch, Options.SessionId,
+    poUseSessionId in Options.Flags);
 
   if not Result.IsSuccess then
     Exit;
