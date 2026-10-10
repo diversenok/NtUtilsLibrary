@@ -186,7 +186,7 @@ begin
 
   if Info.Data.ActivationToken = 0 then
   begin
-    Result.Location := 'AdvxLoadExecutionAliasToken';
+    Result.Location := 'PkgxLoadExecutionAliasToken';
     Result.Status := STATUS_NO_TOKEN;
     Exit;
   end;
