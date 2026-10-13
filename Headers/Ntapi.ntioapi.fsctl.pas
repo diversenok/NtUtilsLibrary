@@ -101,6 +101,11 @@ const
   // WDK::ntifs.h - maximum size FSCTL 41, 42, 43
   MAXIMUM_REPARSE_DATA_BUFFER_SIZE = 16384;
 
+  // WDK::ntifs.h - symlink flags
+  SYMLINK_FLAG_RELATIVE = $00000001;
+  SYMLINK_FILE = $40000000;      // Win 10 RS4+
+  SYMLINK_DIRECTORY = $80000000; // Win 10 RS4+
+
   // WDK::ntifs.h - opportunistic lock flags (FSCTL 144)
   OPLOCK_LEVEL_CACHE_READ = $00000001;
   OPLOCK_LEVEL_CACHE_HANDLE = $00000002;
@@ -877,6 +882,32 @@ type
     DataBuffer: TPlaceholder;
   end;
   PReparseDataBuffer = ^TReparseDataBuffer;
+
+  // Extracted from REPARSE_DATA_BUFFER
+  TMountPointReparseData = record
+    [NumberOfBytes] SubstituteNameOffset: Word;
+    [NumberOfBytes] SubstituteNameLength: Word;
+    [NumberOfBytes] PrintNameOffset: Word;
+    [NumberOfBytes] PrintNameLength: Word;
+    PathBuffer: TAnysizeArray<WideChar>;
+  end;
+  PMountPointReparseData = ^TMountPointReparseData;
+
+  [FlagName(SYMLINK_FLAG_RELATIVE, 'Relative')]
+  [FlagName(SYMLINK_FILE, 'File')]
+  [FlagName(SYMLINK_DIRECTORY, 'Directory')]
+  TSymbolicLinkReparseDataFlags = type Cardinal;
+
+  // Extracted from REPARSE_DATA_BUFFER
+  TSymbolicLinkReparseData = record
+    [NumberOfBytes] SubstituteNameOffset: Word;
+    [NumberOfBytes] SubstituteNameLength: Word;
+    [NumberOfBytes] PrintNameOffset: Word;
+    [NumberOfBytes] PrintNameLength: Word;
+    Flags: TSymbolicLinkReparseDataFlags;
+    PathBuffer: TAnysizeArray<WideChar>;
+  end;
+  PSymbolicLinkReparseData = ^TSymbolicLinkReparseData;
 
   // WDK::ntifs.h - FSCTL 50
   [SDKName('FILE_ZERO_DATA_INFORMATION')]

@@ -112,6 +112,22 @@ function NtxDeleteReparseDataFile(
   ReparseTag: TReparseTag
 ): TNtxStatus;
 
+// Set a directory junction reparse point
+function NtxSetJunctionReparseFile(
+  const hxFile: IHandle;
+  const SubstituteName: String;
+  const PrintName: String
+): TNtxStatus;
+
+// Set a symlink reparse point
+[RequiredPrivilege(SE_CREATE_SYMBOLIC_LINK_PRIVILEGE, rpAlways)]
+function NtxSetSymlinkReparseFile(
+  const hxFile: IHandle;
+  const SubstituteName: String;
+  const PrintName: String;
+  Flags: TSymbolicLinkReparseDataFlags = 0
+): TNtxStatus;
+
 { Pipes }
 
 // Wait for an instance of a named pipe to become available for connections
@@ -368,6 +384,75 @@ begin
 
   Result := NtxFileControl.FsControlIn(hxFile, FSCTL_DELETE_REPARSE_POINT,
     Buffer);
+end;
+
+function NtxSetJunctionReparseFile;
+var
+  RequiredSize: Cardinal;
+  Buffer: IMemory<PMountPointReparseData>;
+begin
+  RequiredSize := SizeOf(TMountPointReparseData) - SizeOf(WideChar) +
+    StringSizeZero(SubstituteName) + StringSizeZero(PrintName);
+
+  if RequiredSize + SizeOf(TReparseDataBuffer) >
+    MAXIMUM_REPARSE_DATA_BUFFER_SIZE then
+  begin
+    Result.Location := 'NtxSetMountPointReparse';
+    Result.Status := STATUS_NAME_TOO_LONG;
+    Exit;
+  end;
+
+  IMemory(Buffer) := Auto.AllocateDynamic(RequiredSize);
+  Buffer.Data.SubstituteNameOffset := 0;
+  Buffer.Data.SubstituteNameLength := StringSizeNoZero(SubstituteName);
+  Buffer.Data.PrintNameOffset := Buffer.Data.SubstituteNameLength +
+    SizeOf(WideChar);
+  Buffer.Data.PrintNameLength := StringSizeNoZero(PrintName);
+
+  Move(PWideChar(SubstituteName)^, Buffer.Data.PathBuffer[0],
+    Buffer.Data.SubstituteNameLength);
+
+  Move(PWideChar(PrintName)^, Buffer.Data
+    .PathBuffer{$R-}[Succ(Length(SubstituteName))]{$IFDEF R+}{$R+}{$ENDIF},
+    Buffer.Data.PrintNameLength);
+
+  Result := NtxSetReparseDataFile(hxFile, IO_REPARSE_TAG_MOUNT_POINT,
+    Buffer.Data, Buffer.Size);
+end;
+
+function NtxSetSymlinkReparseFile;
+var
+  RequiredSize: Cardinal;
+  Buffer: IMemory<PSymbolicLinkReparseData>;
+begin
+  RequiredSize := SizeOf(TSymbolicLinkReparseData) - SizeOf(WideChar) +
+    StringSizeZero(SubstituteName) + StringSizeZero(PrintName);
+
+  if RequiredSize + SizeOf(TReparseDataBuffer) >
+    MAXIMUM_REPARSE_DATA_BUFFER_SIZE then
+  begin
+    Result.Location := 'NtxSetSymlinkReparse';
+    Result.Status := STATUS_NAME_TOO_LONG;
+    Exit;
+  end;
+
+  IMemory(Buffer) := Auto.AllocateDynamic(RequiredSize);
+  Buffer.Data.SubstituteNameOffset := 0;
+  Buffer.Data.SubstituteNameLength := StringSizeNoZero(SubstituteName);
+  Buffer.Data.PrintNameOffset := Buffer.Data.SubstituteNameLength +
+    SizeOf(WideChar);
+  Buffer.Data.PrintNameLength := StringSizeNoZero(PrintName);
+  Buffer.Data.Flags := Flags;
+
+  Move(PWideChar(SubstituteName)^, Buffer.Data.PathBuffer[0],
+    Buffer.Data.SubstituteNameLength);
+
+  Move(PWideChar(PrintName)^, Buffer.Data
+    .PathBuffer{$R-}[Succ(Length(SubstituteName))]{$IFDEF R+}{$R+}{$ENDIF},
+    Buffer.Data.PrintNameLength);
+
+  Result := NtxSetReparseDataFile(hxFile, IO_REPARSE_TAG_SYMLINK,
+    Buffer.Data, Buffer.Size);
 end;
 
 function NtxWaitPipe;
