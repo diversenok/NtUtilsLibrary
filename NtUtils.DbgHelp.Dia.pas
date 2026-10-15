@@ -237,7 +237,8 @@ function DiaxSymbolMachine(
 function DiaxSymbolsAreIdentical(
   const SymbolA: IDiaSymbol;
   const SymbolB: IDiaSymbol;
-  out Identical: Boolean
+  out Identical: Boolean;
+  RelaxedMode: Boolean = False
 ): TNtxStatus;
 
 { Symbol formatting }
@@ -703,6 +704,25 @@ begin
 end;
 
 function DiaxSymbolsAreIdentical;
+  function DiaxIsPointerToSameUdt(
+    PotentialPointerTag: TSymTagEnum;
+    const PotentialPointerSymbol: IDiaSymbol;
+    PotentialUdtTag: TSymTagEnum;
+    const PotentialUdtSymbol: IDiaSymbol
+  ): Boolean;
+  var
+    ReferencedSymbol: IDiaSymbol;
+    Identical: Boolean;
+  begin
+    Result := (PotentialPointerTag = SymTagPointerType) and
+      (PotentialUdtTag = SymTagUDT) and
+      DiaxSymbolGetType(PotentialPointerSymbol, ReferencedSymbol).IsSuccess and
+      DiaxSymbolsAreIdentical(PotentialUdtSymbol, ReferencedSymbol, Identical,
+      RelaxedMode).IsSuccess and Identical;
+  end;
+const
+  ORDINAL_BASIC_TYPES = [btChar..btUInt, btBool..btUnsignedInt128,
+    btHresult..btChar8];
 var
   IdA, IdB: Cardinal;
   TagA, TagB: TSymTagEnum;
@@ -749,6 +769,16 @@ begin
 
   if TagA <> TagB then
   begin
+    // Sometimes parameter data symbols and argument type symbols disargee on
+    // whether something is a class/struct or a pointer to it. Conflate them
+    // in relaxed mode.
+    if RelaxedMode and (DiaxIsPointerToSameUdt(TagA, SymbolA, TagB, SymbolB) or
+      DiaxIsPointerToSameUdt(TagB, SymbolB, TagA, SymbolA)) then
+    begin
+      Identical := True;
+      Exit(NtxSuccess);
+    end;
+
     // Different kinds of symbols
     Identical := False;
     Exit(NtxSuccess);
@@ -786,8 +816,13 @@ begin
       if not Result.IsSuccess then
         Exit;
 
-      // Compare the underlying types
-      Identical := BasicTypeA = BasicTypeB;
+      // Compare the underlying types. In relaxed mode, treat ordinal types
+      // of the same size (which we already compared above) as identical.
+      Identical := (BasicTypeA = BasicTypeB) or (
+        RelaxedMode and
+        (BasicTypeA in ORDINAL_BASIC_TYPES) and
+        (BasicTypeB in ORDINAL_BASIC_TYPES)
+      );
       Exit(NtxSuccess);
     end;
 
@@ -822,7 +857,8 @@ begin
         Exit;
 
       // Recurse
-      Result := DiaxSymbolsAreIdentical(PointerA, PointerB, Identical);
+      Result := DiaxSymbolsAreIdentical(PointerA, PointerB, Identical,
+        RelaxedMode);
     end;
   else
     Result.Location := 'DiaxSymbolsAreIdentical';
@@ -1116,7 +1152,6 @@ var
   BasicType: TBasicType;
   FormatOptions: TDiaxTypeFormatOptions;
   i, j: Integer;
-  ArgAndDataMatch: Boolean;
 begin
   Info := Default(TDiaxFunctionInfo);
 
@@ -1293,7 +1328,7 @@ begin
       if i <= High(Info.Parameters) then
       begin
         Result := DiaxSymbolsAreIdentical(Info.Parameters[i].DataTypeSymbol,
-          Info.Arguments[i].ArgumentTypeSymbol, Identical);
+          Info.Arguments[i].ArgumentTypeSymbol, Identical, True);
 
         if not Result.IsSuccess then
           Exit;
@@ -1355,10 +1390,11 @@ begin
     dffmAuto, dffmArgumentsOnly:
     for i := 0 to High(Info.Arguments) do
     begin
-      Result := Result + Info.Arguments[i].TypeName;
-
       if (Mode = dffmAuto) and (i <= High(Info.Parameters)) then
-        Result := Result + ' ' + Info.Parameters[i].Name;
+        Result := Result + Info.Parameters[i].TypeName + ' ' +
+          Info.Parameters[i].Name
+      else
+        Result := Result + Info.Arguments[i].TypeName;
 
       if i < High(Info.Arguments) then
       begin
@@ -1404,7 +1440,6 @@ const
     [dfdoDumpParameters]);
 var
   Info: TDiaxFunctionInfo;
-  Match: Boolean;
 begin
   Result := DiaxSymbolDumpFunction(Info, Scope, Symbol, OPTIONS[Mode]);
 
@@ -1419,7 +1454,7 @@ begin
       Exit;
   end;
 
-  DiaxSymbolFormatFunctionDump(Info, MultiLine, Mode)
+  Prototype := DiaxSymbolFormatFunctionDump(Info, MultiLine, Mode);
 end;
 
 end.
