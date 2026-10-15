@@ -19,22 +19,38 @@ type
     dtfoAllowVarAgrs // Format zero-size NoType as "..." instead of "VOID"
   );
 
-  TDiaxFunctionFormatOptions = set of (
-    dffoMultiLine, // Format a function with each parameter on a new line
-    dffoValidateAndDataMatch // Verify that argument types match param data types
+  TDiaxFunctionDumpOptions = set of (
+    dfdoDumpParameters, // Parse parameter data symbols
+    dfdoDumpArguments   // Parse argument type symbols
   );
 
-  TDiaxArgumentFormat = record
+  TDiaxParameterInfo = record
+    DataSymbol: IDiaSymbol;
+    DataTypeSymbol: IDiaSymbol;
     TypeName: String;
     Name: String;
   end;
 
-  TDiaxFunctionFormat = record
-    ReturnTypeName: String;
-    CallingConvention: String;
-    FunctionName: String;
-    Arguments: TArray<TDiaxArgumentFormat>;
+  TDiaxArgumentInfo = record
+    ArgumentTypeSymbol: IDiaSymbol;
+    TypeName: String;
   end;
+
+  TDiaxFunctionInfo = record
+    FunctionTypeSymbol: IDiaSymbol;
+    ReturnTypeSymbol: IDiaSymbol;
+    ReturnTypeName: String;
+    FunctionName: String;
+    CallingConvention: String;
+    Parameters: TArray<TDiaxParameterInfo>;
+    Arguments: TArray<TDiaxArgumentInfo>;
+  end;
+
+  TDiaxFunctionFormatMode = (
+    dffmAuto,           // Combined
+    dffmArgumentsOnly,  // Only use argument type symbols (no names)
+    dffmParamatersOnly  // Only use paramater data symbols
+  );
 
 { PDB }
 
@@ -241,20 +257,35 @@ function DiaxSymbolFormatTypeName(
   Options: TDiaxTypeFormatOptions = []
 ): TNtxStatus;
 
-// Format a function or a function type symbol into a string
+// Collect information about a function for formatting
+function DiaxSymbolDumpFunction(
+  out Info: TDiaxFunctionInfo;
+  const Scope: IDiaSymbol;
+  const Symbol: IDiaSymbol;
+  Options: TDiaxFunctionDumpOptions = [dfdoDumpParameters, dfdoDumpArguments]
+): TNtxStatus;
+
+// Verify whether argument types and parameter datas (which are stored
+// separately) agree on the function prototype.
+function DiaxValidateParamsAndArgumentsMatch(
+  const Info: TDiaxFunctionInfo
+): TNtxStatus;
+
+// Format a dumped function into a string
+function DiaxSymbolFormatFunctionDump(
+  const Info: TDiaxFunctionInfo;
+  MultiLine: Boolean = False;
+  Mode: TDiaxFunctionFormatMode = dffmAuto
+): String;
+
+// Format a function type into a string
 function DiaxSymbolFormatFunction(
   const Scope: IDiaSymbol;
   const Symbol: IDiaSymbol;
-  out FormatString: String;
-  Options: TDiaxFunctionFormatOptions = [dffoMultiLine, dffoValidateAndDataMatch]
-): TNtxStatus;
-
-// Format a function or a function type symbol
-function DiaxSymbolFormatFunctionEx(
-  const Scope: IDiaSymbol;
-  const Symbol: IDiaSymbol;
-  out Format: TDiaxFunctionFormat;
-  Options: TDiaxFunctionFormatOptions = [dffoValidateAndDataMatch]
+  out Prototype: String;
+  MultiLine: Boolean = False;
+  Mode: TDiaxFunctionFormatMode = dffmAuto;
+  ValidateParameterMatch: Boolean = False
 ): TNtxStatus;
 
 implementation
@@ -1051,7 +1082,8 @@ begin
     // Function types require collecting arguments
     SymTagFunctionType:
     begin
-      Result := DiaxSymbolFormatFunction(Scope, Symbol, TypeName, []);
+      Result := DiaxSymbolFormatFunction(Scope, Symbol, TypeName, False,
+        dffmAuto);
 
       if not Result.IsSuccess then
         Exit;
@@ -1075,261 +1107,319 @@ begin
     TypeName := 'CONST ' + TypeName;
 end;
 
-function DiaxSymbolFormatFunction;
+function DiaxSymbolDumpFunction;
 var
-  Format: TDiaxFunctionFormat;
-  i: Integer;
-begin
-  // Collect and format return/argument types
-  Result := DiaxSymbolFormatFunctionEx(Scope, Symbol, Format);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  if (Format.FunctionName = '') and (Format.ReturnTypeName = '') then
-  begin
-    // No information to format
-    Result.Location := 'DiaxSymbolFormatFunction';
-    Result.HResult := S_FALSE;
-    Exit;
-  end;
-
-  if Format.ReturnTypeName <> '' then
-  begin
-    FormatString := Format.ReturnTypeName + ' ';
-
-    if Format.CallingConvention <> '' then
-      FormatString := FormatString + Format.CallingConvention + ' ';
-  end
-  else
-    FormatString := '';
-
-  if Format.FunctionName <> '' then
-    FormatString := FormatString + Format.FunctionName;
-
-  RtlxSuffixStripString(' ', FormatString, True);
-
-  if Format.ReturnTypeName = '' then
-  begin
-    if dffoMultiLine in Options then
-      FormatString := FormatString + ';';
-
-    Exit;
-  end;
-
-  FormatString := FormatString + '(';
-
-  for i := 0 to High(Format.Arguments) do
-  begin
-    if dffoMultiLine in Options then
-      FormatString := FormatString + #$D#$A'    ';
-
-    FormatString := FormatString + Format.Arguments[i].TypeName;
-
-    if Format.Arguments[i].Name <> '' then
-      FormatString := FormatString + ' ' + Format.Arguments[i].Name;
-
-    if i < High(Format.Arguments) then
-    begin
-      if dffoMultiLine in Options then
-        FormatString := FormatString + ','
-      else
-        FormatString := FormatString + ', ';
-    end;
-  end;
-
-  if dffoMultiLine in Options then
-      FormatString := FormatString + #$D#$A'    ';
-
-  FormatString := FormatString + ')';
-
-  if dffoMultiLine in Options then
-    FormatString := FormatString + ';'
-end;
-
-function DiaxSymbolFormatFunctionEx;
-var
+  ReferencedType: IDiaSymbol;
+  Datas, Args: TArray<IDiaSymbol>;
   Tag: TSymTagEnum;
-  FunctionType, ReturnType: IDiaSymbol;
-  Args, ArgTypes, Datas, DataTypes: TArray<IDiaSymbol>;
-  FormatOptions: TDiaxTypeFormatOptions;
   DataKind: TDataKind;
-  ArgAndDataMatch: Boolean;
+  BasicType: TBasicType;
+  FormatOptions: TDiaxTypeFormatOptions;
   i, j: Integer;
+  ArgAndDataMatch: Boolean;
 begin
-  Format := Default(TDiaxFunctionFormat);
-  Datas := nil;
-  DataTypes := nil;
+  Info := Default(TDiaxFunctionInfo);
 
-  // Check if we got a function or only its type
+  // Check what kind of symbol we got
   Result := DiaxSymbolGetTag(Symbol, Tag);
 
   if not Result.IsSuccess then
     Exit;
 
-  case Tag of
-    SymTagFunction:
+  if not (Tag in [SymTagFunction, SymTagFunctionType, SymTagData,
+    SymTagPointerType, SymTagTypedef]) then
+  begin
+    Result.Location := 'DiaxSymbolFormatFunctionEx';
+    Result.LastCall.UsesInfoClass(Tag, icParse);
+    Result.Status := STATUS_UNKNOWN_REVISION;
+    Exit;
+  end;
+
+  // Extract the name
+  if Tag in [SymTagFunction, SymTagData, SymTagTypedef] then
+  begin
+    Result := DiaxSymbolGetName(Symbol, Info.FunctionName);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Collect function parameter datas
+  if (Tag = SymTagFunction) and (dfdoDumpParameters in Options) then
+  begin
+    Result := DiaxSymbolEnumerateChildren(Datas, Symbol, SymTagData);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    SetLength(Info.Parameters, Length(Datas));
+    j := 0;
+    for i := 0 to High(Datas) do
     begin
-      // Lookup the function name
-      Result := DiaxSymbolGetName(Symbol, Format.FunctionName);
+      // Check whether the data is a parameter
+      Result := DiaxSymbolGetDataKind(Datas[i], DataKind);
 
       if not Result.IsSuccess then
         Exit;
 
-      // Lookup the function type
-      Result := DiaxSymbolGetTypeOrNil(Symbol, FunctionType);
+      if DataKind <> DataIsParam then
+        Continue;
 
-      // No type - nothing to explore
-      if not Result.IsSuccess or (Result.HResult = S_FALSE) then
-        Exit;
-
-      // Lookup function datas
-      Result := DiaxSymbolEnumerateChildren(Datas, Symbol, SymTagData);
+      // Save its name
+      Result := DiaxSymbolGetName(Datas[i], Info.Parameters[j].Name);
 
       if not Result.IsSuccess then
         Exit;
 
-      SetLength(DataTypes, Length(Datas));
-      for i := 0 to High(Datas) do
-      begin
-        // And the corresponding data types
-        Result := DiaxSymbolGetType(Datas[i], DataTypes[i]);
+      // Save the symbol and its type
+      Info.Parameters[j].DataSymbol := Datas[i];
+      Result := DiaxSymbolGetType(Datas[i], Info.Parameters[j].DataTypeSymbol);
 
-        if not Result.IsSuccess then
-          Exit;
-      end;
+      if not Result.IsSuccess then
+        Exit;
+
+      // Format the type name
+      Result := DiaxSymbolFormatTypeName(Scope,
+        Info.Parameters[j].DataTypeSymbol,
+        Info.Parameters[j].TypeName);
+
+      if not Result.IsSuccess then
+        Exit;
+
+      Inc(j);
     end;
 
-    SymTagTypedef:
-    begin
-      // Lookup the function typedef name
-      Result := DiaxSymbolGetName(Symbol, Format.FunctionName);
+    SetLength(Info.Parameters, j);
+  end;
 
-      if not Result.IsSuccess then
-        Exit;
+  Info.FunctionTypeSymbol := Symbol;
 
-      // Lookup the underlying type
-      Result := DiaxSymbolGetType(Symbol, FunctionType);
+  // Extract the referenced function type
+  while Tag in [SymTagFunction, SymTagData, SymTagPointerType, SymTagTypedef] do
+  begin
+    Result := DiaxSymbolGetType(Info.FunctionTypeSymbol, ReferencedType);
 
-      if not Result.IsSuccess then
-        Exit;
+    if not Result.IsSuccess then
+      Exit;
 
-      // Check that the underying type is a function definition
-      Result := DiaxSymbolGetTag(FunctionType, Tag);
+    Result := DiaxSymbolGetTag(ReferencedType, Tag);
 
-      if not Result.IsSuccess then
-        Exit;
+    if not Result.IsSuccess then
+      Exit;
 
-      if Tag <> SymTagFunctionType then
-      begin
-        Result.Location := 'DiaxSymbolFormatFunctionEx';
-        Result.LastCall.UsesInfoClass(Tag, icParse);
-        Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
-        Exit;
-      end;
-    end;
+    Info.FunctionTypeSymbol := ReferencedType;
+  end;
 
-    SymTagFunctionType:
-      FunctionType := Symbol;
-  else
+  // If the function has no type, there is nothing else to process
+  if (Tag = SymTagBaseType) and DiaxSymbolGetBasicType(
+    Info.FunctionTypeSymbol, BasicType).IsSuccess and
+    (BasicType = btNoType) then
+    Exit;
+
+  if Tag <> SymTagFunctionType then
+  begin
     Result.Location := 'DiaxSymbolFormatFunctionEx';
     Result.LastCall.UsesInfoClass(Tag, icParse);
     Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
     Exit;
   end;
 
-  // Lookup the return type
-  Result := DiaxSymbolGetTypeOrNil(FunctionType, ReturnType);
+  // Extract the return type
+  Result := DiaxSymbolGetType(Info.FunctionTypeSymbol,
+    Info.ReturnTypeSymbol);
 
-  if not Result.IsSuccess or (Result.HResult = S_FALSE) then
+  if not Result.IsSuccess then
     Exit;
 
-  // Format
-  Result := DiaxSymbolFormatTypeName(Scope, ReturnType, Format.ReturnTypeName);
+  // Format it
+  Result := DiaxSymbolFormatTypeName(Scope, Info.ReturnTypeSymbol,
+    Info.ReturnTypeName);
 
   if not Result.IsSuccess then
     Exit;
 
   // Lookup the calling convention
-  Result := DiaxSymbolFormatCallingConvention(Scope, FunctionType,
-    Format.CallingConvention);
+  Result := DiaxSymbolFormatCallingConvention(Scope, Info.FunctionTypeSymbol,
+    Info.CallingConvention);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Lookup arguments
-  Result := DiaxSymbolEnumerateChildren(Args, FunctionType,
-    SymTagFunctionArgType);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  SetLength(Format.Arguments, Length(Args));
-  SetLength(ArgTypes, Length(Args));
-
-  for i := 0 to High(Args) do
+  if dfdoDumpArguments in Options then
   begin
-    // Lookup argument types
-    Result := DiaxSymbolGetType(Args[i], ArgTypes[i]);
+    // Extract arguments
+    Result := DiaxSymbolEnumerateChildren(Args, Info.FunctionTypeSymbol,
+      SymTagFunctionArgType);
 
     if not Result.IsSuccess then
       Exit;
 
-    // Use the "..." type only for the last argument (unless it's the only one)
-    if (i = High(Args)) and (Length(Args) > 1)  then
-      FormatOptions := [dtfoAllowVarAgrs]
-    else
-      FormatOptions := [];
+    SetLength(Info.Arguments, Length(Args));
 
-    // Format them
-    Result := DiaxSymbolFormatTypeName(Scope, ArgTypes[i],
-      Format.Arguments[i].TypeName, FormatOptions);
-  end;
-
-  // Lookup arguments names
-  if Length(Datas) > 0 then
-  begin
-    j := 0;
     for i := 0 to High(Args) do
     begin
-      while j <= High(Datas) do
+      // Lookup the argument type
+      Result := DiaxSymbolGetType(Args[i], Info.Arguments[i].ArgumentTypeSymbol);
+
+      if not Result.IsSuccess then
+        Exit;
+
+      // Use the "..." type only for the last argument (unless it's the only one)
+      if (i = High(Args)) and (Length(Args) > 1)  then
+        FormatOptions := [dtfoAllowVarAgrs]
+      else
+        FormatOptions := [];
+
+      // Format its type
+      Result := DiaxSymbolFormatTypeName(Scope,
+        Info.Arguments[i].ArgumentTypeSymbol,
+        Info.Arguments[i].TypeName, FormatOptions);
+
+      if not Result.IsSuccess then
+        Exit;
+    end;
+  end;
+end;
+
+function DiaxValidateParamsAndArgumentsMatch;
+var
+  i: Integer;
+  Identical: Boolean;
+begin
+  Identical := Length(Info.Parameters) <= Length(Info.Arguments);
+
+  if Identical then
+    for i := 0 to High(Info.Arguments) do
+      if i <= High(Info.Parameters) then
       begin
-        // Lookup the kind of the data
-        Result := DiaxSymbolGetDataKind(Datas[j], DataKind);
+        Result := DiaxSymbolsAreIdentical(Info.Parameters[i].DataTypeSymbol,
+          Info.Arguments[i].ArgumentTypeSymbol, Identical);
 
         if not Result.IsSuccess then
           Exit;
 
-        // We are only interested in parameters
-        if DataKind = TDataKind.DataIsParam then
-        begin
-          // Lookup the argument name
-          Result := DiaxSymbolGetName(Datas[j], Format.Arguments[i].Name);
-
-          if not Result.IsSuccess then
-            Exit;
-
-          // Verify the data type matches the argument type
-          if (dffoValidateAndDataMatch in Options) and
-            (not DiaxSymbolsAreIdentical(ArgTypes[i], DataTypes[j],
-            ArgAndDataMatch).IsSuccess or not ArgAndDataMatch) then
-          begin
-            Result.Location := 'DiaxSymbolFormatFunctionEx';
-            Result.LastCall.Parameter := Format.Arguments[i].Name;
-            Result.LastCall.UsesInfoClass(DataKind, icParse);
-            Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
-            Exit;
-          end;
-
-          Inc(j);
+        if not Identical then
           Break;
-        end;
+      end
+      else
+        Break;
 
-        // Try the next data
-        Inc(j);
+  if Identical then
+    Result := NtxSuccess
+  else
+  begin
+    Result.Location := 'DiaxValidateParamsAndArgumentsMatch';
+    Result.Status := STATUS_REVISION_MISMATCH;
+    Exit;
+  end
+end;
+
+function DiaxSymbolFormatFunctionDump;
+var
+  i: Integer;
+begin
+  Result := '';
+
+  if (Info.FunctionName = '') and (Info.ReturnTypeName = '') then
+    Exit;
+
+  if Info.ReturnTypeName <> '' then
+  begin
+    Result := Info.ReturnTypeName + ' ';
+
+    if Info.CallingConvention <> '' then
+      Result := Result + Info.CallingConvention + ' ';
+  end
+  else
+    Result := '';
+
+  if Info.FunctionName <> '' then
+    Result := Result + Info.FunctionName;
+
+  RtlxSuffixStripString(' ', Result, True);
+
+  if Info.ReturnTypeName = '' then
+  begin
+    if MultiLine then
+      Result := Result + ';';
+
+    Exit;
+  end;
+
+  Result := Result + '(';
+
+  if MultiLine then
+    Result := Result + #$D#$A'    ';
+
+  case Mode of
+    dffmAuto, dffmArgumentsOnly:
+    for i := 0 to High(Info.Arguments) do
+    begin
+      Result := Result + Info.Arguments[i].TypeName;
+
+      if (Mode = dffmAuto) and (i <= High(Info.Parameters)) then
+        Result := Result + ' ' + Info.Parameters[i].Name;
+
+      if i < High(Info.Arguments) then
+      begin
+        if MultiLine then
+          Result := Result + ','
+        else
+          Result := Result + ', ';
       end;
+
+      if MultiLine then
+        Result := Result + #$D#$A'    ';
+    end;
+
+    dffmParamatersOnly:
+    for i := 0 to High(Info.Parameters) do
+    begin
+      Result := Result + Info.Parameters[i].TypeName + ' ' +
+        Info.Parameters[i].Name;
+
+      if i < High(Info.Parameters) then
+      begin
+        if MultiLine then
+          Result := Result + ','
+        else
+          Result := Result + ', ';
+      end;
+
+      if MultiLine then
+        Result := Result + #$D#$A'    ';
     end;
   end;
+
+  Result := Result + ')';
+
+  if MultiLine then
+    Result := Result + ';'
+end;
+
+function DiaxSymbolFormatFunction;
+const
+  OPTIONS: array [TDiaxFunctionFormatMode] of TDiaxFunctionDumpOptions = (
+    [dfdoDumpParameters, dfdoDumpArguments], [dfdoDumpArguments],
+    [dfdoDumpParameters]);
+var
+  Info: TDiaxFunctionInfo;
+  Match: Boolean;
+begin
+  Result := DiaxSymbolDumpFunction(Info, Scope, Symbol, OPTIONS[Mode]);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if ValidateParameterMatch and (Mode = dffmAuto) then
+  begin
+    Result := DiaxValidateParamsAndArgumentsMatch(Info);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  DiaxSymbolFormatFunctionDump(Info, MultiLine, Mode)
 end;
 
 end.
