@@ -7,8 +7,8 @@ unit NtUtils.Processes.Create.Package;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.appmodel, Ntapi.Versions, NtUtils,
-  NtUtils.Processes.Create;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.appmodel, Ntapi.AppModel.ImmersiveShell,
+  Ntapi.Versions, NtUtils, NtUtils.Processes.Create;
 
 type
   TPkgxActivatePackageFlags = set of (

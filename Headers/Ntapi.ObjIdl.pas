@@ -888,11 +888,34 @@ type
   [SDKName('IServiceProvider')]
   IServiceProvider = interface (IUnknown)
     ['{6d5140c1-7436-11ce-8034-00aa006009fa}']
-
     function QueryService(
       [in] const guidService: TGuid;
       [in] const riid: TIid;
       [out] out vObject
+    ): HResult; stdcall;
+  end;
+
+  // private
+  [MinOSVersion(OsWin1121H2)]
+  IGetServiceIds = interface (IUnknown)
+    ['{4A073526-6103-4E21-B7BC-F519D1524E5D}']
+    function GetServiceIds(
+      [out] out guidServiceCount: Cardinal;
+      [out, ReleaseWith('CoTaskMemFree')] out guidService: PGuid
+    ): HResult; stdcall;
+  end;
+
+  // SDK::ObjectArray.h
+  IObjectArray = interface (IUnknown)
+    ['{92CA9DCD-5622-4bba-A805-5E9F541BD8C9}']
+    function GetCount(
+      [out] out Count: Integer
+    ): HResult; stdcall;
+
+    function GetAt(
+      [in] Index: Integer;
+      [in] const Iid: TIid;
+      [out] out pv
     ): HResult; stdcall;
   end;
 
