@@ -224,7 +224,7 @@ type
 
     function GetApplication(
       [in] const Iid: TIid;
-      [out] out pv
+      [out] out pv // IComApplInfo2, IComServices[2]
     ): HResult; stdcall;
 
     function GetClassContext(
@@ -274,6 +274,7 @@ type
 
   // private
   [SDKName('ThreadingModel')]
+  [NamingStyle(nsCamelCase)]
   TThreadingModel = (
     ApartmentThreaded = 0,
     FreeThreaded = 1,
@@ -284,6 +285,7 @@ type
 
   // private
   [SDKName('LocalServerType')]
+  [NamingStyle(nsCamelCase)]
   TLocalServerType = (
     LocalServerType16 = 0,
     LocalServerType32 = 1
@@ -308,7 +310,7 @@ type
 
     function GetProcess(
       [in] const Iid: TIid;
-      [out] out pv
+      [out] out pv // IComProcessInfo
     ): HResult; stdcall;
 
     function GetRemoteServerName(
@@ -420,7 +422,7 @@ type
   [SDKName('Windows::Foundation::ThreadingType')]
   [NamingStyle(nsCamelCase, 'ThreadingType')]
   TRoThreadingType = (
-    ThreadingType_BOTH = 0,
+    ThreadingType_Both = 0,
     ThreadingType_STA = 1,
     ThreadingType_MTA = 2
   );

@@ -8,8 +8,9 @@ unit NtUtils.Com;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.winrt, Ntapi.ntseapi,
-  DelphiApi.Reflection, Ntapi.Versions, NtUtils, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.winrt, Ntapi.comcatalog,
+  Ntapi.ntseapi, DelphiApi.Reflection, Ntapi.Versions, NtUtils,
+  DelphiUtils.AutoObjects;
 
 const
   COINIT_APARTMENTTHREADED = Ntapi.ObjBase.COINIT_APARTMENTTHREADED;
@@ -540,6 +541,23 @@ function RoxActivateInstanceWithFallback(
   const DllName: String;
   const ActivatableClassId: String;
   out Inspectable: IInspectable
+): TNtxStatus;
+
+{ COM/WinRT Catalog }
+
+// Query COM catalog for a CLSID information
+[RequiresCOM]
+function ComxQueryClsid(
+  const Clsid: TClsid;
+  out ClassInfo: IUnknown
+): TNtxStatus;
+
+// Query WinRT catalog for an ACID information
+[RequiresWinRT]
+function ComxQueryAcid(
+  out Info: IWinRTRuntimeClassInfo;
+  const ActivatableClassId: String;
+  [opt] const PackageName: String = ''
 ): TNtxStatus;
 
 { ORPC Debug }
@@ -1952,6 +1970,48 @@ begin
 
   if not Result.IsSuccess then
     Result := RtlxComActivateInstance(DllName, ActivatableClassId, Inspectable);
+end;
+
+{ COM/WinRT Catalog }
+
+function ComxQueryClsid;
+var
+  Catalog: IComCatalog;
+begin
+  Result.Location := 'CoGetComCatalog';
+  Result.LastCall.Parameter := 'IComCatalog';
+  Result.HResult := CoGetComCatalog(IComCatalog, Catalog);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IComCatalog::GetClassInfoW';
+  Result.HResult := Catalog.GetClassInfoW(Clsid, IClassCLassicInfo, ClassInfo);
+end;
+
+function ComxQueryAcid;
+var
+  Catalog: IWinRTCatalogInternal;
+begin
+  // Our IWinRTCatalogInternal definition only works on 19H1+
+  if not RtlOsVersionAtLeast(OsWin1019H1) then
+  begin
+    Result.Location := 'ComxQueryAcid';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result.Location := 'CoGetComCatalog';
+  Result.LastCall.Parameter := 'IWinRTCatalogInternal';
+  Result.HResult := CoGetComCatalog(IWinRTCatalogInternal, Catalog);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IWinRTCatalogInternal::GetRuntimeClassInfo';
+  Result.HResult := Catalog.GetRuntimeClassInfo($00400000, nil,
+    PWideChar(ActivatableClassId), RefStrOrNil(PackageName), nil,
+    IWinRTRuntimeClassInfo, Info, nil);
 end;
 
 { ORPC Debug }
