@@ -227,11 +227,55 @@ function ComxCreateInstanceWithFallback(
   ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
 
+// Create a COM object from a CLSID
+[RequiresCOM]
+function ComxCreateInstanceEx(
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_ALL
+): TNtxStatus;
+
+// Create a COM object from a CLSID as a specific user context
+[RequiresCOM]
+[MinOSVersion(OsWin10RS1)]
+function ComxCreateInstanceAsUser(
+  const Clsid: TClsid;
+  UserContext: TUmgrContext;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_LOCAL_SERVER
+): TNtxStatus;
+
 // Create a customizable COM activator
 [RequiresCOM]
 function ComxCreateCustomActivator(
   out Activator: IStandardActivator;
   out Properties: ISpecialSystemProperties
+): TNtxStatus;
+
+// Create a COM object using a standard activator
+[RequiresCOM]
+function ComxStandardActivatorCreateInstance(
+  const Activator: IStandardActivator;
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_ALL
+): TNtxStatus;
+
+// Create a class factory using a standard activator
+[RequiresCOM]
+function ComxStandardActivatorGetClassObject(
+  const Activator: IStandardActivator;
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
 
 // Create a class factory for a CLSID in an elevated local server
@@ -1230,7 +1274,7 @@ function ComxCreateInstance;
 begin
   Result.Location := 'CoCreateInstance';
   Result.LastCall.Parameter := ClassNameHint;
-  Result.HResult := CoCreateInstance(clsid, nil, ClsContext, Iid, pv);
+  Result.HResult := CoCreateInstance(Clsid, nil, ClsContext, Iid, pv);
 end;
 
 function ComxCreateInstanceWithFallback;
@@ -1239,6 +1283,42 @@ begin
 
   if not Result.IsSuccess then
     Result := RtlxComCreateInstance(DllName, Clsid, Iid, pv, ClassNameHint);
+end;
+
+function ComxCreateInstanceEx;
+var
+  MultiQi: TMultiQI;
+begin
+  MultiQi := Default(TMultiQI);
+  MultiQi.pIID := @Iid;
+
+  Result.Location := 'CoCreateInstanceEx';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := CoCreateInstanceEx(Clsid, nil, ClsContext, nil, 1, @MultiQi);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IMultiQI::QueryMultipleInterfaces';
+  Result.HResult := MultiQi.hr;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  IUnknown(pv) := MultiQi.Itf;
+end;
+
+function ComxCreateInstanceAsUser;
+begin
+  Result := LdrxCheckDelayedImport(delayed_CoCreateInstanceAsUser);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'CoCreateInstanceAsUser';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := CoCreateInstanceAsUser(Clsid, nil, ClsContext, UserContext,
+    Iid, pv);
 end;
 
 function ComxCreateCustomActivator;
@@ -1250,6 +1330,38 @@ begin
     Exit;
 
   Result := Comx.QueryInterface(Activator, Properties);
+end;
+
+function ComxStandardActivatorCreateInstance;
+var
+  MultiQi: TMultiQI;
+begin
+  MultiQi := Default(TMultiQI);
+  MultiQi.pIID := @Iid;
+
+  Result.Location := 'IStandardActivator::StandardCreateInstance';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := Activator.StandardCreateInstance(Clsid, nil, ClsContext,
+    nil, 1, @MultiQi);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IMultiQI::QueryMultipleInterfaces';
+  Result.HResult := MultiQi.hr;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  IUnknown(pv) := MultiQi.Itf;
+end;
+
+function ComxStandardActivatorGetClassObject;
+begin
+  Result.Location := 'IStandardActivator::StandardGetClassObject';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := Activator.StandardGetClassObject(Clsid, ClsContext, nil,
+    Iid, pv);
 end;
 
 function ComxGetClassObjectElevated;

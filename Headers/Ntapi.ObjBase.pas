@@ -53,6 +53,8 @@ const
   CLSCTX_ACTIVATE_AAA_AS_IU = $800000;
   CLSCTX_ACTIVATE_ARM32_SERVER = $2000000;
   CLSCTX_ALLOW_LOWER_TRUST_REGISTRATION	= $4000000;
+  CLSCTX_SERVER_MUST_BE_EQUAL_OR_GREATER_PRIVILEGE = $8000000;
+  CLSCTX_DO_NOT_ELEVATE_SERVER = $10000000;
   CLSCTX_PS_DLL = $80000000;
 
   CLSCTX_ALL = CLSCTX_INPROC_SERVER or CLSCTX_INPROC_HANDLER or
@@ -216,6 +218,8 @@ type
   [FlagName(CLSCTX_ACTIVATE_AAA_AS_IU, 'Activate AAA as IU')]
   [FlagName(CLSCTX_ACTIVATE_ARM32_SERVER, 'Activate ARM32 Server')]
   [FlagName(CLSCTX_ALLOW_LOWER_TRUST_REGISTRATION, 'Allow Lower Trust Registration')]
+  [FlagName(CLSCTX_SERVER_MUST_BE_EQUAL_OR_GREATER_PRIVILEGE, 'Server Must Be Equal Or Greater Privilege')]
+  [FlagName(CLSCTX_DO_NOT_ELEVATE_SERVER, 'Do Not Elevate Server')]
   [FlagName(CLSCTX_PS_DLL, 'PS DLL')]
   TClsCtx = type Cardinal;
 
@@ -297,7 +301,7 @@ type
   // SDK::objidl.h
   [SDKName('MULTI_QI')]
   TMultiQI = record
-    [in] IID: TIid;
+    [in] pIID: PGuid;
     [out] Itf: IUnknown;
     [out] hr: HResult;
   end;
@@ -833,6 +837,17 @@ function CoCreateInstance(
   [in] ClsContext: TClsCtx;
   [in] const iid: TIID;
   [out] out pv
+): HResult; stdcall; external ole32;
+
+// SDK::combaseapi.h
+[RequiresCOM]
+function CoCreateInstanceEx(
+  [in] const Clsid: TClsid;
+  [in, opt] unkOuter: IUnknown;
+  [in] ClsContext: TClsCtx;
+  [in, opt] ServerInfo: PCoServerInfo;
+  [in, NumberOfElements] Count: Cardinal;
+  [in, out] Results: PMultiQI
 ): HResult; stdcall; external ole32;
 
 // private
