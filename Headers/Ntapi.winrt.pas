@@ -79,7 +79,7 @@ type
     ['{AF86E2E0-B12D-4c6a-9C5A-D7AA65101E90}']
 
     function GetIids(
-      [out] out iidCount: Cardinal;
+      [out] out iidCount: Integer;
       [out, ReleaseWith('CoTaskMemFree')] out iids: PGuid
     ): HResult; stdcall;
 
@@ -104,7 +104,7 @@ type
   [SDKName('PFNGETACTIVATIONFACTORY')]
   TDllGetActivationFactory = function (
     [in] activatableClassId: THString;
-    [out] out factory: IActivationFactory
+    [out] out Factory: IActivationFactory
   ): HResult; stdcall;
 
   // SDK::windows.foundation.collections.h

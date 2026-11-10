@@ -517,6 +517,15 @@ function RoxGetActivationFactory(
   out Factory: IActivationFactory
 ): TNtxStatus;
 
+// Create a WinRT activation factory as a specific user context
+[RequiresWinRT]
+[MinOSVersion(OsWin10TH1)]
+function RoxGetActivationFactoryAsUser(
+  const ActivatableClassId: String;
+  const UserContext: TUmgrContext;
+  out Factory: IActivationFactory
+): TNtxStatus;
+
 // Create a WinRT activation factory via RoGetActivationFactory or fallback
 // to manual WinRT
 [MinOSVersion(OsWin8)]
@@ -541,6 +550,36 @@ function RoxActivateInstanceWithFallback(
   const DllName: String;
   const ActivatableClassId: String;
   out Inspectable: IInspectable
+): TNtxStatus;
+
+// Activate a WinRT class relative to a package
+[RequiresWinRT]
+[MinOSVersion(OsWin81)]
+function RoxActivateInstanceInPackage(
+  const ActivatableClassId: String;
+  const PackageFamilyName: String;
+  out Inspectable: IInspectable
+): TNtxStatus;
+
+// Activate a WinRT class as a specific user context
+[RequiresWinRT]
+[MinOSVersion(OsWin10TH1)]
+function RoxActivateInstanceAsUser(
+  const ActivatableClassId: String;
+  const UserContext: TUmgrContext;
+  out Inspectable: IInspectable
+): TNtxStatus;
+
+// Query a class name of an IInspectable
+function RoxInspectableGetClassName(
+  const Inspectable: IInspectable;
+  out ClassName: String
+): TNtxStatus;
+
+// Query supported IIDs of an IInspectable
+function RoxInspectableGetIids(
+  const Inspectable: IInspectable;
+  out Iids: TArray<TIid>
 ): TNtxStatus;
 
 { COM/WinRT Catalog }
@@ -1933,8 +1972,29 @@ begin
     Exit;
 
   Result.Location := 'RoGetActivationFactory';
+  Result.LastCall.Parameter := ActivatableClassId;
   Result.HResult := RoGetActivationFactory(ActivatableClassIdStr.Data,
     IActivationFactory, Factory);
+end;
+
+function RoxGetActivationFactoryAsUser;
+var
+  ActivatableClassIdStr: IHString;
+begin
+  Result := LdrxCheckDelayedImport(delayed_RoGetActivationFactoryAsUser);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RoxCreateString(ActivatableClassId, ActivatableClassIdStr);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RoGetActivationFactoryAsUser';
+  Result.LastCall.Parameter := ActivatableClassId;
+  Result.HResult := RoGetActivationFactoryAsUser(ActivatableClassIdStr.Data,
+    UserContext, IActivationFactory, Factory);
 end;
 
 function RoxGetActivationFactoryWithFallback;
@@ -1970,6 +2030,89 @@ begin
 
   if not Result.IsSuccess then
     Result := RtlxComActivateInstance(DllName, ActivatableClassId, Inspectable);
+end;
+
+function RoxActivateInstanceInPackage;
+var
+  ClassIdString, PackageMonikerString: IHString;
+begin
+  Result := LdrxCheckDelayedImport(delayed_RoActivateInstanceInPackage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RoxCreateString(ActivatableClassId, ClassIdString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RoxCreateString(PackageFamilyName, PackageMonikerString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RoActivateInstanceInPackage';
+  Result.LastCall.Parameter := ActivatableClassId;
+  Result.HResult := RoActivateInstanceInPackage(ClassIdString.Data,
+    PackageMonikerString.Data, Inspectable);
+end;
+
+function RoxActivateInstanceAsUser;
+var
+  ClassIdString: IHString;
+begin
+  Result := LdrxCheckDelayedImport(delayed_RoActivateInstanceAsUser);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RoxCreateString(ActivatableClassId, ClassIdString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RoActivateInstanceAsUser';
+  Result.LastCall.Parameter := ActivatableClassId;
+  Result.HResult := RoActivateInstanceAsUser(ClassIdString.Data, UserContext,
+    Inspectable);
+end;
+
+function RoxInspectableGetClassName;
+var
+  Buffer: THString;
+  BufferDeallocator: IHString;
+begin
+  Result.Location := 'IInspectable::GetRuntimeClassName';
+  Result.HResult := Inspectable.GetRuntimeClassName(Buffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := RoxCaptureString(Buffer);
+  ClassName := RoxSaveString(Buffer);
+end;
+
+function RoxInspectableGetIids;
+var
+  Buffer, Cursor: PGuid;
+  BufferDeallocator: IAutoReleasable;
+  i, Count: Integer;
+begin
+  Result.Location := 'IInspectable::GetIids';
+  Result.HResult := Inspectable.GetIids(Count, Buffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DeferCoTaskMemFree(Buffer);
+  Cursor := Buffer;
+  SetLength(Iids, Count);
+
+  for i := 0 to High(Iids) do
+  begin
+    Iids[i] := Cursor^;
+    Inc(Cursor);
+  end;
 end;
 
 { COM/WinRT Catalog }
