@@ -470,7 +470,9 @@ begin
         Result.Location := 'PkgxSRCacheIteratePackageNames';
         Result.Win32Error := APPMODEL_ERROR_PACKAGE_IDENTITY_CORRUPT;
         Exit;
-      end;
+      end
+      else
+        Current := KeyInfo.Name;
 
       // Advance to the next
       Inc(Index);
