@@ -24,6 +24,10 @@ const
   WRHF_EMBEDDED_NULLS_COMPUTED = $00000010;
   WRHF_RESERVED_FOR_PREALLOCATED_STRING_BUFFER = $80000000;
 
+  // private
+  CLSID_RuntimeBroker: TGuid = '{D63B10C5-BB46-4990-A94F-E40B9D520160}';
+  CLSID_PerAppRuntimeBroker: TGuid = '{2593F8B9-4EAF-457C-B68A-50F6B8EA6B54}';
+
 type
   [SDKName('WINDOWS_RUNTIME_HSTRING_FLAGS')]
   [FlagName(WRHF_STRING_REFERENCE, 'String Reference')]
@@ -160,6 +164,36 @@ type
       [in] capacity: Cardinal;
       [out, WritesTo] value: Pointer;
       [out] actual: Cardinal
+    ): HResult; stdcall;
+  end;
+
+  // private
+  [MinOSVersion(OsWin8)]
+  IRuntimeBroker = interface (IInspectable)
+    ['{6040EC14-6557-41F9-A3F7-B1CAB7B42120}']
+    function ActivateInstance(
+      [in] ActivatableClassId: PWideChar;
+      [out] out Instance: IInspectable
+    ): HResult; stdcall;
+
+    function GetActivationFactory(
+      [in] ActivatableClassId: PWideChar;
+      [in] const Iid: TIid;
+      [out] out Factory
+    ): HResult; stdcall;
+
+    function SetErrorFlags(
+      [in] Flags: Cardinal
+    ): HResult; stdcall;
+
+    function GetErrorFlags(
+      [out] out Flags: Cardinal
+    ): HResult; stdcall;
+
+    function DebuggerAddRef(
+    ): HResult; stdcall;
+
+    function DebuggerRelease(
     ): HResult; stdcall;
   end;
 
