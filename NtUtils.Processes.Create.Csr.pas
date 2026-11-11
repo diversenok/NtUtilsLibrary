@@ -12,6 +12,7 @@ uses
 // Connect to SbApiPort and ask CSRSS to create a process
 [SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
+[SupportedOption(spoSuspended)]
 [SupportedOption(spoSessionId)]
 function CsrxCreateProcess(
   const Options: TNtxCreateProcessOptions;
