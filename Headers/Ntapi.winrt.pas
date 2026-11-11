@@ -24,8 +24,10 @@ const
   WRHF_EMBEDDED_NULLS_COMPUTED = $00000010;
   WRHF_RESERVED_FOR_PREALLOCATED_STRING_BUFFER = $80000000;
 
-  // private
+  // private, Win 8+
   CLSID_RuntimeBroker: TGuid = '{D63B10C5-BB46-4990-A94F-E40B9D520160}';
+
+  // private, Win 10 RS2+
   CLSID_PerAppRuntimeBroker: TGuid = '{2593F8B9-4EAF-457C-B68A-50F6B8EA6B54}';
 
 type
